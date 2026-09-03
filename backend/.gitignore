@@ -1,0 +1,19 @@
+/vendor
+/node_modules
+/public/storage
+# User uploads are runtime data, never source. Broad on purpose so a new module's
+# upload path cannot slip into a commit the way leads/ nearly did.
+/storage/app/public/*
+# Laravel 11+ roots the private `local` disk at storage/app/private, which the rule above
+# does not cover — Documents and report exports both write real tenant files here, and a
+# report export did slip into a commit before this line existed.
+/storage/app/private/*
+.env
+.env.backup
+/storage/*.key
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+.phpunit.result.cache
+/.phpunit.cache

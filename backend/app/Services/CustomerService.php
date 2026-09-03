@@ -1,0 +1,145 @@
+<?php
+namespace App\Services;
+
+use App\Models\Address;
+use App\Models\Customer;
+use App\Models\TimelineActivity;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+
+class CustomerService
+{
+    public function __construct(private readonly WorkflowService $workflows) {}
+
+    public function paginate(array $filters = [], int $perPage = 25): LengthAwarePaginator
+    {
+        return Customer::query()
+            // payment_terms_days must be selected or effectivePaymentTerms() silently reads null
+            ->with(['group:id,name,code,payment_terms_days', 'owner:id,name'])
+            ->withCount('contacts')
+            ->status($filters['status'] ?? null)
+            ->search($filters['q'] ?? null)
+            ->when(!empty($filters['group_id']), fn ($q) => $q->where('group_id', $filters['group_id']))
+            ->when(!empty($filters['type']), fn ($q) => $q->where('type', $filters['type']))
+            ->when(!empty($filters['owner_id']), function ($q) use ($filters) {
+                return $filters['owner_id'] === 'me'
+                    ? $q->where('owner_id', auth()->id())
+                    : $q->where('owner_id', $filters['owner_id']);
+            })
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    public function find(int $id): Customer
+    {
+        return Customer::with([
+            'group', 'owner:id,name', 'branch:id,name',
+            'contacts' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('name'),
+            'addresses',
+            'timeline' => fn ($q) => $q->with('user:id,name')->orderByDesc('occurred_at')->limit(50),
+        ])->findOrFail($id);
+    }
+
+    public function create(array $data): Customer
+    {
+        return DB::transaction(function () use ($data) {
+            $addresses = $data['addresses'] ?? [];
+            unset($data['addresses']);
+
+            $data['customer_no'] ??= $this->nextCustomerNo();
+            $data['owner_id'] ??= auth()->id();
+
+            $customer = Customer::create($data);
+            $this->syncAddresses($customer, $addresses);
+
+            TimelineActivity::record($customer, 'system', 'Customer created');
+            $this->workflows->fireEvent('customers', 'customer.created', $customer);
+
+            return $this->find($customer->id);
+        });
+    }
+
+    public function update(Customer $customer, array $data): Customer
+    {
+        return DB::transaction(function () use ($customer, $data) {
+            $addresses = $data['addresses'] ?? null;
+            unset($data['addresses']);
+
+            $before = $customer->status;
+            $customer->update($data);
+
+            if ($addresses !== null) $this->syncAddresses($customer, $addresses, replace: true);
+
+            // Status transitions are the change people actually want to see in history.
+            if (array_key_exists('status', $data) && $data['status'] !== $before) {
+                TimelineActivity::record(
+                    $customer, 'status_change',
+                    "Status changed from {$before} to {$data['status']}",
+                    null, ['from' => $before, 'to' => $data['status']],
+                );
+            }
+
+            return $this->find($customer->id);
+        });
+    }
+
+    public function addNote(Customer $customer, string $body, string $type = 'note'): TimelineActivity
+    {
+        return TimelineActivity::record($customer, $type, ucfirst($type).' added', $body);
+    }
+
+    /**
+     * Sequential per-company customer number, e.g. CUST-00042.
+     * Uses the current max rather than a counter table; good enough at this scale and
+     * has no second source of truth to drift. Wrapped in the caller's transaction.
+     */
+    public function nextCustomerNo(string $prefix = 'CUST'): string
+    {
+        $companyId = auth()->user()?->company_id;
+
+        $last = Customer::withoutGlobalScopes()
+            ->withTrashed()
+            ->where('company_id', $companyId)
+            ->where('customer_no', 'like', $prefix.'-%')
+            ->orderByRaw('CAST(SUBSTRING(customer_no, ?) AS UNSIGNED) DESC', [strlen($prefix) + 2])
+            ->value('customer_no');
+
+        $n = $last ? ((int) substr($last, strlen($prefix) + 1)) + 1 : 1;
+
+        return sprintf('%s-%05d', $prefix, $n);
+    }
+
+    public function stats(): array
+    {
+        return [
+            'total'    => Customer::count(),
+            'active'   => Customer::where('status', 'active')->count(),
+            'on_hold'  => Customer::where('status', 'on_hold')->count(),
+            'blocked'  => Customer::where('status', 'blocked')->count(),
+            'mine'     => Customer::where('owner_id', auth()->id())->count(),
+            'new_this_month' => Customer::where('created_at', '>=', now()->startOfMonth())->count(),
+        ];
+    }
+
+    /** @param array<int, array<string, mixed>> $addresses */
+    private function syncAddresses(Customer $customer, array $addresses, bool $replace = false): void
+    {
+        if ($replace) $customer->addresses()->delete();
+
+        foreach ($addresses as $row) {
+            if (empty($row['line1'])) continue;
+            $customer->addresses()->create([
+                'company_id'  => $customer->company_id,
+                'type'        => $row['type'] ?? 'billing',
+                'label'       => $row['label'] ?? null,
+                'line1'       => $row['line1'],
+                'line2'       => $row['line2'] ?? null,
+                'city'        => $row['city'] ?? null,
+                'state'       => $row['state'] ?? null,
+                'postal_code' => $row['postal_code'] ?? null,
+                'country'     => $row['country'] ?? null,
+                'is_default'  => (bool) ($row['is_default'] ?? false),
+            ]);
+        }
+    }
+}

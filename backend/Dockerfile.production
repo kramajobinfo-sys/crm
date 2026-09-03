@@ -1,0 +1,45 @@
+FROM php:8.3-fpm-alpine
+
+RUN apk add --no-cache \
+        curl \
+        freetype-dev \
+        git \
+        icu-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
+        libwebp-dev \
+        libzip-dev \
+        mysql-client \
+        oniguruma-dev \
+        su-exec \
+        unzip \
+    && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql mbstring exif pcntl bcmath gd zip intl opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps
+
+WORKDIR /var/www/backend
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --prefer-dist \
+    --optimize-autoloader \
+    --no-scripts
+
+COPY . .
+COPY docker-entrypoint.production.sh /usr/local/bin/krama-entrypoint
+
+RUN composer dump-autoload --no-dev --optimize --no-interaction \
+    && chmod +x /usr/local/bin/krama-entrypoint \
+    && mkdir -p storage/app/public storage/framework/cache storage/framework/sessions \
+        storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+ENTRYPOINT ["krama-entrypoint"]
+CMD ["php-fpm", "-F"]

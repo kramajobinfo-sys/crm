@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: light; }
+  html.dark { color-scheme: dark; }
+  html { font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { @apply bg-surface-muted text-ink dark:bg-surface-dark dark:text-ink-dark; margin: 0; }
+  h1,h2,h3,h4 { font-weight: 500; }
+}
+
+@layer components {
+  .card { @apply bg-white dark:bg-surface-dark-muted border border-slate-200/70 dark:border-slate-700/60 rounded-lg shadow-card; }
+  .card-pad { @apply p-4; }
+
+  .btn { @apply inline-flex items-center justify-center gap-2 font-medium rounded-md transition focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-sm px-3.5 py-2 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-primary { @apply btn bg-primary-600 text-white hover:bg-primary-700; }
+  .btn-secondary { @apply btn border border-slate-300 dark:border-slate-600 text-ink dark:text-ink-dark hover:bg-slate-50 dark:hover:bg-surface-dark-subtle; }
+  .btn-ghost { @apply btn text-ink-muted dark:text-ink-dark-muted hover:bg-slate-100 dark:hover:bg-surface-dark-subtle; }
+
+  .input { @apply w-full rounded-md border-slate-300 dark:border-slate-600 dark:bg-surface-dark-muted dark:text-ink-dark text-sm focus:border-primary-500 focus:ring-primary-500; }
+  .label { @apply block text-sm font-medium text-ink dark:text-ink-dark mb-1; }
+
+  .badge { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium; }
+  .badge-success { @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300; }
+  .badge-warning { @apply badge bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300; }
+  .badge-danger  { @apply badge bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300; }
+  .badge-info    { @apply badge bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300; }
+  .badge-neutral { @apply badge bg-slate-100 text-slate-700 dark:bg-slate-700/50 dark:text-slate-300; }
+
+  .nav-item { @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm text-ink-muted dark:text-ink-dark-muted hover:bg-slate-100 dark:hover:bg-surface-dark-subtle; }
+  .nav-item-active { @apply bg-primary-50 text-primary-700 font-medium dark:bg-primary-900/30 dark:text-primary-300; }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-slate-300 dark:bg-slate-600 rounded; }
+::-webkit-scrollbar-thumb:hover { @apply bg-slate-400 dark:bg-slate-500; }

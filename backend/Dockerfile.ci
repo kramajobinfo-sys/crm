@@ -1,0 +1,5 @@
+# CI-only image: production backend image + pdo_sqlite (for in-memory test DB).
+FROM krama-crm-production-backend:latest
+USER root
+RUN apk add --no-cache sqlite-dev >/dev/null 2>&1 && docker-php-ext-install pdo_sqlite >/dev/null 2>&1
+WORKDIR /var/www/backend

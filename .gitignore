@@ -1,0 +1,18 @@
+# --- secrets (NEVER commit) ---
+/.env
+/.backup-key
+/.backup-offsite.env
+/.monitor.env
+/.monitor-state
+# --- dependencies / build output ---
+**/vendor/
+**/node_modules/
+frontend/dist/
+# --- runtime data & backups ---
+/backups/
+/deployment/storage/
+*.log
+# --- local backup copies made during ops ---
+*.orig
+*.orig-*
+.attfix-backup-*/

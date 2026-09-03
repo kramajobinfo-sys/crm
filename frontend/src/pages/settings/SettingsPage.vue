@@ -1,0 +1,500 @@
+<template>
+  <div class="p-4 md:p-5 max-w-[1400px] mx-auto">
+    <div class="mb-4">
+      <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('settings.title') }}</div>
+      <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('settings.subtitle') }}</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex items-center gap-1 mb-4 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+      <button v-for="tb in visibleTabs" :key="tb" class="px-3 py-1.5 text-xs -mb-px border-b-2 whitespace-nowrap"
+              :class="tab === tb ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-muted dark:text-ink-dark-muted'"
+              @click="switchTab(tb)">
+        {{ $t(`settings.tab.${tb}`) }}
+      </button>
+    </div>
+
+    <!-- ===== COMPANY ===== -->
+    <div v-if="tab === 'company'" class="card p-4 max-w-2xl">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2"><label class="label">{{ $t('settings.c.name') }}</label><input v-model="company.name" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.legal_name') }}</label><input v-model="company.legal_name" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.tax_id') }}</label><input v-model="company.tax_id" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.currency') }}</label><input v-model="company.base_currency" maxlength="3" class="input text-sm uppercase" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.language') }}</label>
+          <select v-model="company.default_language" class="input text-sm" :disabled="!canEdit">
+            <option value="en">English</option><option value="ar">العربية</option>
+          </select></div>
+        <div><label class="label">{{ $t('settings.c.phone') }}</label><input v-model="company.phone" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.email') }}</label><input v-model="company.email" class="input text-sm" :disabled="!canEdit" /></div>
+        <div class="col-span-2"><label class="label">{{ $t('settings.c.address') }}</label><input v-model="company.address_line1" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.city') }}</label><input v-model="company.city" class="input text-sm" :disabled="!canEdit" /></div>
+        <div><label class="label">{{ $t('settings.c.country') }}</label><input v-model="company.country" class="input text-sm" :disabled="!canEdit" /></div>
+      </div>
+      <div v-if="canEdit" class="flex justify-end mt-4">
+        <button class="btn-primary text-xs px-4 py-1.5" :disabled="savingCompany" @click="saveCompany">{{ savingCompany ? $t('settings.saving') : $t('settings.save') }}</button>
+      </div>
+    </div>
+
+    <!-- ===== USERS ===== -->
+    <div v-else-if="tab === 'users'" class="card overflow-hidden">
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2">
+        <input v-model="userFilters.q" class="input text-sm w-52" :placeholder="$t('settings.search_users')" @keyup.enter="loadUsers" />
+        <button v-if="can('users.create')" class="btn-primary text-xs px-3 py-1.5 ml-auto" @click="openUser()"><Plus :size="12" /> {{ $t('settings.new_user') }}</button>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <tr>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.u.name') }}</th>
+            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('settings.u.roles') }}</th>
+            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('settings.u.branch') }}</th>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.u.status') }}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="u in users" :key="u.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2"><div class="text-ink dark:text-ink-dark">{{ u.name }}</div><div class="text-[11px] text-ink-subtle">{{ u.email }}</div></td>
+            <td class="px-3 py-2 hidden md:table-cell">
+              <span v-for="r in u.roles" :key="r" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 mr-1">{{ r }}</span>
+            </td>
+            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ u.branch?.name || '—' }}</td>
+            <td class="px-3 py-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded" :class="u.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                {{ u.is_active ? $t('settings.active') : $t('settings.inactive') }}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button v-if="can('users.update')" class="text-[11px] text-primary-600 hover:underline" @click="openUser(u)">{{ $t('settings.edit') }}</button>
+              <button v-if="can('users.delete')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeUser(u.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===== ROLES ===== -->
+    <div v-else-if="tab === 'roles'" class="flex gap-3 items-start">
+      <div class="card flex-1 min-w-0 overflow-hidden">
+        <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
+          <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.roles') }}</span>
+          <button v-if="can('roles.create')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openRole()"><Plus :size="11" /> {{ $t('settings.new_role') }}</button>
+        </div>
+        <div v-for="r in roles" :key="r.id"
+             class="flex items-center gap-2 px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
+             :class="selectedRole?.id === r.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+             @click="openRoleDetail(r)">
+          <ShieldCheck :size="14" class="text-ink-subtle shrink-0" />
+          <span class="text-sm text-ink dark:text-ink-dark">{{ r.name }}</span>
+          <span v-if="r.is_protected" class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">{{ $t('settings.protected') }}</span>
+          <span class="text-[11px] text-ink-subtle ml-auto">{{ r.permissions_count }} {{ $t('settings.perms') }} · {{ r.users_count }} {{ $t('settings.users_lc') }}</span>
+        </div>
+      </div>
+
+      <!-- Role permission editor -->
+      <div v-if="selectedRole" class="card w-full sm:w-[26rem] shrink-0 flex flex-col overflow-hidden max-h-[calc(100vh-12rem)]">
+        <div class="px-3 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
+          <input v-if="!selectedRole.is_protected && editingRole" v-model="roleForm.name" class="input text-sm flex-1" />
+          <span v-else class="text-sm font-medium text-ink dark:text-ink-dark flex-1">{{ selectedRole.name }}</span>
+          <button v-if="!selectedRole.is_protected && can('roles.update') && !editingRole" class="btn-secondary text-[11px] px-2 py-0.5" @click="editingRole = true">{{ $t('settings.edit') }}</button>
+          <button v-if="selectedRole.id && can('roles.create') && !editingRole" class="btn-secondary text-[11px] px-2 py-0.5" @click="openClone(selectedRole)">{{ $t('settings.clone') }}</button>
+          <button class="p-1 text-ink-subtle hover:text-ink" @click="selectedRole = null"><X :size="14" /></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+          <div v-for="(perms, module) in permissions" :key="module">
+            <div class="text-[10px] tracking-wider text-ink-subtle uppercase mb-1">{{ module }}</div>
+            <div class="grid grid-cols-2 gap-1">
+              <label v-for="p in perms" :key="p.name" class="flex items-center gap-1.5 text-ink-muted dark:text-ink-dark-muted">
+                <input type="checkbox" class="rounded border-slate-300" :value="p.name" v-model="roleForm.permissions"
+                       :disabled="!editingRole || selectedRole.is_protected" />
+                {{ p.name.split('.')[1] }}
+              </label>
+            </div>
+          </div>
+        </div>
+        <div v-if="editingRole" class="border-t border-slate-200 dark:border-slate-700 p-2.5 flex justify-end gap-2">
+          <button class="btn-secondary text-xs px-3 py-1.5" @click="cancelRoleEdit">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary text-xs px-3 py-1.5" :disabled="savingRole" @click="saveRole">{{ savingRole ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== API KEYS ===== -->
+    <div v-else-if="tab === 'api_keys'" class="card overflow-hidden">
+      <div v-if="newKeyPlain" class="p-3 border-b border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+        <div class="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">{{ $t('settings.ak.reveal_title') }}</div>
+        <div class="flex items-center gap-2">
+          <code class="flex-1 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded border border-amber-200 dark:border-amber-800 overflow-x-auto">{{ newKeyPlain }}</code>
+          <button class="btn-secondary text-[11px] px-2 py-1" @click="copyKey">{{ $t('settings.ak.copy') }}</button>
+          <button class="p-1 text-amber-700 hover:text-amber-900" @click="newKeyPlain = ''"><X :size="14" /></button>
+        </div>
+      </div>
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
+        <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.api_keys') }}</span>
+        <button v-if="can('api_keys.create')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openApiKey()"><Plus :size="11" /> {{ $t('settings.ak.new') }}</button>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <tr>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.ak.name') }}</th>
+            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('settings.ak.acts_as') }}</th>
+            <th class="text-left font-medium px-3 py-2 font-mono">{{ $t('settings.ak.prefix') }}</th>
+            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('settings.ak.last_used') }}</th>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.ak.status') }}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="k in apiKeys" :key="k.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ k.name }}</td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ k.user?.name || '—' }}</td>
+            <td class="px-3 py-2 font-mono text-[11px] text-ink-muted">{{ k.key_prefix }}…</td>
+            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ k.last_used_human || $t('settings.ak.never') }}</td>
+            <td class="px-3 py-2">
+              <span class="text-[10px] px-1.5 py-0.5 rounded"
+                    :class="k.is_active && !k.is_expired ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">
+                {{ k.is_expired ? $t('settings.ak.expired') : (k.is_active ? $t('settings.active') : $t('settings.ak.revoked')) }}
+              </span>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button v-if="can('api_keys.update') && k.is_active" class="text-[11px] text-amber-600 hover:underline" @click="revokeApiKey(k)">{{ $t('settings.ak.revoke') }}</button>
+              <button v-if="can('api_keys.delete')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeApiKey(k.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+          <tr v-if="!apiKeys.length"><td colspan="6" class="px-3 py-6 text-center text-xs text-ink-subtle">{{ $t('settings.ak.empty') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ===== BRANCHES / DEPARTMENTS ===== -->
+    <div v-else class="card overflow-hidden">
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
+        <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t(`settings.tab.${tab}`) }}</span>
+        <button v-if="can('settings.update')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openOrg()"><Plus :size="11" /> {{ $t(tab === 'branches' ? 'settings.new_branch' : 'settings.new_department') }}</button>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <tr>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.o.name') }}</th>
+            <th class="text-left font-medium px-3 py-2">{{ $t('settings.o.code') }}</th>
+            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ tab === 'branches' ? $t('settings.o.manager') : $t('settings.o.head') }}</th>
+            <th class="text-right font-medium px-3 py-2">{{ $t('settings.o.users') }}</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="o in orgRows" :key="o.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ o.name }}</td>
+            <td class="px-3 py-2 font-mono text-[11px] text-ink-muted">{{ o.code }}</td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ o.manager || o.head || '—' }}</td>
+            <td class="px-3 py-2 text-right tabular-nums text-ink-muted">{{ o.users_count }}</td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button v-if="can('settings.update')" class="text-[11px] text-primary-600 hover:underline" @click="openOrg(o)">{{ $t('settings.edit') }}</button>
+              <button v-if="can('settings.update')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeOrg(o.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- User modal -->
+    <div v-if="userForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="userForm.open = false">
+      <div class="card w-full max-w-lg p-4 mt-8">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-3">{{ userForm.id ? $t('settings.edit_user') : $t('settings.new_user') }}</div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="label">{{ $t('settings.u.name') }} *</label><input v-model="userForm.data.name" class="input text-sm" />
+            <p v-if="userForm.errors.name" class="text-[11px] text-red-500">{{ userForm.errors.name[0] }}</p></div>
+          <div><label class="label">{{ $t('settings.u.email') }} *</label><input v-model="userForm.data.email" class="input text-sm" />
+            <p v-if="userForm.errors.email" class="text-[11px] text-red-500">{{ userForm.errors.email[0] }}</p></div>
+          <div><label class="label">{{ userForm.id ? $t('settings.u.new_password') : $t('settings.u.password') }} {{ userForm.id ? '' : '*' }}</label>
+            <input v-model="userForm.data.password" type="password" class="input text-sm" autocomplete="new-password" />
+            <p v-if="userForm.errors.password" class="text-[11px] text-red-500">{{ userForm.errors.password[0] }}</p></div>
+          <div><label class="label">{{ $t('settings.u.phone') }}</label><input v-model="userForm.data.phone" class="input text-sm" /></div>
+          <div><label class="label">{{ $t('settings.u.branch') }}</label>
+            <select v-model="userForm.data.branch_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="b in meta.branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select></div>
+          <div><label class="label">{{ $t('settings.u.department') }}</label>
+            <select v-model="userForm.data.department_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="d in meta.departments" :key="d.id" :value="d.id">{{ d.name }}</option>
+            </select></div>
+          <div class="col-span-2"><label class="label">{{ $t('settings.u.roles') }}</label>
+            <div class="flex flex-wrap gap-2 mt-1">
+              <label v-for="r in meta.roles" :key="r" class="flex items-center gap-1 text-xs text-ink-muted">
+                <input type="checkbox" class="rounded border-slate-300" :value="r" v-model="userForm.data.roles" /> {{ r }}
+              </label>
+            </div>
+          </div>
+          <label class="col-span-2 flex items-center gap-1.5 text-xs text-ink-muted">
+            <input type="checkbox" class="rounded border-slate-300" v-model="userForm.data.is_active" /> {{ $t('settings.active') }}
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn-secondary text-xs px-3 py-1.5" @click="userForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary text-xs px-3 py-1.5" :disabled="userForm.saving" @click="submitUser">{{ userForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clone role modal -->
+    <div v-if="cloneForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="cloneForm.open = false">
+      <div class="card w-full max-w-sm p-4 mt-8">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-1">{{ $t('settings.clone_role') }}</div>
+        <div class="text-xs text-ink-muted mb-3">{{ $t('settings.clone_role_hint', { name: cloneForm.sourceName }) }}</div>
+        <label class="label">{{ $t('settings.new_role') }} *</label>
+        <input v-model="cloneForm.name" class="input text-sm w-full" @keyup.enter="submitClone" />
+        <p v-if="cloneForm.errors.name" class="text-[11px] text-red-500">{{ cloneForm.errors.name[0] }}</p>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn-secondary text-xs px-3 py-1.5" @click="cloneForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary text-xs px-3 py-1.5" :disabled="cloneForm.saving" @click="submitClone">{{ cloneForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API key modal -->
+    <div v-if="apiKeyForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="apiKeyForm.open = false">
+      <div class="card w-full max-w-sm p-4 mt-8">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-3">{{ $t('settings.ak.new') }}</div>
+        <label class="label">{{ $t('settings.ak.name') }} *</label>
+        <input v-model="apiKeyForm.data.name" class="input text-sm w-full" :placeholder="$t('settings.ak.name_ph')" />
+        <p v-if="apiKeyForm.errors.name" class="text-[11px] text-red-500">{{ apiKeyForm.errors.name[0] }}</p>
+        <label class="label mt-2.5">{{ $t('settings.ak.acts_as') }}</label>
+        <select v-model="apiKeyForm.data.user_id" class="input text-sm w-full">
+          <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+        </select>
+        <p class="text-[11px] text-ink-subtle mt-1">{{ $t('settings.ak.acts_as_hint') }}</p>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn-secondary text-xs px-3 py-1.5" @click="apiKeyForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary text-xs px-3 py-1.5" :disabled="apiKeyForm.saving" @click="submitApiKey">{{ apiKeyForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Org modal -->
+    <div v-if="orgForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="orgForm.open = false">
+      <div class="card w-full max-w-md p-4 mt-8">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-3">{{ $t(tab === 'branches' ? 'settings.branch' : 'settings.department') }}</div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div><label class="label">{{ $t('settings.o.name') }} *</label><input v-model="orgForm.data.name" class="input text-sm" />
+            <p v-if="orgForm.errors.name" class="text-[11px] text-red-500">{{ orgForm.errors.name[0] }}</p></div>
+          <div><label class="label">{{ $t('settings.o.code') }} *</label><input v-model="orgForm.data.code" class="input text-sm" />
+            <p v-if="orgForm.errors.code" class="text-[11px] text-red-500">{{ orgForm.errors.code[0] }}</p></div>
+          <template v-if="tab === 'branches'">
+            <div><label class="label">{{ $t('settings.c.city') }}</label><input v-model="orgForm.data.city" class="input text-sm" /></div>
+            <div><label class="label">{{ $t('settings.c.phone') }}</label><input v-model="orgForm.data.phone" class="input text-sm" /></div>
+          </template>
+          <div v-else class="col-span-2"><label class="label">{{ $t('settings.u.branch') }}</label>
+            <select v-model="orgForm.data.branch_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="b in meta.branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select></div>
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn-secondary text-xs px-3 py-1.5" @click="orgForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary text-xs px-3 py-1.5" :disabled="orgForm.saving" @click="submitOrg">{{ orgForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useToast } from 'vue-toastification';
+import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '@/stores/auth';
+import api from '@/services/settings';
+import { Plus, X, ShieldCheck } from 'lucide-vue-next';
+
+const toast = useToast();
+const { t } = useI18n();
+const auth = useAuthStore();
+const can = (p) => auth.can(p);
+
+const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view' };
+const allTabs = ['company', 'users', 'roles', 'api_keys', 'branches', 'departments'];
+const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
+const canEdit = computed(() => can('settings.update'));
+
+const tab = ref(visibleTabs.value[0] || 'company');
+const company = reactive({});
+const savingCompany = ref(false);
+const users = ref([]);
+const roles = ref([]);
+const permissions = reactive({});
+const branches = ref([]);
+const departments = ref([]);
+const meta = reactive({ roles: [], branches: [], departments: [] });
+const userFilters = reactive({ q: '' });
+const selectedRole = ref(null);
+const editingRole = ref(false);
+const savingRole = ref(false);
+const roleForm = reactive({ name: '', permissions: [] });
+const userForm = reactive({ open: false, id: null, saving: false, data: {}, errors: {} });
+const orgForm = reactive({ open: false, id: null, saving: false, data: {}, errors: {} });
+const cloneForm = reactive({ open: false, sourceId: null, sourceName: '', name: '', saving: false, errors: {} });
+const apiKeys = ref([]);
+const newKeyPlain = ref('');
+const apiKeyForm = reactive({ open: false, saving: false, data: { name: '', user_id: null }, errors: {} });
+
+const orgRows = computed(() => tab.value === 'branches' ? branches.value : departments.value);
+
+function switchTab(tb) { tab.value = tb; selectedRole.value = null; newKeyPlain.value = ''; loadTab(); }
+
+async function loadTab() {
+  if (tab.value === 'company') { const { data } = await api.company(); Object.assign(company, data.data); }
+  else if (tab.value === 'users') await loadUsers();
+  else if (tab.value === 'roles') await loadRoles();
+  else if (tab.value === 'branches') { const { data } = await api.branches(); branches.value = data.data || []; }
+  else if (tab.value === 'departments') { const { data } = await api.departments(); departments.value = data.data || []; }
+  else if (tab.value === 'api_keys') await loadApiKeys();
+}
+
+async function loadMeta() { try { const { data } = await api.usersMeta(); Object.assign(meta, data.data || {}); } catch { /* noop */ } }
+
+async function saveCompany() {
+  savingCompany.value = true;
+  try { const { data } = await api.updateCompany(company); Object.assign(company, data.data); toast.success(t('settings.saved')); }
+  catch { /* noop */ } finally { savingCompany.value = false; }
+}
+
+// --- users ---
+async function loadUsers() {
+  try { const { data } = await api.users({ q: userFilters.q || undefined, per_page: 100 }); users.value = data.data || []; } catch { /* noop */ }
+}
+function openUser(u) {
+  userForm.id = u?.id ?? null; userForm.errors = {};
+  userForm.data = { name: u?.name ?? '', email: u?.email ?? '', password: '', phone: u?.phone ?? '',
+    branch_id: u?.branch?.id ?? null, department_id: u?.department?.id ?? null,
+    roles: u ? [...u.roles] : [], is_active: u?.is_active ?? true };
+  userForm.open = true;
+}
+async function submitUser() {
+  userForm.saving = true; userForm.errors = {};
+  try {
+    const payload = { ...userForm.data };
+    if (userForm.id && !payload.password) delete payload.password;
+    userForm.id ? await api.updateUser(userForm.id, payload) : await api.createUser(payload);
+    toast.success(t('settings.saved'));
+    userForm.open = false;
+    await loadUsers();
+  } catch (e) { if (e.response?.status === 422) userForm.errors = e.response.data?.errors || {}; }
+  finally { userForm.saving = false; }
+}
+async function removeUser(id) {
+  try { await api.removeUser(id); await loadUsers(); }
+  catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message); }
+}
+
+// --- roles ---
+async function loadRoles() {
+  try {
+    const [r, p] = await Promise.all([api.roles(), api.permissions()]);
+    roles.value = r.data.data || [];
+    Object.keys(permissions).forEach((k) => delete permissions[k]);
+    Object.assign(permissions, p.data.data || {});
+  } catch { /* noop */ }
+}
+async function openRoleDetail(r) {
+  editingRole.value = false;
+  try { const { data } = await api.role(r.id); selectedRole.value = { ...r, ...data.data }; roleForm.name = data.data.name; roleForm.permissions = [...data.data.permissions]; }
+  catch { /* noop */ }
+}
+function openRole() {
+  selectedRole.value = { id: null, name: '', is_protected: false, permissions: [] };
+  roleForm.name = ''; roleForm.permissions = []; editingRole.value = true;
+}
+function cancelRoleEdit() {
+  editingRole.value = false;
+  if (selectedRole.value?.id) roleForm.permissions = [...selectedRole.value.permissions];
+  else selectedRole.value = null;
+}
+async function saveRole() {
+  savingRole.value = true;
+  try {
+    const payload = { name: roleForm.name, permissions: roleForm.permissions };
+    selectedRole.value.id ? await api.updateRole(selectedRole.value.id, payload) : await api.createRole(payload);
+    toast.success(t('settings.saved'));
+    editingRole.value = false; selectedRole.value = null;
+    await loadRoles();
+  } catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message || t('settings.check_fields')); }
+  finally { savingRole.value = false; }
+}
+
+function openClone(r) {
+  cloneForm.sourceId = r.id; cloneForm.sourceName = r.name; cloneForm.name = ''; cloneForm.errors = {};
+  cloneForm.open = true;
+}
+async function submitClone() {
+  cloneForm.saving = true; cloneForm.errors = {};
+  try {
+    await api.cloneRole(cloneForm.sourceId, { name: cloneForm.name });
+    toast.success(t('settings.saved'));
+    cloneForm.open = false;
+    await loadRoles();
+  } catch (e) { if (e.response?.status === 422) cloneForm.errors = e.response.data?.errors || {}; }
+  finally { cloneForm.saving = false; }
+}
+
+// --- org (branches/departments) ---
+function openOrg(o) {
+  orgForm.id = o?.id ?? null; orgForm.errors = {};
+  orgForm.data = { name: o?.name ?? '', code: o?.code ?? '', city: o?.city ?? '', phone: o?.phone ?? '', branch_id: o?.branch_id ?? null };
+  orgForm.open = true;
+}
+async function submitOrg() {
+  orgForm.saving = true; orgForm.errors = {};
+  const isBranch = tab.value === 'branches';
+  try {
+    const create = isBranch ? api.createBranch : api.createDepartment;
+    const update = isBranch ? api.updateBranch : api.updateDepartment;
+    orgForm.id ? await update(orgForm.id, orgForm.data) : await create(orgForm.data);
+    toast.success(t('settings.saved'));
+    orgForm.open = false;
+    await Promise.all([loadTab(), loadMeta()]);
+  } catch (e) { if (e.response?.status === 422) orgForm.errors = e.response.data?.errors || {}; }
+  finally { orgForm.saving = false; }
+}
+async function removeOrg(id) {
+  const remove = tab.value === 'branches' ? api.removeBranch : api.removeDepartment;
+  try { await remove(id); await Promise.all([loadTab(), loadMeta()]); }
+  catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message); }
+}
+
+// --- api keys ---
+async function loadApiKeys() {
+  try { const { data } = await api.apiKeys({ per_page: 100 }); apiKeys.value = data.data || []; } catch { /* noop */ }
+}
+async function openApiKey() {
+  if (!users.value.length) await loadUsers();
+  apiKeyForm.errors = {};
+  apiKeyForm.data = { name: '', user_id: auth.user?.id ?? users.value[0]?.id ?? null };
+  apiKeyForm.open = true;
+}
+async function submitApiKey() {
+  apiKeyForm.saving = true; apiKeyForm.errors = {};
+  try {
+    const { data } = await api.createApiKey(apiKeyForm.data);
+    newKeyPlain.value = data.data.plain_key;
+    apiKeyForm.open = false;
+    await loadApiKeys();
+  } catch (e) { if (e.response?.status === 422) apiKeyForm.errors = e.response.data?.errors || {}; }
+  finally { apiKeyForm.saving = false; }
+}
+async function revokeApiKey(k) {
+  try { await api.updateApiKey(k.id, { is_active: false }); await loadApiKeys(); }
+  catch { /* noop */ }
+}
+async function removeApiKey(id) {
+  try { await api.removeApiKey(id); await loadApiKeys(); }
+  catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message); }
+}
+async function copyKey() {
+  try { await navigator.clipboard.writeText(newKeyPlain.value); toast.success(t('settings.ak.copied')); }
+  catch { /* noop */ }
+}
+
+onMounted(async () => { await Promise.all([loadTab(), loadMeta()]); });
+</script>
