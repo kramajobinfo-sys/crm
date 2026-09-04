@@ -6,10 +6,53 @@ use App\Models\Contact;
 use App\Models\Customer;
 use App\Models\Lead;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
 class DuplicateDetectionService
 {
+    /**
+     * Proactive duplicate REVIEW: scan existing records of a type for groups that are
+     * likely the same entity (normalized email / digits-only phone). Company-scoped.
+     */
+    public function scan(string $type, int $companyId, int $limit = 50): array
+    {
+        $table = match ($type) {
+            'lead' => 'leads', 'account' => 'customers', 'contact' => 'contacts', default => null,
+        };
+        if (!$table) return ['type' => $type, 'groups' => []];
+
+        $groups = array_merge(
+            $this->scanBy($table, $companyId, 'email', "LOWER(TRIM(`email`))", "`email` IS NOT NULL AND `email` <> ''", $limit),
+            $this->scanBy($table, $companyId, 'phone', "REGEXP_REPLACE(COALESCE(NULLIF(`phone`,''), `mobile`, ''), '[^0-9]+', '')", "COALESCE(NULLIF(`phone`,''), `mobile`) IS NOT NULL", $limit),
+        );
+        usort($groups, fn ($a, $b) => $b['count'] <=> $a['count']);
+        return ['type' => $type, 'groups' => array_slice($groups, 0, $limit)];
+    }
+
+    private function scanBy(string $table, int $companyId, string $reason, string $normExpr, string $whereExtra, int $limit): array
+    {
+        $rows = DB::table($table)
+            ->selectRaw("$normExpr AS k, GROUP_CONCAT(id ORDER BY id) AS ids, COUNT(*) AS c")
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->whereRaw($whereExtra)
+            ->whereRaw("$normExpr <> ''")
+            ->groupByRaw($normExpr)
+            ->havingRaw('c > 1')
+            ->orderByDesc('c')->limit($limit)->get();
+
+        $out = [];
+        foreach ($rows as $r) {
+            $ids = array_map('intval', explode(',', (string) $r->ids));
+            $records = DB::table($table)->whereIn('id', $ids)
+                ->get(['id', 'name', 'email', 'phone', 'mobile'])
+                ->map(fn ($x) => (array) $x)->all();
+            $out[] = ['reason' => $reason, 'value' => (string) $r->k, 'count' => (int) $r->c, 'records' => $records];
+        }
+        return $out;
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function check(string $type, array $data, ?int $excludeId = null): array
     {

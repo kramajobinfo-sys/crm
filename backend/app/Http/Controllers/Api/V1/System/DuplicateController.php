@@ -16,6 +16,22 @@ class DuplicateController extends Controller
         private readonly RecordMergeService $merges,
     ) {}
 
+    /** Proactive duplicate review: groups of existing records likely to be the same entity. */
+    public function scan(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'type'  => ['required', Rule::in(['lead', 'account', 'contact'])],
+            'limit' => 'nullable|integer|min:1|max:200',
+        ]);
+        $permission = match ($data['type']) {
+            'lead' => 'leads.view', 'account' => 'customers.view', 'contact' => 'contacts.view',
+        };
+        $user = $request->user();
+        abort_unless($user->isPlatformAdmin() || $user->can($permission), 403);
+
+        return $this->success($this->duplicates->scan($data['type'], $user->company_id, (int) ($data['limit'] ?? 50)));
+    }
+
     public function check(Request $request): JsonResponse
     {
         $data = $request->validate([

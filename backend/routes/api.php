@@ -705,6 +705,7 @@ Route::prefix('v1')->group(function () {
         Route::post('notifications/read-all',       [NotificationController::class, 'markAllRead']);
         Route::get ('search',                       [GlobalSearchController::class, 'search']);
         Route::post('duplicates/check',             [DuplicateController::class, 'check']);
+        Route::get ('duplicates/scan',              [DuplicateController::class, 'scan']);
         Route::post('duplicates/merge-preview',     [DuplicateController::class, 'previewMerge']);
         Route::post('duplicates/merge',             [DuplicateController::class, 'merge']);
         Route::get ('audit-logs',                   [AuditLogController::class, 'index'])->middleware(['permission:audit.view', 'feature:audit']);
