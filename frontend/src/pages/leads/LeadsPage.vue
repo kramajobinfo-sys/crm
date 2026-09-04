@@ -1,81 +1,90 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('leads.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('leads.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <nav class="breadcrumb"><span>{{ $t('nav.ws_crm') }}</span><span class="opacity-50">›</span><span class="text-ink-muted dark:text-ink-dark-muted font-medium">{{ $t('leads.title') }}</span></nav>
+        <h1 class="page-title">{{ $t('leads.title') }}</h1>
+        <p class="page-sub">{{ $t('leads.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('leads.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('leads.refresh') }}
         </button>
-        <button v-if="can('leads.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
-          <Plus :size="12" /> {{ $t('leads.new') }}
+        <button v-if="can('leads.create')" class="btn-primary btn-sm" @click="openCreate">
+          <Plus :size="14" /> {{ $t('leads.new') }}
         </button>
       </div>
     </div>
 
     <!-- Stat tiles -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
       <button
         v-for="s in statTiles" :key="s.key"
-        class="card p-3 text-left transition-colors"
-        :class="isActiveTile(s) ? 'ring-1 ring-primary-500' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+        class="stat stat-clickable"
+        :class="isActiveTile(s) && 'stat-active'"
         @click="applyTile(s)"
       >
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value text-xl">
           {{ s.key === 'pipeline_value' ? compact(stats[s.key]) : (stats[s.key] ?? 0) }}
-        </div>
+        </span>
       </button>
     </div>
 
     <!-- Filters -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-56" :placeholder="$t('leads.search')" @keyup.enter="load" />
-      <select v-model="filters.status_id" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('leads.all_statuses') }}</option>
-        <option v-for="s in meta.statuses" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
-      <select v-model="filters.source_id" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('leads.all_sources') }}</option>
-        <option v-for="s in meta.sources" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
-      <select v-model="filters.rating" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('leads.all_ratings') }}</option>
-        <option v-for="r in meta.ratings" :key="r" :value="r">{{ $t(`leads.rating.${r}`) }}</option>
-      </select>
-      <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
-        <input type="checkbox" class="rounded border-slate-300" :checked="filters.owner_id === 'me'"
-               @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
-        {{ $t('leads.mine_only') }}
-      </label>
-      <button class="btn-secondary text-xs px-2.5 py-1 ml-auto" @click="resetFilters">{{ $t('leads.reset') }}</button>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <div class="relative">
+          <Search :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-subtle pointer-events-none" />
+          <input v-model="filters.q" class="input input-sm w-64 pl-8" :placeholder="$t('leads.search')" @keyup.enter="load" />
+        </div>
+        <select v-model="filters.status_id" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('leads.all_statuses') }}</option>
+          <option v-for="s in meta.statuses" :key="s.id" :value="s.id">{{ s.name }}</option>
+        </select>
+        <select v-model="filters.source_id" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('leads.all_sources') }}</option>
+          <option v-for="s in meta.sources" :key="s.id" :value="s.id">{{ s.name }}</option>
+        </select>
+        <select v-model="filters.rating" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('leads.all_ratings') }}</option>
+          <option v-for="r in meta.ratings" :key="r" :value="r">{{ $t(`leads.rating.${r}`) }}</option>
+        </select>
+        <label class="chip cursor-pointer" :class="filters.owner_id === 'me' && '!bg-primary-50 !text-primary-700 dark:!bg-primary-900/25 dark:!text-primary-300'">
+          <input type="checkbox" class="rounded border-line-strong w-3.5 h-3.5" :checked="filters.owner_id === 'me'"
+                 @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
+          {{ $t('leads.mine_only') }}
+        </label>
+        <button class="btn-ghost btn-sm ml-auto" @click="resetFilters">{{ $t('leads.reset') }}</button>
+      </div>
     </div>
 
     <div class="flex gap-3">
       <!-- List -->
-      <div class="card flex-1 min-w-0 overflow-hidden">
+      <div class="panel flex-1 min-w-0">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-        <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('leads.empty') }}</div>
+        <div v-else-if="!rows.length" class="empty">
+          <div class="empty-icon"><Search :size="18" /></div>
+          <div class="text-sm text-ink-muted dark:text-ink-dark-muted">{{ $t('leads.empty') }}</div>
+        </div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-xs text-ink-subtle dark:text-ink-dark-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="text-left font-medium px-3 py-2">{{ $t('leads.col.score') }}</th>
-                <th class="text-left font-medium px-3 py-2">{{ $t('leads.col.name') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('leads.col.status') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('leads.col.source') }}</th>
-                <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('leads.col.value') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('leads.col.owner') }}</th>
+                <th>{{ $t('leads.col.score') }}</th>
+                <th>{{ $t('leads.col.name') }}</th>
+                <th class="hidden md:table-cell">{{ $t('leads.col.status') }}</th>
+                <th class="hidden lg:table-cell">{{ $t('leads.col.source') }}</th>
+                <th class="th-num hidden lg:table-cell">{{ $t('leads.col.value') }}</th>
+                <th class="hidden lg:table-cell">{{ $t('leads.col.owner') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="r in rows" :key="r.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selected?.id === r.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+                class="cursor-pointer"
+                :class="selected?.id === r.id && 'is-selected'"
                 @click="openDetail(r.id)"
               >
                 <td class="px-3 py-2">
@@ -108,11 +117,11 @@
             </tbody>
           </table>
         </div>
-        <div v-if="pagination.last_page > 1" class="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
-          <span class="text-ink-subtle">{{ $t('leads.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}</span>
-          <div class="flex gap-1">
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page <= 1" @click="page--; load()">‹</button>
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
+        <div v-if="pagination.last_page > 1" class="flex items-center justify-between px-3 py-2.5 border-t border-line dark:border-line-dark text-xs">
+          <span class="text-ink-subtle dark:text-ink-dark-subtle">{{ $t('leads.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}</span>
+          <div class="flex gap-1.5">
+            <button class="btn-secondary btn-icon btn-sm" :disabled="page <= 1" @click="page--; load()">‹</button>
+            <button class="btn-secondary btn-icon btn-sm" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
           </div>
         </div>
       </div>
@@ -124,10 +133,10 @@
             <div class="text-sm font-medium text-ink dark:text-ink-dark truncate">{{ selected.name }}</div>
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.lead_no }}</div>
           </div>
-          <button v-if="can('leads.update')" class="btn-secondary text-[11px] px-2 py-0.5" @click="openEdit(selected)">
+          <button v-if="can('leads.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">
             {{ $t('leads.edit') }}
           </button>
-          <button v-if="can('activities.create')" class="btn-secondary text-[10px] px-2 py-0.5" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
+          <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
 
@@ -137,10 +146,10 @@
           {{ $t('leads.converted_to', { no: selected.customer?.customer_no || '—' }) }}
         </div>
         <div v-else-if="can('leads.convert')" class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0 flex gap-2">
-          <button class="btn-primary text-[11px] px-2.5 py-1" :disabled="converting" @click="openConvert">
+          <button class="btn-primary btn-xs" :disabled="converting" @click="openConvert">
             <UserPlus :size="11" /> {{ converting ? $t('leads.converting') : $t('leads.convert') }}
           </button>
-          <button v-if="can('leads.assign')" class="btn-secondary text-[11px] px-2.5 py-1" @click="doAutoAssign">
+          <button v-if="can('leads.assign')" class="btn-secondary btn-xs" @click="doAutoAssign">
             {{ $t('leads.auto_assign') }}
           </button>
         </div>
@@ -297,8 +306,8 @@
 
         <p v-if="conversion.error" class="text-[11px] text-red-500 mt-3">{{ conversion.error }}</p>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="conversion.open = false">{{ $t('leads.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="converting || conversion.loading_options" @click="submitConversion">
+          <button class="btn-secondary btn-sm" @click="conversion.open = false">{{ $t('leads.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="converting || conversion.loading_options" @click="submitConversion">
             {{ converting ? $t('leads.converting') : $t('leads.convert_confirm') }}
           </button>
         </div>
@@ -355,8 +364,8 @@
         </div>
         <p class="text-[11px] text-ink-subtle mt-2">{{ $t('leads.assign_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('leads.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submitForm">
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('leads.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">
             {{ form.saving ? $t('leads.saving') : $t('leads.save') }}
           </button>
         </div>
@@ -379,7 +388,7 @@ import DuplicateWarningModal from '@/components/crm/DuplicateWarningModal.vue';
 import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
-import { RefreshCw, Plus, X, Send, Paperclip, UserPlus, CheckCircle2 } from 'lucide-vue-next';
+import { RefreshCw, Plus, X, Send, Paperclip, UserPlus, CheckCircle2, Search } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -392,11 +401,11 @@ function addFollowUp(lead) {
 }
 
 const statTiles = [
-  { key: 'open',       label: 'leads.stat.open',       set: { converted: 'open', rating: '' } },
-  { key: 'hot',        label: 'leads.stat.hot',        set: { converted: 'open', rating: 'hot' } },
-  { key: 'warm',       label: 'leads.stat.warm',       set: { converted: 'open', rating: 'warm' } },
-  { key: 'unassigned', label: 'leads.stat.unassigned', set: { converted: 'open', rating: '' } },
-  { key: 'converted',  label: 'leads.stat.converted',  set: { converted: 'converted', rating: '' } },
+  { key: 'open',       label: 'leads.stat.open',       set: { converted: 'open', rating: '', owner_id: '' } },
+  { key: 'hot',        label: 'leads.stat.hot',        set: { converted: 'open', rating: 'hot', owner_id: '' } },
+  { key: 'warm',       label: 'leads.stat.warm',       set: { converted: 'open', rating: 'warm', owner_id: '' } },
+  { key: 'unassigned', label: 'leads.stat.unassigned', set: { converted: 'open', rating: '', owner_id: 'unassigned' } },
+  { key: 'converted',  label: 'leads.stat.converted',  set: { converted: 'converted', rating: '', owner_id: '' } },
   { key: 'pipeline_value', label: 'leads.stat.pipeline', set: null },
 ];
 
@@ -430,7 +439,9 @@ const conversionStages = computed(() => conversion.pipelines.flatMap((pipeline) 
   (pipeline.stages || []).map((stage) => ({ ...stage, pipeline: pipeline.name })),
 ));
 
-const isActiveTile = (s) => s.set && filters.converted === s.set.converted && filters.rating === s.set.rating;
+const isActiveTile = (s) => s.set && filters.converted === s.set.converted
+  && (filters.rating || '') === (s.set.rating || '')
+  && (filters.owner_id || '') === (s.set.owner_id || '');
 
 async function load() {
   loading.value = true;
@@ -644,5 +655,5 @@ const timelineClass = (ty) => ({
   system:        'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
 }[ty] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await Promise.all([load(), loadAux()]); });
+onMounted(async () => { await Promise.all([load(), loadAux()]); if (router.currentRoute.value.query.create) openCreate(); });
 </script>

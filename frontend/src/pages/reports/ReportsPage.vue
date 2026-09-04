@@ -1,11 +1,11 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('reports.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('reports.subtitle') }}</div>
+  <div class="page">
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('reports.title') }}</h1>
+        <p class="page-sub">{{ $t('reports.subtitle') }}</p>
       </div>
-      <button v-if="tab === 'builder' && can('reports.create')" class="btn-primary text-xs px-3 py-1.5" @click="newReport"><Plus :size="12" /> {{ $t('reports.new') }}</button>
+      <button v-if="tab === 'builder' && can('reports.create')" class="btn-primary btn-sm" @click="newReport"><Plus :size="12" /> {{ $t('reports.new') }}</button>
     </div>
 
     <div class="flex gap-1 mb-4 border-b border-slate-200 dark:border-slate-700">
@@ -47,7 +47,7 @@
                 <option value="line">{{ $t('reports.ct.line') }}</option>
                 <option value="pie">{{ $t('reports.ct.pie') }}</option>
               </select></div>
-            <div class="flex items-end"><button class="btn-primary text-xs px-4 py-1.5 w-full" :disabled="running" @click="run">{{ running ? $t('reports.running') : $t('reports.run') }}</button></div>
+            <div class="flex items-end"><button class="btn-primary btn-sm w-full" :disabled="running" @click="run">{{ running ? $t('reports.running') : $t('reports.run') }}</button></div>
           </div>
           <div class="mt-2">
             <label class="label">{{ $t('reports.measures') }}</label>
@@ -60,12 +60,12 @@
         </div>
 
         <!-- Result -->
-        <div v-if="result" class="card overflow-hidden">
+        <div v-if="result" class="panel">
           <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
             <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ result.rows.length }} {{ $t('reports.rows') }}</span>
             <div class="ml-auto flex gap-2">
-              <button v-if="can('reports.create')" class="btn-secondary text-[11px] px-2.5 py-1" @click="openSave"><Save :size="11" /> {{ $t('reports.save') }}</button>
-              <button v-if="loadedId && can('reports.export')" class="btn-secondary text-[11px] px-2.5 py-1" @click="doExport"><Download :size="11" /> {{ $t('reports.export') }}</button>
+              <button v-if="can('reports.create')" class="btn-secondary btn-xs" @click="openSave"><Save :size="11" /> {{ $t('reports.save') }}</button>
+              <button v-if="loadedId && can('reports.export')" class="btn-secondary btn-xs" @click="doExport"><Download :size="11" /> {{ $t('reports.export') }}</button>
             </div>
           </div>
 
@@ -76,13 +76,13 @@
 
           <!-- Table -->
           <div v-else class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
-                <tr><th v-for="c in result.columns" :key="c.key" class="text-left font-medium px-3 py-2" :class="c.key !== 'dimension' && 'text-right'">{{ c.label }}</th></tr>
+            <table class="data-table">
+              <thead>
+                <tr><th v-for="c in result.columns" :key="c.key" :class="c.key !== 'dimension' && 'th-num'">{{ c.label }}</th></tr>
               </thead>
               <tbody>
-                <tr v-for="(row, i) in result.rows" :key="i" class="border-t border-slate-100 dark:border-slate-700/60">
-                  <td v-for="c in result.columns" :key="c.key" class="px-3 py-2" :class="c.key === 'dimension' ? 'text-ink dark:text-ink-dark' : 'text-right tabular-nums text-ink-muted'">
+                <tr v-for="(row, i) in result.rows" :key="i">
+                  <td v-for="c in result.columns" :key="c.key" :class="c.key === 'dimension' ? 'text-ink dark:text-ink-dark' : 'td-num text-ink-muted'">
                     {{ c.key === 'dimension' ? row[c.key] : fmt(row[c.key]) }}
                   </td>
                 </tr>
@@ -103,8 +103,8 @@
         <label class="label">{{ $t('reports.description') }}</label>
         <input v-model="saveForm.description" class="input text-sm" />
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="saveForm.open = false">{{ $t('reports.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="!saveForm.name || saveForm.saving" @click="submitSave">{{ saveForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="saveForm.open = false">{{ $t('reports.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="!saveForm.name || saveForm.saving" @click="submitSave">{{ saveForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
         </div>
       </div>
     </div>

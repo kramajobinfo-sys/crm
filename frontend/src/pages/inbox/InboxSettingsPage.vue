@@ -1,21 +1,21 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1200px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
+  <div class="page">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('channels.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('channels.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('channels.title') }}</h1>
+        <p class="page-sub">{{ $t('channels.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('channels.refresh') }}</button>
-        <button class="btn-primary text-xs px-3 py-1.5" @click="openCreate"><Plus :size="12" /> {{ $t('channels.connect') }}</button>
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('channels.refresh') }}</button>
+        <button class="btn-primary btn-sm" @click="openCreate"><Plus :size="12" /> {{ $t('channels.connect') }}</button>
       </div>
     </div>
 
     <!-- Summary tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">{{ s.value }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
+        <div class="stat-value text-xl">{{ s.value }}</div>
       </div>
     </div>
 
@@ -105,8 +105,8 @@
         </template>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('channels.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving || !form.type" @click="submit">{{ form.saving ? $t('channels.saving') : $t('channels.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('channels.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving || !form.type" @click="submit">{{ form.saving ? $t('channels.saving') : $t('channels.save') }}</button>
         </div>
       </div>
     </div>

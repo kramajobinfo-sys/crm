@@ -1,32 +1,34 @@
 <template>
-  <header class="h-13 py-3 flex items-center gap-3 px-4 border-b border-slate-200 dark:border-slate-700
-                 bg-white dark:bg-surface-dark-muted shrink-0">
-    <button class="md:hidden btn-ghost p-1" :aria-label="$t('nav.open_menu')" @click="ui.toggleMobileSidebar()">
+  <header class="h-13 flex items-center gap-2 px-4 border-b border-line dark:border-line-dark
+                 bg-white/95 dark:bg-surface-dark-muted/95 backdrop-blur-sm shrink-0">
+    <button class="md:hidden btn-ghost btn-icon btn-sm" :aria-label="$t('nav.open_menu')" @click="ui.toggleMobileSidebar()">
       <Menu :size="18" />
     </button>
 
     <!-- Global search -->
-    <div class="flex-1 max-w-md relative">
-      <div class="flex items-center gap-2 bg-slate-100 dark:bg-surface-dark-subtle rounded-md px-3 py-1.5">
-        <Search :size="14" class="text-ink-subtle dark:text-ink-dark-subtle" />
+    <div class="flex-1 max-w-lg relative">
+      <div class="flex items-center gap-2 bg-surface-muted dark:bg-surface-dark-subtle rounded-lg h-9 px-3 border border-transparent focus-within:border-primary-500 focus-within:bg-white dark:focus-within:bg-surface-dark-muted focus-within:ring-2 focus-within:ring-primary-500/25 transition-all">
+        <Search :size="15" class="text-ink-subtle dark:text-ink-dark-subtle shrink-0" />
         <input
+          ref="searchInput"
           v-model="q"
           @input="onSearch"
           @focus="showResults = true"
           @blur="setTimeout(() => showResults = false, 200)"
           :placeholder="$t('app.search_placeholder')"
-          class="bg-transparent border-0 outline-none focus:ring-0 text-xs w-full p-0"
+          class="bg-transparent border-0 outline-none focus:ring-0 text-[13px] w-full p-0 text-ink dark:text-ink-dark"
         />
+        <span class="hidden sm:flex items-center gap-0.5 shrink-0"><kbd class="kbd">Ctrl</kbd><kbd class="kbd">K</kbd></span>
       </div>
-      <div v-if="showResults && Object.keys(results).length" class="absolute z-30 top-full mt-1 left-0 right-0 card p-2 max-h-80 overflow-auto">
+      <div v-if="showResults && Object.keys(results).length" class="absolute z-30 top-full mt-2 left-0 right-0 card shadow-pop p-1.5 max-h-96 overflow-auto">
         <template v-for="(items, type) in results" :key="type">
-          <div class="text-[10px] uppercase tracking-wider text-ink-subtle dark:text-ink-dark-subtle px-2 py-1">{{ type }}</div>
+          <div class="section-label px-2 py-1.5">{{ type }}</div>
           <a
             v-for="r in items" :key="`${type}-${r.id}`"
-            class="block px-2 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-surface-dark-subtle cursor-pointer"
+            class="block px-2 py-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer"
             @mousedown.prevent="openResult(type)"
           >
-            <div class="text-sm text-ink dark:text-ink-dark">{{ r.title }}</div>
+            <div class="text-[13px] font-medium text-ink dark:text-ink-dark">{{ r.title }}</div>
             <div v-if="r.subtitle" class="text-xs text-ink-subtle">{{ r.subtitle }}</div>
           </a>
         </template>
@@ -35,24 +37,44 @@
 
     <div class="flex-1" />
 
+    <!-- Quick create -->
+    <div v-if="quickCreateItems.length" ref="createMenu" class="relative">
+      <button class="btn-primary btn-sm" @click="showCreate = !showCreate" :aria-expanded="showCreate">
+        <Plus :size="15" /> <span class="hidden sm:inline">{{ $t('app.create') }}</span>
+        <ChevronDown :size="14" class="hidden sm:inline -mr-1 opacity-80" />
+      </button>
+      <div v-if="showCreate" class="absolute right-0 top-full mt-2 w-52 card shadow-pop p-1.5 z-30">
+        <div class="section-label px-2 py-1.5">{{ $t('app.create_new') }}</div>
+        <button
+          v-for="item in quickCreateItems" :key="item.name"
+          class="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[13px] text-ink dark:text-ink-dark hover:bg-primary-50 dark:hover:bg-primary-900/20"
+          @click="quickCreate(item)"
+        >
+          <component :is="item.icon" :size="15" class="text-ink-subtle" /> {{ $t(item.label) }}
+        </button>
+      </div>
+    </div>
+
+    <div class="w-px h-6 bg-line dark:bg-line-dark mx-1" />
+
     <!-- Language -->
-    <button class="btn-ghost p-1.5" @click="toggleLocale" :title="ui.locale === 'en' ? 'العربية' : 'English'">
+    <button class="btn-ghost btn-icon btn-sm" @click="toggleLocale" :title="ui.locale === 'en' ? 'العربية' : 'English'">
       <Languages :size="17" />
     </button>
 
     <!-- Theme -->
-    <button class="btn-ghost p-1.5" @click="ui.toggleTheme()" :title="ui.theme === 'light' ? 'Dark mode' : 'Light mode'">
+    <button class="btn-ghost btn-icon btn-sm" @click="ui.toggleTheme()" :title="ui.theme === 'light' ? 'Dark mode' : 'Light mode'">
       <Moon v-if="ui.theme === 'light'" :size="17" />
       <Sun v-else :size="17" />
     </button>
 
     <!-- Notifications -->
     <div class="relative">
-      <button class="btn-ghost p-1.5" @click="toggleNotifications">
+      <button class="btn-ghost btn-icon btn-sm relative" @click="toggleNotifications">
         <Bell :size="17" />
-        <span v-if="notifications.unreadCount" class="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-rose-500" />
+        <span v-if="notifications.unreadCount" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-surface-dark-muted" />
       </button>
-      <div v-if="showNotifs" class="absolute right-0 top-full mt-2 w-80 card p-3 z-20">
+      <div v-if="showNotifs" class="absolute right-0 top-full mt-2 w-80 card shadow-pop p-3 z-20">
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm font-medium">{{ $t('notifications.title') }}</span>
           <button v-if="notifications.unreadCount" @click="notifications.markAllRead()" class="text-xs text-primary-600">
@@ -77,13 +99,12 @@
 
     <!-- User menu -->
     <div class="relative">
-      <button class="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center
-                     text-xs font-medium dark:bg-primary-900/40 dark:text-primary-300 overflow-hidden"
+      <button class="avatar avatar-md bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 ring-2 ring-transparent hover:ring-primary-200 dark:hover:ring-primary-800 transition"
               @click="showUser = !showUser">
         <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" class="w-full h-full object-cover" alt="" />
         <span v-else>{{ auth.initials }}</span>
       </button>
-      <div v-if="showUser" class="absolute right-0 top-full mt-2 w-56 card p-2 z-20 text-sm">
+      <div v-if="showUser" class="absolute right-0 top-full mt-2 w-56 card shadow-pop p-2 z-20 text-sm">
         <div class="px-2 py-2 border-b border-slate-100 dark:border-slate-700">
           <div class="font-medium text-ink dark:text-ink-dark truncate">{{ auth.user?.name }}</div>
           <div class="text-xs text-ink-subtle truncate">{{ auth.user?.email }}</div>
@@ -105,13 +126,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useNotificationsStore } from '@/stores/notifications';
 import http from '@/services/http';
-import { Menu, Search, Languages, Moon, Sun, Bell } from 'lucide-vue-next';
+import { Menu, Search, Languages, Moon, Sun, Bell, Plus, ChevronDown, Users, UserCheck, Contact, PieChart } from 'lucide-vue-next';
 
 const ui = useUiStore();
 const auth = useAuthStore();
@@ -123,6 +144,22 @@ const results = ref({});
 const showResults = ref(false);
 const showNotifs = ref(false);
 const showUser = ref(false);
+const showCreate = ref(false);
+const searchInput = ref(null);
+const createMenu = ref(null);
+
+// Global quick-create — routes to the module list with ?create=1 (pages auto-open their form).
+const quickCreateItems = computed(() => [
+  { name: 'leads',    label: 'nav.leads',    icon: Users,     permission: 'leads.create' },
+  { name: 'accounts', label: 'nav.accounts', icon: UserCheck, permission: 'customers.create' },
+  { name: 'contacts', label: 'nav.contacts', icon: Contact,   permission: 'contacts.create' },
+  { name: 'deals',    label: 'nav.deals',    icon: PieChart,  permission: 'deals.create' },
+].filter((i) => auth.can(i.permission)));
+
+const quickCreate = (item) => {
+  showCreate.value = false;
+  router.push({ name: item.name, query: { create: 1 } });
+};
 
 let searchTimer;
 let notificationTimer;
@@ -173,13 +210,28 @@ const openResult = (type) => {
   router.push({ name });
 };
 
+const onKeydown = (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    searchInput.value?.focus();
+    showResults.value = true;
+  }
+};
+const onDocClick = (e) => {
+  if (createMenu.value && !createMenu.value.contains(e.target)) showCreate.value = false;
+};
+
 onMounted(() => {
   notifications.fetch();
   notificationTimer = setInterval(() => notifications.fetch(), 60_000);
+  window.addEventListener('keydown', onKeydown);
+  document.addEventListener('pointerdown', onDocClick);
 });
 
 onUnmounted(() => {
   clearTimeout(searchTimer);
   clearInterval(notificationTimer);
+  window.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('pointerdown', onDocClick);
 });
 </script>

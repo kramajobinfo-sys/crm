@@ -1,8 +1,8 @@
 <template>
-  <div class="p-4 md:p-5 max-w-2xl mx-auto">
+  <div class="page">
     <div class="mb-4">
-      <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('profile.title') }}</div>
-      <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('profile.subtitle') }}</div>
+      <h1 class="page-title">{{ $t('profile.title') }}</h1>
+      <p class="page-sub">{{ $t('profile.subtitle') }}</p>
     </div>
 
     <!-- Profile card -->
@@ -14,7 +14,7 @@
           <span v-else>{{ auth.initials }}</span>
         </div>
         <div>
-          <button class="btn-secondary text-xs px-2.5 py-1" :disabled="uploading" @click="fileInput?.click()">
+          <button class="btn-secondary btn-sm" :disabled="uploading" @click="fileInput?.click()">
             <Upload :size="12" /> {{ uploading ? $t('profile.uploading') : $t('profile.change_photo') }}
           </button>
           <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="uploadAvatar" />
@@ -38,7 +38,7 @@
         <span v-for="r in auth.roles" :key="r" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 ml-1">{{ r }}</span>
       </div>
       <div class="flex justify-end mt-4">
-        <button class="btn-primary text-xs px-4 py-1.5" :disabled="savingProfile" @click="saveProfile">{{ savingProfile ? $t('profile.saving') : $t('profile.save') }}</button>
+        <button class="btn-primary btn-sm" :disabled="savingProfile" @click="saveProfile">{{ savingProfile ? $t('profile.saving') : $t('profile.save') }}</button>
       </div>
     </div>
 
@@ -57,7 +57,7 @@
       </div>
       <p class="text-[11px] text-ink-subtle mt-2">{{ $t('profile.password_hint') }}</p>
       <div class="flex justify-end mt-4">
-        <button class="btn-primary text-xs px-4 py-1.5" :disabled="savingPwd || !pwd.current_password || !pwd.new_password" @click="savePassword">{{ savingPwd ? $t('profile.saving') : $t('profile.update_password') }}</button>
+        <button class="btn-primary btn-sm" :disabled="savingPwd || !pwd.current_password || !pwd.new_password" @click="savePassword">{{ savingPwd ? $t('profile.saving') : $t('profile.update_password') }}</button>
       </div>
     </div>
 
@@ -78,7 +78,7 @@
       <!-- ON: offer disable (password required) -->
       <div v-if="is2faOn && !tfa.setup" class="mt-3">
         <div v-if="!tfa.disabling">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="tfa.disabling = true">{{ $t('profile.disable_2fa') }}</button>
+          <button class="btn-secondary btn-sm" @click="tfa.disabling = true">{{ $t('profile.disable_2fa') }}</button>
         </div>
         <div v-else class="space-y-2">
           <label class="label">{{ $t('profile.current_password') }} *</label>
@@ -86,8 +86,8 @@
           <p class="text-[11px] text-ink-subtle">{{ $t('profile.disable_prompt') }}</p>
           <p v-if="tfa.error" class="text-[11px] text-red-500">{{ tfa.error }}</p>
           <div class="flex gap-2">
-            <button class="btn-secondary text-xs px-3 py-1.5" @click="resetTfa">{{ $t('profile.cancel') }}</button>
-            <button class="btn-primary text-xs px-3 py-1.5" :disabled="!tfa.password || tfa.busy" @click="doDisable">
+            <button class="btn-secondary btn-sm" @click="resetTfa">{{ $t('profile.cancel') }}</button>
+            <button class="btn-primary btn-sm" :disabled="!tfa.password || tfa.busy" @click="doDisable">
               {{ tfa.busy ? $t('profile.saving') : $t('profile.disable_2fa') }}
             </button>
           </div>
@@ -96,7 +96,7 @@
 
       <!-- OFF: start setup -->
       <div v-else-if="!is2faOn && !tfa.setup" class="mt-3">
-        <button class="btn-primary text-xs px-3 py-1.5" :disabled="tfa.busy" @click="startSetup">
+        <button class="btn-primary btn-sm" :disabled="tfa.busy" @click="startSetup">
           {{ tfa.busy ? $t('profile.saving') : $t('profile.enable_2fa') }}
         </button>
       </div>
@@ -109,7 +109,7 @@
           <label class="label">{{ $t('profile.secret_label') }}</label>
           <div class="flex items-center gap-2 flex-wrap">
             <code class="text-sm font-mono tracking-widest bg-slate-50 dark:bg-surface-dark-subtle px-2 py-1 rounded select-all">{{ groupedSecret }}</code>
-            <button class="btn-secondary text-[11px] px-2 py-0.5" @click="copySecret">
+            <button class="btn-secondary btn-xs" @click="copySecret">
               {{ tfa.copied ? $t('profile.copied') : $t('profile.copy') }}
             </button>
           </div>
@@ -128,8 +128,8 @@
         </div>
 
         <div class="flex gap-2">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="resetTfa">{{ $t('profile.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="tfa.code.length !== 6 || tfa.busy" @click="doConfirm">
+          <button class="btn-secondary btn-sm" @click="resetTfa">{{ $t('profile.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="tfa.code.length !== 6 || tfa.busy" @click="doConfirm">
             {{ tfa.busy ? $t('profile.confirming') : $t('profile.confirm') }}
           </button>
         </div>

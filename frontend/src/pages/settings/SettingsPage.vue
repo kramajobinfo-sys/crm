@@ -1,8 +1,8 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1400px] mx-auto">
+  <div class="page">
     <div class="mb-4">
-      <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('settings.title') }}</div>
-      <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('settings.subtitle') }}</div>
+      <h1 class="page-title">{{ $t('settings.title') }}</h1>
+      <p class="page-sub">{{ $t('settings.subtitle') }}</p>
     </div>
 
     <!-- Tabs -->
@@ -32,7 +32,7 @@
         <div><label class="label">{{ $t('settings.c.country') }}</label><input v-model="company.country" class="input text-sm" :disabled="!canEdit" /></div>
       </div>
       <div v-if="canEdit" class="flex justify-end mt-4">
-        <button class="btn-primary text-xs px-4 py-1.5" :disabled="savingCompany" @click="saveCompany">{{ savingCompany ? $t('settings.saving') : $t('settings.save') }}</button>
+        <button class="btn-primary btn-sm" :disabled="savingCompany" @click="saveCompany">{{ savingCompany ? $t('settings.saving') : $t('settings.save') }}</button>
       </div>
     </div>
 
@@ -40,16 +40,16 @@
     <div v-else-if="tab === 'users'" class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2">
         <input v-model="userFilters.q" class="input text-sm w-52" :placeholder="$t('settings.search_users')" @keyup.enter="loadUsers" />
-        <button v-if="can('users.create')" class="btn-primary text-xs px-3 py-1.5 ml-auto" @click="openUser()"><Plus :size="12" /> {{ $t('settings.new_user') }}</button>
+        <button v-if="can('users.create')" class="btn-primary btn-sm ml-auto" @click="openUser()"><Plus :size="12" /> {{ $t('settings.new_user') }}</button>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.u.name') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('settings.u.roles') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('settings.u.branch') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.u.status') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('settings.u.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.u.roles') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('settings.u.branch') }}</th>
+            <th>{{ $t('settings.u.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -78,7 +78,7 @@
       <div class="card flex-1 min-w-0 overflow-hidden">
         <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
           <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.roles') }}</span>
-          <button v-if="can('roles.create')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openRole()"><Plus :size="11" /> {{ $t('settings.new_role') }}</button>
+          <button v-if="can('roles.create')" class="btn-primary btn-xs ml-auto" @click="openRole()"><Plus :size="11" /> {{ $t('settings.new_role') }}</button>
         </div>
         <div v-for="r in roles" :key="r.id"
              class="flex items-center gap-2 px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
@@ -96,8 +96,8 @@
         <div class="px-3 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
           <input v-if="!selectedRole.is_protected && editingRole" v-model="roleForm.name" class="input text-sm flex-1" />
           <span v-else class="text-sm font-medium text-ink dark:text-ink-dark flex-1">{{ selectedRole.name }}</span>
-          <button v-if="!selectedRole.is_protected && can('roles.update') && !editingRole" class="btn-secondary text-[11px] px-2 py-0.5" @click="editingRole = true">{{ $t('settings.edit') }}</button>
-          <button v-if="selectedRole.id && can('roles.create') && !editingRole" class="btn-secondary text-[11px] px-2 py-0.5" @click="openClone(selectedRole)">{{ $t('settings.clone') }}</button>
+          <button v-if="!selectedRole.is_protected && can('roles.update') && !editingRole" class="btn-secondary btn-xs" @click="editingRole = true">{{ $t('settings.edit') }}</button>
+          <button v-if="selectedRole.id && can('roles.create') && !editingRole" class="btn-secondary btn-xs" @click="openClone(selectedRole)">{{ $t('settings.clone') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selectedRole = null"><X :size="14" /></button>
         </div>
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
@@ -113,8 +113,8 @@
           </div>
         </div>
         <div v-if="editingRole" class="border-t border-slate-200 dark:border-slate-700 p-2.5 flex justify-end gap-2">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="cancelRoleEdit">{{ $t('settings.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="savingRole" @click="saveRole">{{ savingRole ? $t('settings.saving') : $t('settings.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="cancelRoleEdit">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="savingRole" @click="saveRole">{{ savingRole ? $t('settings.saving') : $t('settings.save') }}</button>
         </div>
       </div>
     </div>
@@ -125,23 +125,23 @@
         <div class="text-xs font-medium text-amber-800 dark:text-amber-300 mb-1">{{ $t('settings.ak.reveal_title') }}</div>
         <div class="flex items-center gap-2">
           <code class="flex-1 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded border border-amber-200 dark:border-amber-800 overflow-x-auto">{{ newKeyPlain }}</code>
-          <button class="btn-secondary text-[11px] px-2 py-1" @click="copyKey">{{ $t('settings.ak.copy') }}</button>
+          <button class="btn-secondary btn-xs" @click="copyKey">{{ $t('settings.ak.copy') }}</button>
           <button class="p-1 text-amber-700 hover:text-amber-900" @click="newKeyPlain = ''"><X :size="14" /></button>
         </div>
       </div>
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
         <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.api_keys') }}</span>
-        <button v-if="can('api_keys.create')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openApiKey()"><Plus :size="11" /> {{ $t('settings.ak.new') }}</button>
+        <button v-if="can('api_keys.create')" class="btn-primary btn-xs ml-auto" @click="openApiKey()"><Plus :size="11" /> {{ $t('settings.ak.new') }}</button>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.ak.name') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('settings.ak.acts_as') }}</th>
-            <th class="text-left font-medium px-3 py-2 font-mono">{{ $t('settings.ak.prefix') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('settings.ak.last_used') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.ak.status') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('settings.ak.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.ak.acts_as') }}</th>
+            <th>{{ $t('settings.ak.prefix') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('settings.ak.last_used') }}</th>
+            <th>{{ $t('settings.ak.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -170,16 +170,16 @@
     <div v-else class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
         <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t(`settings.tab.${tab}`) }}</span>
-        <button v-if="can('settings.update')" class="btn-primary text-[11px] px-2.5 py-1 ml-auto" @click="openOrg()"><Plus :size="11" /> {{ $t(tab === 'branches' ? 'settings.new_branch' : 'settings.new_department') }}</button>
+        <button v-if="can('settings.update')" class="btn-primary btn-xs ml-auto" @click="openOrg()"><Plus :size="11" /> {{ $t(tab === 'branches' ? 'settings.new_branch' : 'settings.new_department') }}</button>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.o.name') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('settings.o.code') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ tab === 'branches' ? $t('settings.o.manager') : $t('settings.o.head') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('settings.o.users') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('settings.o.name') }}</th>
+            <th>{{ $t('settings.o.code') }}</th>
+            <th class="hidden md:table-cell">{{ tab === 'branches' ? $t('settings.o.manager') : $t('settings.o.head') }}</th>
+            <th class="th-num">{{ $t('settings.o.users') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -232,8 +232,8 @@
           </label>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="userForm.open = false">{{ $t('settings.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="userForm.saving" @click="submitUser">{{ userForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="userForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="userForm.saving" @click="submitUser">{{ userForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
         </div>
       </div>
     </div>
@@ -247,8 +247,8 @@
         <input v-model="cloneForm.name" class="input text-sm w-full" @keyup.enter="submitClone" />
         <p v-if="cloneForm.errors.name" class="text-[11px] text-red-500">{{ cloneForm.errors.name[0] }}</p>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="cloneForm.open = false">{{ $t('settings.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="cloneForm.saving" @click="submitClone">{{ cloneForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="cloneForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="cloneForm.saving" @click="submitClone">{{ cloneForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
         </div>
       </div>
     </div>
@@ -266,8 +266,8 @@
         </select>
         <p class="text-[11px] text-ink-subtle mt-1">{{ $t('settings.ak.acts_as_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="apiKeyForm.open = false">{{ $t('settings.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="apiKeyForm.saving" @click="submitApiKey">{{ apiKeyForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="apiKeyForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="apiKeyForm.saving" @click="submitApiKey">{{ apiKeyForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
         </div>
       </div>
     </div>
@@ -292,8 +292,8 @@
             </select></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="orgForm.open = false">{{ $t('settings.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="orgForm.saving" @click="submitOrg">{{ orgForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="orgForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="orgForm.saving" @click="submitOrg">{{ orgForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
         </div>
       </div>
     </div>

@@ -1,44 +1,46 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1600px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('pipeline.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('pipeline.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('pipeline.title') }}</h1>
+        <p class="page-sub">{{ $t('pipeline.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="loadBoard">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('pipeline.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="loadBoard">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('pipeline.refresh') }}
         </button>
-        <button v-if="can('deals.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
-          <Plus :size="12" /> {{ $t('pipeline.new') }}
+        <button v-if="can('deals.create')" class="btn-primary btn-sm" @click="openCreate">
+          <Plus :size="14" /> {{ $t('pipeline.new') }}
         </button>
       </div>
     </div>
 
     <!-- Stat tiles -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value">
           <span v-if="s.money">{{ compact(stats[s.key]) }}</span>
           <span v-else-if="s.pct">{{ stats[s.key] == null ? '—' : stats[s.key] + '%' }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
-        </div>
+        </span>
       </div>
     </div>
 
     <!-- Controls -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <select v-model="pipelineId" class="input text-sm w-auto" @change="loadBoard">
-        <option v-for="p in meta.pipelines" :key="p.id" :value="p.id">{{ p.name }}</option>
-      </select>
-      <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
-        <input type="checkbox" class="rounded border-slate-300" :checked="mineOnly"
-               @change="mineOnly = $event.target.checked; loadBoard()" />
-        {{ $t('pipeline.mine_only') }}
-      </label>
-      <div class="ml-auto text-[11px] text-ink-subtle">{{ $t('pipeline.drag_hint') }}</div>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <select v-model="pipelineId" class="input input-sm w-auto" @change="loadBoard">
+          <option v-for="p in meta.pipelines" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
+          <input type="checkbox" class="rounded border-slate-300" :checked="mineOnly"
+                 @change="mineOnly = $event.target.checked; loadBoard()" />
+          {{ $t('pipeline.mine_only') }}
+        </label>
+        <div class="ml-auto text-[11px] text-ink-subtle">{{ $t('pipeline.drag_hint') }}</div>
+      </div>
     </div>
 
     <!-- Kanban board -->
@@ -100,10 +102,10 @@
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.deal_no }}</div>
           </div>
           <span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(selected.status)">{{ $t(`pipeline.status.${selected.status}`) }}</span>
-          <button v-if="can('deals.update')" class="btn-secondary text-[11px] px-2 py-0.5" @click="openEdit(selected)">{{ $t('pipeline.edit') }}</button>
-          <button v-if="can('activities.create')" class="btn-secondary text-[10px] px-2 py-0.5" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
-          <button v-if="selected.status === 'won' && can('projects.create') && !selected.project" class="btn-primary text-[10px] px-2 py-0.5" :disabled="creatingProject" @click="createProjectFromDeal(selected)">{{ creatingProject ? $t('pipeline.creating_project') : $t('pipeline.create_project') }}</button>
-          <button v-if="selected.project && can('projects.view')" class="btn-secondary text-[10px] px-2 py-0.5" @click="openProject(selected.project)">{{ $t('pipeline.view_project') }}</button>
+          <button v-if="can('deals.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">{{ $t('pipeline.edit') }}</button>
+          <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
+          <button v-if="selected.status === 'won' && can('projects.create') && !selected.project" class="btn-primary btn-xs" :disabled="creatingProject" @click="createProjectFromDeal(selected)">{{ creatingProject ? $t('pipeline.creating_project') : $t('pipeline.create_project') }}</button>
+          <button v-if="selected.project && can('projects.view')" class="btn-secondary btn-xs" @click="openProject(selected.project)">{{ $t('pipeline.view_project') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
 
@@ -111,7 +113,7 @@
           <select v-model="moveTarget" class="input text-xs w-auto flex-1" @change="doMove">
             <option v-for="s in activeStages" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
-          <button class="btn-secondary text-[11px] px-2 py-1 text-red-600" @click="openLost">{{ $t('pipeline.mark_lost') }}</button>
+          <button class="btn-secondary btn-xs text-red-600" @click="openLost">{{ $t('pipeline.mark_lost') }}</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
@@ -152,7 +154,7 @@
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.line_items') }}</div>
             <div v-if="!selected.products?.length" class="text-ink-subtle">{{ $t('pipeline.no_items') }}</div>
-            <table v-else class="w-full">
+            <table class="data-table" v-else>
               <tbody>
                 <tr v-for="p in selected.products" :key="p.id" class="border-b border-slate-100 dark:border-slate-700/60 last:border-0">
                   <td class="py-1 text-ink dark:text-ink-dark">
@@ -204,8 +206,8 @@
         <label class="label">{{ $t('pipeline.note') }}</label>
         <textarea v-model="lost.note" rows="2" class="input text-sm"></textarea>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="lost.open = false">{{ $t('pipeline.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5 bg-red-600 hover:bg-red-700" :disabled="lost.saving" @click="submitLost">{{ $t('pipeline.confirm_lost') }}</button>
+          <button class="btn-secondary btn-sm" @click="lost.open = false">{{ $t('pipeline.cancel') }}</button>
+          <button class="btn-primary btn-sm bg-red-600 hover:bg-red-700" :disabled="lost.saving" @click="submitLost">{{ $t('pipeline.confirm_lost') }}</button>
         </div>
       </div>
     </div>
@@ -289,8 +291,8 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('pipeline.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('pipeline.saving') : $t('pipeline.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('pipeline.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('pipeline.saving') : $t('pipeline.save') }}</button>
         </div>
       </div>
     </div>
@@ -318,8 +320,8 @@
         <p class="text-[11px] text-ink-subtle mb-3">{{ $t('pipeline.bp.empty_hint') }}</p>
 
         <div class="flex justify-end gap-2">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="bpModal.open = false">{{ $t('pipeline.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="bpModal.saving" @click="saveBlueprint">{{ bpModal.saving ? $t('pipeline.saving') : $t('pipeline.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="bpModal.open = false">{{ $t('pipeline.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="bpModal.saving" @click="saveBlueprint">{{ bpModal.saving ? $t('pipeline.saving') : $t('pipeline.save') }}</button>
         </div>
       </div>
     </div>
@@ -617,5 +619,5 @@ const timelineClass = (ty) => ({
   system:        'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
 }[ty] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await loadAux(); await Promise.all([loadBoard(), loadCustomers()]); });
+onMounted(async () => { await loadAux(); await Promise.all([loadBoard(), loadCustomers()]); if (router.currentRoute.value.query.create) openCreate(); });
 </script>

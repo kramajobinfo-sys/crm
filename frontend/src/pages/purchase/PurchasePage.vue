@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1600px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('purchase.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('purchase.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('purchase.title') }}</h1>
+        <p class="page-sub">{{ $t('purchase.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('purchase.refresh') }}
         </button>
-        <button v-if="createBtn" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
+        <button v-if="createBtn" class="btn-primary btn-sm" @click="openCreate">
           <Plus :size="12" /> {{ $t(createBtn) }}
         </button>
       </div>
@@ -18,8 +18,8 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
         <div class="text-lg font-semibold mt-0.5" :class="s.key === 'my_approvals' && stats.my_approvals ? 'text-primary-600' : 'text-ink dark:text-ink-dark'">
           <span v-if="s.money">{{ compact(stats[s.key]) }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
@@ -46,8 +46,8 @@
           <div class="text-[11px] text-ink-subtle">{{ a.workflow }} · {{ $t('purchase.step') }} {{ a.step }}/{{ a.total_steps }} · {{ a.requester }}</div>
         </div>
         <span class="text-sm tabular-nums text-ink dark:text-ink-dark">{{ money(a.amount) }}</span>
-        <button class="btn-primary text-[11px] px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700" @click="act(a.id, 'approve')">{{ $t('purchase.approve') }}</button>
-        <button class="btn-secondary text-[11px] px-2.5 py-1 text-red-600" @click="act(a.id, 'reject')">{{ $t('purchase.reject') }}</button>
+        <button class="btn-primary btn-xs bg-emerald-600 hover:bg-emerald-700" @click="act(a.id, 'approve')">{{ $t('purchase.approve') }}</button>
+        <button class="btn-secondary btn-xs text-red-600" @click="act(a.id, 'reject')">{{ $t('purchase.reject') }}</button>
       </div>
     </div>
 
@@ -58,14 +58,14 @@
       </div>
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
       <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('purchase.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('purchase.v.no') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('purchase.v.name') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('purchase.v.email') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('purchase.v.terms') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('purchase.v.no') }}</th>
+            <th>{{ $t('purchase.v.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('purchase.v.email') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('purchase.v.terms') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -95,13 +95,13 @@
         </div>
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
         <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('purchase.empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <table class="data-table" v-else>
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('purchase.d.number') }}</th>
-              <th class="text-left font-medium px-3 py-2">{{ tab === 'orders' ? $t('purchase.d.vendor') : $t('purchase.d.requester') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('purchase.d.status') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('purchase.d.total') }}</th>
+              <th>{{ $t('purchase.d.number') }}</th>
+              <th>{{ tab === 'orders' ? $t('purchase.d.vendor') : $t('purchase.d.requester') }}</th>
+              <th class="hidden md:table-cell">{{ $t('purchase.d.status') }}</th>
+              <th class="th-num">{{ $t('purchase.d.total') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -133,14 +133,14 @@
         <!-- Actions -->
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 flex flex-wrap gap-1.5">
           <template v-if="tab === 'requests'">
-            <button v-if="['draft','rejected'].includes(selected.status) && can('purchase_requests.update')" class="btn-primary text-[11px] px-2 py-1" @click="submitDoc">{{ $t('purchase.submit') }}</button>
-            <button v-if="selected.status === 'approved' && !selected.converted_po_id && can('purchase_orders.create')" class="btn-primary text-[11px] px-2 py-1" @click="openConvert">{{ $t('purchase.to_po') }}</button>
+            <button v-if="['draft','rejected'].includes(selected.status) && can('purchase_requests.update')" class="btn-primary btn-xs" @click="submitDoc">{{ $t('purchase.submit') }}</button>
+            <button v-if="selected.status === 'approved' && !selected.converted_po_id && can('purchase_orders.create')" class="btn-primary btn-xs" @click="openConvert">{{ $t('purchase.to_po') }}</button>
           </template>
           <template v-else>
-            <button v-if="selected.status === 'draft' && can('purchase_orders.update')" class="btn-primary text-[11px] px-2 py-1" @click="poAction('confirm')">{{ $t('purchase.confirm') }}</button>
-            <button v-if="selected.status === 'confirmed' && can('inventory.adjust')" class="btn-primary text-[11px] px-2 py-1" @click="poAction('receive')">{{ $t('purchase.receive') }}</button>
-            <button v-if="['confirmed','received'].includes(selected.status) && can('purchase_orders.update')" class="btn-secondary text-[11px] px-2 py-1" @click="poAction('close')">{{ $t('purchase.close') }}</button>
-            <button v-if="['draft','submitted','confirmed'].includes(selected.status) && can('purchase_orders.update')" class="btn-secondary text-[11px] px-2 py-1 text-red-600" @click="poAction('cancel')">{{ $t('purchase.cancel') }}</button>
+            <button v-if="selected.status === 'draft' && can('purchase_orders.update')" class="btn-primary btn-xs" @click="poAction('confirm')">{{ $t('purchase.confirm') }}</button>
+            <button v-if="selected.status === 'confirmed' && can('inventory.adjust')" class="btn-primary btn-xs" @click="poAction('receive')">{{ $t('purchase.receive') }}</button>
+            <button v-if="['confirmed','received'].includes(selected.status) && can('purchase_orders.update')" class="btn-secondary btn-xs" @click="poAction('close')">{{ $t('purchase.close') }}</button>
+            <button v-if="['draft','submitted','confirmed'].includes(selected.status) && can('purchase_orders.update')" class="btn-secondary btn-xs text-red-600" @click="poAction('cancel')">{{ $t('purchase.cancel') }}</button>
           </template>
         </div>
 
@@ -158,7 +158,7 @@
           </div>
 
           <!-- Items -->
-          <table class="w-full">
+          <table class="data-table">
             <tbody>
               <tr v-for="it in selected.items" :key="it.id" class="border-b border-slate-100 dark:border-slate-700/60 last:border-0">
                 <td class="py-1 text-ink dark:text-ink-dark">
@@ -195,8 +195,8 @@
           <div><label class="label">{{ $t('purchase.v.tax_id') }}</label><input v-model="vForm.data.tax_id" class="input text-sm" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="vForm.open = false">{{ $t('purchase.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="vForm.saving" @click="submitVendor">{{ vForm.saving ? $t('purchase.saving') : $t('purchase.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="vForm.open = false">{{ $t('purchase.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="vForm.saving" @click="submitVendor">{{ vForm.saving ? $t('purchase.saving') : $t('purchase.save') }}</button>
         </div>
       </div>
     </div>
@@ -243,8 +243,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="docForm.open = false">{{ $t('purchase.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="docForm.saving" @click="submitDocForm">{{ docForm.saving ? $t('purchase.saving') : $t('purchase.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="docForm.open = false">{{ $t('purchase.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="docForm.saving" @click="submitDocForm">{{ docForm.saving ? $t('purchase.saving') : $t('purchase.save') }}</button>
         </div>
       </div>
     </div>
@@ -259,8 +259,8 @@
           <option v-for="v in vendorList" :key="v.id" :value="v.id">{{ v.name }}</option>
         </select>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="convert.open = false">{{ $t('purchase.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="!convert.vendor_id || convert.saving" @click="submitConvert">{{ $t('purchase.convert') }}</button>
+          <button class="btn-secondary btn-sm" @click="convert.open = false">{{ $t('purchase.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="!convert.vendor_id || convert.saving" @click="submitConvert">{{ $t('purchase.convert') }}</button>
         </div>
       </div>
     </div>
@@ -285,8 +285,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('purchase.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

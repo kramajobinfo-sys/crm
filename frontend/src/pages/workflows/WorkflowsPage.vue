@@ -1,20 +1,20 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
+  <div class="page">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('workflows.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('workflows.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('workflows.title') }}</h1>
+        <p class="page-sub">{{ $t('workflows.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('workflows.refresh') }}</button>
-        <button v-if="can('workflows.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate"><Plus :size="12" /> {{ $t('workflows.new') }}</button>
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('workflows.refresh') }}</button>
+        <button v-if="can('workflows.create')" class="btn-primary btn-sm" @click="openCreate"><Plus :size="12" /> {{ $t('workflows.new') }}</button>
       </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">{{ stats[s.key] ?? 0 }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
+        <div class="stat-value text-xl">{{ stats[s.key] ?? 0 }}</div>
       </div>
     </div>
 
@@ -22,13 +22,13 @@
       <div class="card flex-1 min-w-0 overflow-hidden">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
         <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('workflows.empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <table class="data-table" v-else>
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('workflows.col.name') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('workflows.col.entity') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('workflows.col.trigger') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('workflows.col.runs') }}</th>
+              <th>{{ $t('workflows.col.name') }}</th>
+              <th class="hidden md:table-cell">{{ $t('workflows.col.entity') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('workflows.col.trigger') }}</th>
+              <th class="th-num">{{ $t('workflows.col.runs') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -66,12 +66,12 @@
               <span v-else-if="selected.schedule_cron" class="font-mono">· {{ selected.schedule_cron }}</span>
             </div>
           </div>
-          <button v-if="can('workflows.update')" class="btn-secondary text-[11px] px-2 py-0.5" @click="openEdit(selected)">{{ $t('workflows.edit') }}</button>
+          <button v-if="can('workflows.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">{{ $t('workflows.edit') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
         <div v-if="can('workflows.update')" class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 flex gap-1.5 items-center">
           <input v-model="runSubjectId" type="number" class="input text-xs w-24" :placeholder="$t('workflows.subject_id')" />
-          <button class="btn-primary text-[11px] px-2.5 py-1" @click="doRun"><Play :size="11" /> {{ $t('workflows.run_now') }}</button>
+          <button class="btn-primary btn-xs" @click="doRun"><Play :size="11" /> {{ $t('workflows.run_now') }}</button>
         </div>
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
           <p v-if="selected.description" class="text-ink-muted dark:text-ink-dark-muted">{{ selected.description }}</p>
@@ -164,8 +164,8 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('workflows.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit">{{ form.saving ? $t('workflows.saving') : $t('workflows.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('workflows.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submit">{{ form.saving ? $t('workflows.saving') : $t('workflows.save') }}</button>
         </div>
       </div>
     </div>

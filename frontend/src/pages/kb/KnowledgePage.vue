@@ -1,70 +1,72 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('kb.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('kb.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('kb.title') }}</h1>
+        <p class="page-sub">{{ $t('kb.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('kb.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('kb.refresh') }}
         </button>
-        <button v-if="can('kb.create')" class="btn-primary text-xs px-3 py-1.5" @click="openArticle()">
-          <Plus :size="12" /> {{ $t('kb.new') }}
+        <button v-if="can('kb.create')" class="btn-primary btn-sm" @click="openArticle()">
+          <Plus :size="14" /> {{ $t('kb.new') }}
         </button>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-52" :placeholder="$t('kb.search')" @keyup.enter="reload" />
-      <select v-model="filters.category_id" class="input text-sm w-auto" @change="reload">
-        <option value="">{{ $t('kb.all_categories') }}</option>
-        <option v-for="c in meta.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <select v-model="filters.status" class="input text-sm w-auto" @change="reload">
-        <option value="all">{{ $t('kb.all_statuses') }}</option>
-        <option value="draft">{{ $t('kb.draft') }}</option>
-        <option value="published">{{ $t('kb.published') }}</option>
-      </select>
-      <select v-model="filters.visibility" class="input text-sm w-auto" @change="reload">
-        <option value="all">{{ $t('kb.all_visibility') }}</option>
-        <option value="internal">{{ $t('kb.internal') }}</option>
-        <option value="public">{{ $t('kb.public') }}</option>
-      </select>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm w-52" :placeholder="$t('kb.search')" @keyup.enter="reload" />
+        <select v-model="filters.category_id" class="input input-sm w-auto" @change="reload">
+          <option value="">{{ $t('kb.all_categories') }}</option>
+          <option v-for="c in meta.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
+        <select v-model="filters.status" class="input input-sm w-auto" @change="reload">
+          <option value="all">{{ $t('kb.all_statuses') }}</option>
+          <option value="draft">{{ $t('kb.draft') }}</option>
+          <option value="published">{{ $t('kb.published') }}</option>
+        </select>
+        <select v-model="filters.visibility" class="input input-sm w-auto" @change="reload">
+          <option value="all">{{ $t('kb.all_visibility') }}</option>
+          <option value="internal">{{ $t('kb.internal') }}</option>
+          <option value="public">{{ $t('kb.public') }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- List -->
-    <div class="card overflow-hidden">
+    <div class="panel">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-      <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('kb.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <div v-else-if="!rows.length" class="empty">{{ $t('kb.empty') }}</div>
+      <table v-else class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('kb.article') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('kb.category') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('kb.status') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('kb.visibility') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('kb.views') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('kb.article') }}</th>
+            <th class="hidden md:table-cell">{{ $t('kb.category') }}</th>
+            <th>{{ $t('kb.status') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('kb.visibility') }}</th>
+            <th class="th-num hidden lg:table-cell">{{ $t('kb.views') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="a in rows" :key="a.id" class="border-t border-slate-100 dark:border-slate-700/60">
-            <td class="px-3 py-2">
+          <tr v-for="a in rows" :key="a.id">
+            <td>
               <div class="text-ink dark:text-ink-dark">{{ a.title }}</div>
               <div v-if="a.excerpt" class="text-[11px] text-ink-subtle truncate max-w-md">{{ a.excerpt }}</div>
             </td>
-            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ a.category?.name || '—' }}</td>
-            <td class="px-3 py-2">
+            <td class="hidden md:table-cell text-ink-muted">{{ a.category?.name || '—' }}</td>
+            <td>
               <span class="text-[10px] px-1.5 py-0.5 rounded" :class="a.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">{{ $t(`kb.${a.status}`) }}</span>
             </td>
-            <td class="px-3 py-2 hidden lg:table-cell">
+            <td class="hidden lg:table-cell">
               <span class="text-[10px] px-1.5 py-0.5 rounded" :class="a.visibility === 'public' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'">{{ $t(`kb.${a.visibility}`) }}</span>
             </td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted hidden lg:table-cell">{{ a.view_count }}</td>
-            <td class="px-3 py-2 text-right whitespace-nowrap">
+            <td class="td-num text-ink-muted hidden lg:table-cell">{{ a.view_count }}</td>
+            <td class="td-num whitespace-nowrap">
               <button v-if="can('kb.update')" class="text-[11px] text-primary-600 hover:underline" @click="openArticle(a)">{{ $t('kb.edit') }}</button>
               <button v-if="can('kb.delete')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeArticle(a.id)">{{ $t('kb.delete') }}</button>
             </td>
@@ -111,8 +113,8 @@
                   class="text-[11px] text-primary-600 hover:underline" @click="previewPortal">{{ $t('kb.portal_hint') }}</button>
           <span v-else></span>
           <div class="flex gap-2">
-            <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('kb.cancel') }}</button>
-            <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit">{{ form.saving ? $t('kb.saving') : $t('kb.save') }}</button>
+            <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('kb.cancel') }}</button>
+            <button class="btn-primary btn-sm" :disabled="form.saving" @click="submit">{{ form.saving ? $t('kb.saving') : $t('kb.save') }}</button>
           </div>
         </div>
       </div>
@@ -136,8 +138,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('kb.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

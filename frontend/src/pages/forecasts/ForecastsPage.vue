@@ -1,23 +1,23 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('forecasts.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('forecasts.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('forecasts.title') }}</h1>
+        <p class="page-sub">{{ $t('forecasts.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('forecasts.refresh') }}
         </button>
-        <button v-if="can('forecasts.manage')" class="btn-primary text-xs px-3 py-1.5" @click="openTargets">
+        <button v-if="can('forecasts.manage')" class="btn-primary btn-sm" @click="openTargets">
           <Target :size="12" /> {{ $t('forecasts.set_targets') }}
         </button>
       </div>
     </div>
 
     <!-- Period controls -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
+    <div class="card mb-4"><div class="toolbar">
       <div class="flex rounded-md overflow-hidden border border-slate-200 dark:border-slate-700">
         <button v-for="pt in ['month', 'quarter']" :key="pt" class="px-3 py-1 text-xs"
                 :class="periodType === pt ? 'bg-primary-600 text-white' : 'text-ink-muted dark:text-ink-dark-muted'"
@@ -25,34 +25,35 @@
           {{ $t(`forecasts.${pt}`) }}
         </button>
       </div>
-      <input v-model="monthValue" type="month" class="input text-sm w-auto" @change="load" />
+      <input v-model="monthValue" type="month" class="input input-sm w-auto" @change="load" />
       <span v-if="board" class="text-xs text-ink-subtle">{{ board.period_start }} → {{ board.period_end }}</span>
-    </div>
+    </div></div>
 
     <!-- Board -->
-    <div class="card overflow-hidden">
+    <div class="panel">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-      <div v-else-if="!board || !board.rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('forecasts.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <div v-else-if="!board || !board.rows.length" class="empty">{{ $t('forecasts.empty') }}</div>
+      <div v-else class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('forecasts.rep') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('forecasts.target') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('forecasts.closed') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden md:table-cell">{{ $t('forecasts.pipeline') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('forecasts.forecast') }}</th>
-            <th class="text-left font-medium px-3 py-2 w-48">{{ $t('forecasts.attainment') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden md:table-cell">{{ $t('forecasts.gap') }}</th>
+            <th>{{ $t('forecasts.rep') }}</th>
+            <th class="th-num">{{ $t('forecasts.target') }}</th>
+            <th class="th-num">{{ $t('forecasts.closed') }}</th>
+            <th class="th-num hidden md:table-cell">{{ $t('forecasts.pipeline') }}</th>
+            <th class="th-num hidden lg:table-cell">{{ $t('forecasts.forecast') }}</th>
+            <th class="w-48">{{ $t('forecasts.attainment') }}</th>
+            <th class="th-num hidden md:table-cell">{{ $t('forecasts.gap') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in board.rows" :key="r.user_id" class="border-t border-slate-100 dark:border-slate-700/60">
-            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ r.user }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted">{{ money(r.target) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink dark:text-ink-dark">{{ money(r.closed) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted hidden md:table-cell">{{ money(r.pipeline_weighted) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted hidden lg:table-cell">{{ money(r.forecast) }}</td>
-            <td class="px-3 py-2">
+          <tr v-for="r in board.rows" :key="r.user_id">
+            <td class="text-ink dark:text-ink-dark">{{ r.user }}</td>
+            <td class="td-num text-ink-muted">{{ money(r.target) }}</td>
+            <td class="td-num text-ink dark:text-ink-dark">{{ money(r.closed) }}</td>
+            <td class="td-num text-ink-muted hidden md:table-cell">{{ money(r.pipeline_weighted) }}</td>
+            <td class="td-num text-ink-muted hidden lg:table-cell">{{ money(r.forecast) }}</td>
+            <td>
               <div class="flex items-center gap-2">
                 <div class="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                   <div class="h-full rounded-full" :class="barClass(r.attainment)" :style="{ width: barWidth(r.attainment) }"></div>
@@ -60,21 +61,22 @@
                 <span class="text-[11px] tabular-nums w-10 text-right" :class="r.attainment >= 100 ? 'text-emerald-600' : 'text-ink-muted'">{{ r.attainment == null ? '—' : r.attainment + '%' }}</span>
               </div>
             </td>
-            <td class="px-3 py-2 text-right tabular-nums hidden md:table-cell" :class="r.gap > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(r.gap) }}</td>
+            <td class="td-num hidden md:table-cell" :class="r.gap > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(r.gap) }}</td>
           </tr>
         </tbody>
         <tfoot>
-          <tr class="border-t-2 border-slate-200 dark:border-slate-600 font-medium">
-            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ $t('forecasts.total') }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ money(board.totals.target) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ money(board.totals.closed) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums hidden md:table-cell">{{ money(board.totals.pipeline_weighted) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums hidden lg:table-cell">{{ money(board.totals.forecast) }}</td>
-            <td class="px-3 py-2 text-[11px] tabular-nums" :class="board.totals.attainment >= 100 ? 'text-emerald-600' : 'text-ink-muted'">{{ board.totals.attainment == null ? '—' : board.totals.attainment + '%' }}</td>
-            <td class="px-3 py-2 text-right tabular-nums hidden md:table-cell" :class="board.totals.gap > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(board.totals.gap) }}</td>
+          <tr class="font-medium border-t-2 border-line dark:border-line-dark">
+            <td class="text-ink dark:text-ink-dark">{{ $t('forecasts.total') }}</td>
+            <td class="td-num">{{ money(board.totals.target) }}</td>
+            <td class="td-num">{{ money(board.totals.closed) }}</td>
+            <td class="td-num hidden md:table-cell">{{ money(board.totals.pipeline_weighted) }}</td>
+            <td class="td-num hidden lg:table-cell">{{ money(board.totals.forecast) }}</td>
+            <td class="text-[11px] tabular-nums" :class="board.totals.attainment >= 100 ? 'text-emerald-600' : 'text-ink-muted'">{{ board.totals.attainment == null ? '—' : board.totals.attainment + '%' }}</td>
+            <td class="td-num hidden md:table-cell" :class="board.totals.gap > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(board.totals.gap) }}</td>
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
 
     <!-- Targets editor modal -->
@@ -89,8 +91,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="targetForm.open = false">{{ $t('forecasts.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="targetForm.saving" @click="submitTargets">{{ targetForm.saving ? $t('forecasts.saving') : $t('forecasts.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="targetForm.open = false">{{ $t('forecasts.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="targetForm.saving" @click="submitTargets">{{ targetForm.saving ? $t('forecasts.saving') : $t('forecasts.save') }}</button>
         </div>
       </div>
     </div>

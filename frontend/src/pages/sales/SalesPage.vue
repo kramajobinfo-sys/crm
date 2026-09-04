@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1600px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('sales.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('sales.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('sales.title') }}</h1>
+        <p class="page-sub">{{ $t('sales.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('sales.refresh') }}
         </button>
-        <button v-if="canCreateActive" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
+        <button v-if="canCreateActive" class="btn-primary btn-sm" @click="openCreate">
           <Plus :size="12" /> {{ $t(`sales.new_${tabSingular}`) }}
         </button>
       </div>
@@ -18,12 +18,12 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value">
           <span v-if="s.money">{{ compact(stats[s.key]) }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
-        </div>
+        </span>
       </div>
     </div>
 
@@ -37,78 +37,84 @@
     </div>
 
     <!-- Filters -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-52" :placeholder="$t('sales.search')" @keyup.enter="load" />
-      <select v-if="tab !== 'payments'" v-model="filters.status" class="input text-sm w-auto" @change="load">
-        <option value="all">{{ $t('sales.all_statuses') }}</option>
-        <option v-for="s in statusesForTab" :key="s" :value="s">{{ $t(`sales.st.${s}`) }}</option>
-      </select>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm w-52" :placeholder="$t('sales.search')" @keyup.enter="load" />
+        <select v-if="tab !== 'payments'" v-model="filters.status" class="input input-sm w-auto" @change="load">
+          <option value="all">{{ $t('sales.all_statuses') }}</option>
+          <option v-for="s in statusesForTab" :key="s" :value="s">{{ $t(`sales.st.${s}`) }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- Products are managed under Inventory → Products (shared catalogue). -->
 
     <!-- ============ PAYMENTS ============ -->
-    <div v-if="tab === 'payments'" class="card overflow-hidden">
+    <div v-if="tab === 'payments'" class="panel">
       <TableStates :loading="loading" :empty="!rows.length" />
-      <table v-if="!loading && rows.length" class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
-          <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('sales.pay.no') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('sales.pay.customer') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('sales.pay.invoice') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('sales.pay.method') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('sales.pay.amount') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('sales.pay.date') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in rows" :key="p.id" class="border-t border-slate-100 dark:border-slate-700/60">
-            <td class="px-3 py-2 font-mono text-[11px]">{{ p.payment_no }}</td>
-            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ p.customer?.name || '—' }}</td>
-            <td class="px-3 py-2 hidden md:table-cell font-mono text-[11px] text-ink-muted">{{ p.invoice?.invoice_no || '—' }}</td>
-            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ $t(`sales.method.${p.method}`) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink dark:text-ink-dark">{{ money(p.amount, p.currency) }}</td>
-            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ formatDate(p.received_at) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-if="!loading && rows.length" class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ $t('sales.pay.no') }}</th>
+              <th>{{ $t('sales.pay.customer') }}</th>
+              <th class="hidden md:table-cell">{{ $t('sales.pay.invoice') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('sales.pay.method') }}</th>
+              <th>{{ $t('sales.pay.amount') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('sales.pay.date') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in rows" :key="p.id">
+              <td class="font-mono text-[11px]">{{ p.payment_no }}</td>
+              <td class="text-ink dark:text-ink-dark">{{ p.customer?.name || '—' }}</td>
+              <td class="hidden md:table-cell font-mono text-[11px] text-ink-muted">{{ p.invoice?.invoice_no || '—' }}</td>
+              <td class="hidden lg:table-cell text-ink-muted">{{ $t(`sales.method.${p.method}`) }}</td>
+              <td class="td-num text-ink dark:text-ink-dark">{{ money(p.amount, p.currency) }}</td>
+              <td class="hidden lg:table-cell text-ink-muted">{{ formatDate(p.received_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- ============ DOCUMENTS (quotations / orders / invoices) ============ -->
     <div v-else class="flex gap-3 items-start">
-      <div class="card flex-1 min-w-0 overflow-hidden">
+      <div class="panel flex-1 min-w-0">
         <TableStates :loading="loading" :empty="!rows.length" />
-        <table v-if="!loading && rows.length" class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
-            <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('sales.d.number') }}</th>
-              <th class="text-left font-medium px-3 py-2">{{ $t('sales.d.customer') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('sales.d.status') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('sales.d.total') }}</th>
-              <th v-if="tab === 'invoices'" class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('sales.d.balance') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="d in rows" :key="d.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selected?.id === d.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
-                @click="openDetail(d.id)">
-              <td class="px-3 py-2 font-mono text-[11px] text-ink dark:text-ink-dark">{{ docNo(d) }}</td>
-              <td class="px-3 py-2 text-ink dark:text-ink-dark truncate max-w-[12rem]">{{ d.customer?.name || '—' }}</td>
-              <td class="px-3 py-2 hidden md:table-cell">
-                <span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(d.status)">{{ $t(`sales.st.${d.status}`) }}</span>
-              </td>
-              <td class="px-3 py-2 text-right tabular-nums text-ink dark:text-ink-dark">{{ money(d.grand_total, d.currency) }}</td>
-              <td v-if="tab === 'invoices'" class="px-3 py-2 text-right hidden lg:table-cell tabular-nums"
-                  :class="d.balance > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(d.balance, d.currency) }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-if="!loading && rows.length" class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ $t('sales.d.number') }}</th>
+                <th>{{ $t('sales.d.customer') }}</th>
+                <th class="hidden md:table-cell">{{ $t('sales.d.status') }}</th>
+                <th>{{ $t('sales.d.total') }}</th>
+                <th v-if="tab === 'invoices'" class="th-num hidden lg:table-cell">{{ $t('sales.d.balance') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in rows" :key="d.id"
+                  class="cursor-pointer"
+                  :class="selected?.id === d.id && 'is-selected'"
+                  @click="openDetail(d.id)">
+                <td class="font-mono text-[11px] text-ink dark:text-ink-dark">{{ docNo(d) }}</td>
+                <td class="text-ink dark:text-ink-dark truncate max-w-[12rem]">{{ d.customer?.name || '—' }}</td>
+                <td class="hidden md:table-cell">
+                  <span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(d.status)">{{ $t(`sales.st.${d.status}`) }}</span>
+                </td>
+                <td class="td-num text-ink dark:text-ink-dark">{{ money(d.grand_total, d.currency) }}</td>
+                <td v-if="tab === 'invoices'" class="td-num hidden lg:table-cell"
+                    :class="d.balance > 0 ? 'text-amber-600' : 'text-emerald-600'">{{ money(d.balance, d.currency) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <div v-if="pagination.last_page > 1" class="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
           <span class="text-ink-subtle">{{ $t('sales.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}</span>
           <div class="flex gap-1">
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page <= 1" @click="page--; load()">‹</button>
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
+            <button class="btn-secondary btn-xs" :disabled="page <= 1" @click="page--; load()">‹</button>
+            <button class="btn-secondary btn-xs" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
           </div>
         </div>
       </div>
@@ -126,17 +132,17 @@
 
         <!-- Actions -->
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0 flex flex-wrap gap-1.5">
-          <button v-if="can(`${permBase}.update`)" class="btn-secondary text-[11px] px-2 py-1" @click="openEditDoc(selected)">{{ $t('sales.edit') }}</button>
-          <button v-if="tab === 'quotations' && selected.status === 'draft' && can('quotations.send')" class="btn-primary text-[11px] px-2 py-1" @click="sendQuotation">{{ $t('sales.send_quote') }}</button>
-          <button v-if="tab === 'quotations' && !selected.converted_order_id && can('orders.create')" class="btn-primary text-[11px] px-2 py-1" @click="convertDoc">{{ $t('sales.to_order') }}</button>
-          <button v-if="tab === 'orders' && !selected.converted_invoice_id && can('invoices.create')" class="btn-primary text-[11px] px-2 py-1" @click="convertDoc">{{ $t('sales.to_invoice') }}</button>
-          <button v-if="tab === 'invoices' && selected.balance > 0 && can('payments.create')" class="btn-primary text-[11px] px-2 py-1" @click="openPay">{{ $t('sales.record_payment') }}</button>
-          <button v-if="tab === 'invoices' && selected.balance > 0 && can('credits.apply')" class="btn-secondary text-[11px] px-2 py-1" @click="openApplyCredit">{{ $t('credits.apply_credit') }}</button>
+          <button v-if="can(`${permBase}.update`)" class="btn-secondary btn-xs" @click="openEditDoc(selected)">{{ $t('sales.edit') }}</button>
+          <button v-if="tab === 'quotations' && selected.status === 'draft' && can('quotations.send')" class="btn-primary btn-xs" @click="sendQuotation">{{ $t('sales.send_quote') }}</button>
+          <button v-if="tab === 'quotations' && !selected.converted_order_id && can('orders.create')" class="btn-primary btn-xs" @click="convertDoc">{{ $t('sales.to_order') }}</button>
+          <button v-if="tab === 'orders' && !selected.converted_invoice_id && can('invoices.create')" class="btn-primary btn-xs" @click="convertDoc">{{ $t('sales.to_invoice') }}</button>
+          <button v-if="tab === 'invoices' && selected.balance > 0 && can('payments.create')" class="btn-primary btn-xs" @click="openPay">{{ $t('sales.record_payment') }}</button>
+          <button v-if="tab === 'invoices' && selected.balance > 0 && can('credits.apply')" class="btn-secondary btn-xs" @click="openApplyCredit">{{ $t('credits.apply_credit') }}</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
           <!-- Line items -->
-          <table class="w-full">
+          <table class="data-table">
             <tbody>
               <tr v-for="it in selected.items" :key="it.id" class="border-b border-slate-100 dark:border-slate-700/60 last:border-0">
                 <td class="py-1 text-ink dark:text-ink-dark">
@@ -208,8 +214,8 @@
           <div class="flex items-center mb-2 gap-2">
             <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('sales.line_items') }}</span>
             <span class="text-[10px] text-ink-subtle">{{ $t('sales.mix_items_hint') }}</span>
-            <button class="btn-secondary text-[11px] px-2 py-1 ml-auto" @click="addProductLine">+ {{ $t('sales.add_product') }}</button>
-            <button class="btn-secondary text-[11px] px-2 py-1" @click="addCustomLine">+ {{ $t('sales.add_custom_item') }}</button>
+            <button class="btn-secondary btn-xs ml-auto" @click="addProductLine">+ {{ $t('sales.add_product') }}</button>
+            <button class="btn-secondary btn-xs" @click="addCustomLine">+ {{ $t('sales.add_custom_item') }}</button>
           </div>
           <div v-if="!docForm.data.items.length" class="rounded border border-dashed border-slate-300 dark:border-slate-700 py-5 text-center text-xs text-ink-subtle">
             {{ $t('sales.no_line_items') }}
@@ -248,8 +254,8 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="docForm.open = false">{{ $t('sales.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="docForm.saving" @click="submitDoc">{{ docForm.saving ? $t('sales.saving') : $t('sales.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="docForm.open = false">{{ $t('sales.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="docForm.saving" @click="submitDoc">{{ docForm.saving ? $t('sales.saving') : $t('sales.save') }}</button>
         </div>
       </div>
     </div>
@@ -269,8 +275,8 @@
           <div><label class="label">{{ $t('sales.pay.reference') }}</label><input v-model="payForm.data.reference" class="input text-sm" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="payForm.open = false">{{ $t('sales.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="payForm.saving || !payForm.data.amount" @click="submitPay">{{ payForm.saving ? $t('sales.saving') : $t('sales.pay_now') }}</button>
+          <button class="btn-secondary btn-sm" @click="payForm.open = false">{{ $t('sales.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="payForm.saving || !payForm.data.amount" @click="submitPay">{{ payForm.saving ? $t('sales.saving') : $t('sales.pay_now') }}</button>
         </div>
       </div>
     </div>
@@ -300,8 +306,8 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="creditForm.open = false">{{ $t('sales.cancel') }}</button>
-          <button v-if="creditForm.options.length" class="btn-primary text-xs px-3 py-1.5"
+          <button class="btn-secondary btn-sm" @click="creditForm.open = false">{{ $t('sales.cancel') }}</button>
+          <button v-if="creditForm.options.length" class="btn-primary btn-sm"
                   :disabled="creditForm.saving || !creditForm.credit_id" @click="submitApplyCredit">
             {{ creditForm.saving ? $t('sales.saving') : $t('credits.apply_credit') }}
           </button>

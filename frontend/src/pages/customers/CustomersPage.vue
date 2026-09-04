@@ -1,90 +1,92 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
     <!-- Header -->
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('customers.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('customers.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('customers.title') }}</h1>
+        <p class="page-sub">{{ $t('customers.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('customers.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('customers.refresh') }}
         </button>
-        <button v-if="can('customers.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
-          <Plus :size="12" /> {{ $t('customers.new') }}
+        <button v-if="can('customers.create')" class="btn-primary btn-sm" @click="openCreate">
+          <Plus :size="14" /> {{ $t('customers.new') }}
         </button>
       </div>
     </div>
 
     <!-- Stat tiles -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 mb-3">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
       <button
         v-for="s in statTiles" :key="s.key"
-        class="card p-3 text-left transition-colors"
-        :class="filters.status === s.status ? 'ring-1 ring-primary-500' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
-        @click="applyStatus(s.status)"
+        class="stat"
+        :class="[!s.static && 'stat-clickable', !s.static && filters.status === s.status && 'stat-active', s.static && 'cursor-default']"
+        @click="!s.static && applyStatus(s.status)"
       >
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">{{ stats[s.key] ?? 0 }}</div>
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value">{{ stats[s.key] ?? 0 }}</span>
       </button>
     </div>
 
     <!-- Filters -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-56" :placeholder="$t('customers.search')" @keyup.enter="load" />
-      <select v-model="filters.type" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('customers.all_types') }}</option>
-        <option v-for="t in meta.types" :key="t" :value="t">{{ $t(`customers.type.${t}`) }}</option>
-      </select>
-      <select v-model="filters.group_id" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('customers.all_groups') }}</option>
-        <option v-for="g in meta.groups" :key="g.id" :value="g.id">{{ g.name }}</option>
-      </select>
-      <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
-        <input type="checkbox" class="rounded border-slate-300"
-               :checked="filters.owner_id === 'me'"
-               @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
-        {{ $t('customers.mine_only') }}
-      </label>
-      <button class="btn-secondary text-xs px-2.5 py-1 ml-auto" @click="resetFilters">{{ $t('customers.reset') }}</button>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm w-56" :placeholder="$t('customers.search')" @keyup.enter="load" />
+        <select v-model="filters.type" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('customers.all_types') }}</option>
+          <option v-for="t in meta.types" :key="t" :value="t">{{ $t(`customers.type.${t}`) }}</option>
+        </select>
+        <select v-model="filters.group_id" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('customers.all_groups') }}</option>
+          <option v-for="g in meta.groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
+          <input type="checkbox" class="rounded border-slate-300"
+                 :checked="filters.owner_id === 'me'"
+                 @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
+          {{ $t('customers.mine_only') }}
+        </label>
+        <button class="btn-ghost btn-sm ml-auto" @click="resetFilters">{{ $t('customers.reset') }}</button>
+      </div>
     </div>
 
     <div class="flex gap-3">
       <!-- List -->
-      <div class="card flex-1 min-w-0 overflow-hidden">
+      <div class="panel flex-1 min-w-0">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-        <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('customers.empty') }}</div>
+        <div v-else-if="!rows.length" class="empty">{{ $t('customers.empty') }}</div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="text-xs text-ink-subtle dark:text-ink-dark-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="text-left font-medium px-3 py-2">{{ $t('customers.col.number') }}</th>
-                <th class="text-left font-medium px-3 py-2">{{ $t('customers.col.name') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('customers.col.group') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('customers.col.owner') }}</th>
-                <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('customers.col.credit') }}</th>
-                <th class="text-left font-medium px-3 py-2">{{ $t('customers.col.status') }}</th>
+                <th>{{ $t('customers.col.number') }}</th>
+                <th>{{ $t('customers.col.name') }}</th>
+                <th class="hidden md:table-cell">{{ $t('customers.col.group') }}</th>
+                <th class="hidden lg:table-cell">{{ $t('customers.col.owner') }}</th>
+                <th class="th-num hidden lg:table-cell">{{ $t('customers.col.credit') }}</th>
+                <th>{{ $t('customers.col.status') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr
                 v-for="r in rows" :key="r.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selected?.id === r.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+                class="cursor-pointer"
+                :class="selected?.id === r.id && 'is-selected'"
                 @click="openDetail(r.id)"
               >
-                <td class="px-3 py-2 font-mono text-xs text-ink-muted dark:text-ink-dark-muted">{{ r.customer_no }}</td>
-                <td class="px-3 py-2">
+                <td class="font-mono text-xs text-ink-muted dark:text-ink-dark-muted">{{ r.customer_no }}</td>
+                <td>
                   <div class="text-ink dark:text-ink-dark truncate max-w-[16rem]">{{ r.name }}</div>
                   <div class="text-[11px] text-ink-subtle truncate max-w-[16rem]">{{ r.email || r.phone }}</div>
                 </td>
-                <td class="px-3 py-2 hidden md:table-cell text-ink-muted dark:text-ink-dark-muted">{{ r.group?.name || '—' }}</td>
-                <td class="px-3 py-2 hidden lg:table-cell text-ink-muted dark:text-ink-dark-muted">{{ r.owner?.name || '—' }}</td>
-                <td class="px-3 py-2 hidden lg:table-cell text-right tabular-nums text-ink-muted dark:text-ink-dark-muted">
+                <td class="hidden md:table-cell text-ink-muted dark:text-ink-dark-muted">{{ r.group?.name || '—' }}</td>
+                <td class="hidden lg:table-cell text-ink-muted dark:text-ink-dark-muted">{{ r.owner?.name || '—' }}</td>
+                <td class="td-num hidden lg:table-cell text-ink-muted dark:text-ink-dark-muted">
                   {{ money(r.credit_limit, r.currency) }}
                 </td>
-                <td class="px-3 py-2">
+                <td>
                   <span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(r.status)">
                     {{ $t(`customers.status.${r.status}`) }}
                   </span>
@@ -98,8 +100,8 @@
             {{ $t('customers.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}
           </span>
           <div class="flex gap-1">
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page <= 1" @click="page--; load()">‹</button>
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
+            <button class="btn-secondary btn-xs" :disabled="page <= 1" @click="page--; load()">‹</button>
+            <button class="btn-secondary btn-xs" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
           </div>
         </div>
       </div>
@@ -111,10 +113,10 @@
             <div class="text-sm font-medium text-ink dark:text-ink-dark truncate">{{ selected.name }}</div>
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.customer_no }}</div>
           </div>
-          <button v-if="can('customers.update')" class="btn-secondary text-[11px] px-2 py-0.5" @click="openEdit(selected)">
+          <button v-if="can('customers.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">
             {{ $t('customers.edit') }}
           </button>
-          <button v-if="can('activities.create')" class="btn-secondary text-[10px] px-2 py-0.5" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
+          <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
 
@@ -239,8 +241,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('customers.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submitForm">
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('customers.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">
             {{ form.saving ? $t('customers.saving') : $t('customers.save') }}
           </button>
         </div>
@@ -289,7 +291,7 @@ const statTiles = [
   { key: 'active',  status: 'active',   label: 'customers.stat.active' },
   { key: 'on_hold', status: 'on_hold',  label: 'customers.stat.on_hold' },
   { key: 'blocked', status: 'blocked',  label: 'customers.stat.blocked' },
-  { key: 'new_this_month', status: 'all', label: 'customers.stat.new_this_month' },
+  { key: 'new_this_month', status: 'all', label: 'customers.stat.new_this_month', static: true },
 ];
 
 const rows       = ref([]);
@@ -437,5 +439,5 @@ const timelineClass = (ty) => ({
   system:        'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
 }[ty] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await Promise.all([load(), loadAux()]); });
+onMounted(async () => { await Promise.all([load(), loadAux()]); if (router.currentRoute.value.query.create) openCreate(); });
 </script>

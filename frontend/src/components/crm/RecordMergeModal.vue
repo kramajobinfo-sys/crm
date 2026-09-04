@@ -39,8 +39,8 @@
       </div>
       <p v-if="state.error" class="mt-3 text-xs text-red-600">{{ state.error }}</p>
       <div class="flex justify-end gap-2 mt-4">
-        <button class="btn-secondary text-xs px-3 py-1.5" :disabled="state.saving" @click="$emit('close')">{{ $t('common.cancel') }}</button>
-        <button v-if="state.preview" class="btn-primary text-xs px-3 py-1.5 bg-red-600 hover:bg-red-700" :disabled="state.saving" @click="$emit('confirm', sources)">
+        <button class="btn-secondary btn-sm" :disabled="state.saving" @click="$emit('close')">{{ $t('common.cancel') }}</button>
+        <button v-if="state.preview" class="btn-primary btn-sm bg-red-600 hover:bg-red-700" :disabled="state.saving" @click="$emit('confirm', sources)">
           {{ state.saving ? $t('duplicates.merging') : $t('duplicates.confirm_merge') }}
         </button>
       </div>

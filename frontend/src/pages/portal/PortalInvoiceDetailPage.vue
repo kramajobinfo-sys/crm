@@ -14,18 +14,18 @@
         <span class="text-xs capitalize px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-700">{{ invoice.status.replace('_', ' ') }}</span>
       </div>
 
-      <table class="w-full text-sm mb-6">
+      <table class="data-table mb-6">
         <thead>
-          <tr class="text-left text-ink-muted dark:text-ink-dark-muted border-b border-slate-200 dark:border-slate-700">
-            <th class="py-2">{{ $t('portal.item') }}</th><th class="py-2">{{ $t('portal.qty') }}</th><th class="py-2">{{ $t('portal.unit_price') }}</th><th class="py-2 text-right">{{ $t('portal.total') }}</th>
+          <tr>
+            <th>{{ $t('portal.item') }}</th><th class="th-num">{{ $t('portal.qty') }}</th><th class="th-num">{{ $t('portal.unit_price') }}</th><th class="th-num">{{ $t('portal.total') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, i) in invoice.items" :key="i" class="border-b border-slate-100 dark:border-slate-800">
-            <td class="py-2">{{ item.name }}</td>
-            <td class="py-2">{{ item.quantity }}</td>
-            <td class="py-2">{{ item.unit_price }}</td>
-            <td class="py-2 text-right">{{ item.line_total }}</td>
+          <tr v-for="(item, i) in invoice.items" :key="i">
+            <td>{{ item.name }}</td>
+            <td class="td-num">{{ item.quantity }}</td>
+            <td class="td-num">{{ item.unit_price }}</td>
+            <td class="td-num">{{ item.line_total }}</td>
           </tr>
         </tbody>
       </table>

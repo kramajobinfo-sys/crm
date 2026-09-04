@@ -1,85 +1,87 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('helpdesk.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('helpdesk.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('helpdesk.title') }}</h1>
+        <p class="page-sub">{{ $t('helpdesk.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('helpdesk.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('helpdesk.refresh') }}
         </button>
-        <button v-if="can('tickets.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
-          <Plus :size="12" /> {{ $t('helpdesk.new') }}
+        <button v-if="can('tickets.create')" class="btn-primary btn-sm" @click="openCreate">
+          <Plus :size="14" /> {{ $t('helpdesk.new') }}
         </button>
       </div>
     </div>
 
     <!-- Stat tiles -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <button v-for="s in statTiles" :key="s.key" class="card p-3 text-left transition-colors"
-              :class="isActiveTile(s) ? 'ring-1 ring-primary-500' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+      <button v-for="s in statTiles" :key="s.key" class="stat stat-clickable"
+              :class="isActiveTile(s) && 'stat-active'"
               @click="applyTile(s)">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold mt-0.5" :class="(s.key === 'breaching' && stats.breaching) || (s.key === 'urgent' && stats.urgent) ? 'text-red-600' : 'text-ink dark:text-ink-dark'">
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value" :class="((s.key === 'breaching' && stats.breaching) || (s.key === 'urgent' && stats.urgent)) && 'text-red-600'">
           {{ stats[s.key] ?? 0 }}
-        </div>
+        </span>
       </button>
     </div>
 
     <!-- Filters -->
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-52" :placeholder="$t('helpdesk.search')" @keyup.enter="load" />
-      <select v-model="filters.status" class="input text-sm w-auto" @change="load">
-        <option value="open">{{ $t('helpdesk.open_only') }}</option>
-        <option value="all">{{ $t('helpdesk.all_statuses') }}</option>
-        <option v-for="s in meta.statuses" :key="s" :value="s">{{ $t(`helpdesk.st.${s}`) }}</option>
-      </select>
-      <select v-model="filters.priority" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('helpdesk.all_priorities') }}</option>
-        <option v-for="p in meta.priorities" :key="p" :value="p">{{ $t(`helpdesk.pr.${p}`) }}</option>
-      </select>
-      <select v-model="filters.category_id" class="input text-sm w-auto" @change="load">
-        <option value="">{{ $t('helpdesk.all_categories') }}</option>
-        <option v-for="c in meta.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
-      </select>
-      <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
-        <input type="checkbox" class="rounded border-slate-300" :checked="filters.assigned_to === 'me'"
-               @change="filters.assigned_to = $event.target.checked ? 'me' : ''; load()" />
-        {{ $t('helpdesk.mine_only') }}
-      </label>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm w-52" :placeholder="$t('helpdesk.search')" @keyup.enter="load" />
+        <select v-model="filters.status" class="input input-sm w-auto" @change="load">
+          <option value="open">{{ $t('helpdesk.open_only') }}</option>
+          <option value="all">{{ $t('helpdesk.all_statuses') }}</option>
+          <option v-for="s in meta.statuses" :key="s" :value="s">{{ $t(`helpdesk.st.${s}`) }}</option>
+        </select>
+        <select v-model="filters.priority" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('helpdesk.all_priorities') }}</option>
+          <option v-for="p in meta.priorities" :key="p" :value="p">{{ $t(`helpdesk.pr.${p}`) }}</option>
+        </select>
+        <select v-model="filters.category_id" class="input input-sm w-auto" @change="load">
+          <option value="">{{ $t('helpdesk.all_categories') }}</option>
+          <option v-for="c in meta.categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted ml-1">
+          <input type="checkbox" class="rounded border-slate-300" :checked="filters.assigned_to === 'me'"
+                 @change="filters.assigned_to = $event.target.checked ? 'me' : ''; load()" />
+          {{ $t('helpdesk.mine_only') }}
+        </label>
+      </div>
     </div>
 
     <div class="flex gap-3 items-start">
       <!-- List -->
-      <div class="card flex-1 min-w-0 overflow-hidden">
+      <div class="panel flex-1 min-w-0">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-        <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('helpdesk.empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <div v-else-if="!rows.length" class="empty">{{ $t('helpdesk.empty') }}</div>
+        <table v-else class="data-table">
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('helpdesk.col.subject') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('helpdesk.col.status') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('helpdesk.col.assignee') }}</th>
-              <th class="text-left font-medium px-3 py-2">{{ $t('helpdesk.col.due') }}</th>
+              <th>{{ $t('helpdesk.col.subject') }}</th>
+              <th class="hidden md:table-cell">{{ $t('helpdesk.col.status') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('helpdesk.col.assignee') }}</th>
+              <th>{{ $t('helpdesk.col.due') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="tk in rows" :key="tk.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selected?.id === tk.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+                class="cursor-pointer"
+                :class="selected?.id === tk.id && 'is-selected'"
                 @click="openDetail(tk.id)">
-              <td class="px-3 py-2">
+              <td>
                 <div class="flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="priorityDot(tk.priority)" />
                   <span class="text-ink dark:text-ink-dark truncate max-w-[16rem]">{{ tk.subject }}</span>
                 </div>
                 <div class="text-[11px] text-ink-subtle font-mono">{{ tk.ticket_no }} · {{ tk.customer?.name || tk.requester_name || '—' }}</div>
               </td>
-              <td class="px-3 py-2 hidden md:table-cell"><span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(tk.status)">{{ $t(`helpdesk.st.${tk.status}`) }}</span></td>
-              <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ tk.assignee?.name || $t('helpdesk.unassigned') }}</td>
-              <td class="px-3 py-2">
+              <td class="hidden md:table-cell"><span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(tk.status)">{{ $t(`helpdesk.st.${tk.status}`) }}</span></td>
+              <td class="hidden lg:table-cell text-ink-muted">{{ tk.assignee?.name || $t('helpdesk.unassigned') }}</td>
+              <td>
                 <span v-if="tk.is_breaching" class="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700">{{ $t('helpdesk.overdue') }}</span>
                 <span v-else class="text-[11px] text-ink-subtle">{{ tk.due_human || '—' }}</span>
               </td>
@@ -112,7 +114,7 @@
           <select v-if="can('tickets.update')" :value="selected.priority" class="input text-xs" @change="doPriority($event.target.value)">
             <option v-for="p in meta.priorities" :key="p" :value="p">{{ $t(`helpdesk.pr.${p}`) }}</option>
           </select>
-          <button v-if="can('tickets.update')" class="btn-secondary text-xs px-2 py-1 text-amber-600" @click="doEscalate">{{ $t('helpdesk.escalate') }}</button>
+          <button v-if="can('tickets.update')" class="btn-secondary btn-xs text-amber-600" @click="doEscalate">{{ $t('helpdesk.escalate') }}</button>
         </div>
 
         <!-- SLA -->
@@ -146,7 +148,7 @@
             <label class="flex items-center gap-1 text-[11px] text-ink-muted">
               <input type="checkbox" class="rounded border-slate-300" v-model="replyInternal" /> {{ $t('helpdesk.internal_note') }}
             </label>
-            <button class="btn-primary text-[11px] px-3 py-1 ml-auto" :disabled="!replyDraft.trim() || sending" @click="submitReply">
+            <button class="btn-primary btn-xs ml-auto" :disabled="!replyDraft.trim() || sending" @click="submitReply">
               <Send :size="11" /> {{ replyInternal ? $t('helpdesk.add_note') : $t('helpdesk.send_reply') }}
             </button>
           </div>
@@ -184,8 +186,8 @@
             </select></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('helpdesk.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('helpdesk.saving') : $t('helpdesk.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('helpdesk.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('helpdesk.saving') : $t('helpdesk.save') }}</button>
         </div>
       </div>
     </div>
@@ -204,8 +206,8 @@
         <label class="label">{{ $t('helpdesk.note') }}</label>
         <textarea v-model="esc.note" rows="2" class="input text-sm"></textarea>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="esc.open = false">{{ $t('helpdesk.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="esc.saving" @click="submitEscalate">{{ $t('helpdesk.escalate') }}</button>
+          <button class="btn-secondary btn-sm" @click="esc.open = false">{{ $t('helpdesk.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="esc.saving" @click="submitEscalate">{{ $t('helpdesk.escalate') }}</button>
         </div>
       </div>
     </div>
@@ -229,8 +231,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('helpdesk.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

@@ -30,9 +30,9 @@ class LeadService
             ->when(!empty($filters['source_id']), fn ($q) => $q->where('source_id', $filters['source_id']))
             ->when(!empty($filters['rating']), fn ($q) => $q->where('rating', $filters['rating']))
             ->when(!empty($filters['owner_id']), function ($q) use ($filters) {
-                return $filters['owner_id'] === 'me'
-                    ? $q->where('owner_id', auth()->id())
-                    : $q->where('owner_id', $filters['owner_id']);
+                if ($filters['owner_id'] === 'me') return $q->where('owner_id', auth()->id());
+                if ($filters['owner_id'] === 'unassigned') return $q->whereNull('owner_id');
+                return $q->where('owner_id', $filters['owner_id']);
             })
             ->orderByDesc('score')->orderByDesc('id')
             ->paginate($perPage);

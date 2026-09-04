@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
+  <div class="page">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark flex items-center gap-1.5"><Sparkles :size="16" class="text-primary-500" /> {{ $t('ai.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('ai.subtitle') }}</div>
+        <h1 class="page-title flex items-center gap-1.5"><Sparkles :size="18" class="text-primary-500" /> {{ $t('ai.title') }}</h1>
+        <p class="page-sub">{{ $t('ai.subtitle') }}</p>
       </div>
     </div>
 
     <div class="flex gap-3 items-start" style="height: calc(100vh - 11rem)">
       <!-- Conversations -->
       <div class="card w-52 shrink-0 hidden lg:flex flex-col overflow-hidden">
-        <button class="m-2 btn-primary text-xs px-2.5 py-1.5" @click="newConversation"><Plus :size="12" /> {{ $t('ai.new_chat') }}</button>
+        <button class="m-2 btn-primary btn-sm" @click="newConversation"><Plus :size="12" /> {{ $t('ai.new_chat') }}</button>
         <div class="flex-1 overflow-y-auto">
           <button v-for="c in conversations" :key="c.id"
                   class="w-full text-left px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-surface-dark-subtle"
@@ -28,7 +28,7 @@
             <Sparkles :size="28" class="mb-2 text-primary-400" />
             <div class="text-sm">{{ $t('ai.welcome') }}</div>
             <div class="flex flex-wrap gap-2 justify-center mt-3 max-w-md">
-              <button v-for="s in suggestions" :key="s" class="btn-secondary text-[11px] px-2.5 py-1" @click="quickAsk(s)">{{ s }}</button>
+              <button v-for="s in suggestions" :key="s" class="btn-secondary btn-xs" @click="quickAsk(s)">{{ s }}</button>
             </div>
           </div>
           <div v-for="m in active?.messages || []" :key="m.id" class="flex" :class="m.role === 'user' ? 'justify-end' : 'justify-start'">

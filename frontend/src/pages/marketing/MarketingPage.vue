@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('marketing.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('marketing.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('marketing.title') }}</h1>
+        <p class="page-sub">{{ $t('marketing.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('marketing.refresh') }}
         </button>
-        <button v-if="can('campaigns.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
+        <button v-if="can('campaigns.create')" class="btn-primary btn-sm" @click="openCreate">
           <Plus :size="12" /> {{ $t('marketing.new') }}
         </button>
       </div>
@@ -18,9 +18,9 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
+        <div class="stat-value text-xl">
           <span v-if="s.pct">{{ stats[s.key] == null ? '—' : stats[s.key] + '%' }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
         </div>
@@ -45,13 +45,13 @@
       <div class="card flex-1 min-w-0 overflow-hidden">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
         <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('marketing.empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <table class="data-table" v-else>
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('marketing.col.name') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('marketing.col.status') }}</th>
-              <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('marketing.col.recipients') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('marketing.col.open_rate') }}</th>
+              <th>{{ $t('marketing.col.name') }}</th>
+              <th class="hidden md:table-cell">{{ $t('marketing.col.status') }}</th>
+              <th class="hidden lg:table-cell th-num">{{ $t('marketing.col.recipients') }}</th>
+              <th class="th-num">{{ $t('marketing.col.open_rate') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -85,8 +85,8 @@
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 flex gap-1.5">
-          <button v-if="['draft','scheduled'].includes(selected.status) && can('campaigns.launch')" class="btn-primary text-[11px] px-2.5 py-1" @click="doLaunch">{{ $t('marketing.launch') }}</button>
-          <button v-if="selected.is_editable && can('campaigns.delete')" class="btn-secondary text-[11px] px-2 py-1 text-red-600" @click="removeCampaign">{{ $t('marketing.delete') }}</button>
+          <button v-if="['draft','scheduled'].includes(selected.status) && can('campaigns.launch')" class="btn-primary btn-xs" @click="doLaunch">{{ $t('marketing.launch') }}</button>
+          <button v-if="selected.is_editable && can('campaigns.delete')" class="btn-secondary btn-xs text-red-600" @click="removeCampaign">{{ $t('marketing.delete') }}</button>
         </div>
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
           <div v-if="selected.subject"><span class="text-ink-subtle">{{ $t('marketing.subject') }}:</span> <span class="text-ink dark:text-ink-dark">{{ selected.subject }}</span></div>
@@ -158,8 +158,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('marketing.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit">{{ form.saving ? $t('marketing.saving') : $t('marketing.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('marketing.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submit">{{ form.saving ? $t('marketing.saving') : $t('marketing.save') }}</button>
         </div>
       </div>
     </div>
@@ -182,8 +182,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('marketing.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

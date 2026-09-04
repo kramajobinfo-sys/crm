@@ -1,5 +1,5 @@
 <template>
-  <div class="p-4 max-w-4xl mx-auto">
+  <div class="page">
     <div class="mb-3">
       <h1 class="text-lg font-semibold text-ink dark:text-ink-dark">Duplicate Review</h1>
       <p class="text-xs text-ink-muted dark:text-ink-dark-muted">Find and merge records that already exist more than once.</p>
@@ -27,7 +27,7 @@
             {{ $t(`duplicates.reason.${g.reason}`) }} · {{ g.value }} · {{ g.count }}
           </span>
           <button
-            class="btn-primary text-[11px] px-2 py-1"
+            class="btn-primary btn-xs"
             :disabled="g.records.length < 2 || mergeGuard.state.saving"
             @click="startMerge(g)"
           >{{ $t('duplicates.merge_review') }}</button>

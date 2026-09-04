@@ -1,39 +1,42 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1400px] mx-auto">
-    <div class="mb-4">
-      <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('platform.title') }}</div>
-      <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('platform.subtitle') }}</div>
+  <div class="page">
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('platform.title') }}</h1>
+        <p class="page-sub">{{ $t('platform.subtitle') }}</p>
+      </div>
     </div>
 
     <div class="flex gap-3 items-start">
-      <div class="card flex-1 min-w-0 overflow-hidden">
-        <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2">
-          <input v-model="q" class="input text-sm w-56" :placeholder="$t('platform.search')" @keyup.enter="loadCompanies" />
+      <div class="panel flex-1 min-w-0">
+        <div class="toolbar border-b border-line dark:border-line-dark">
+          <input v-model="q" class="input input-sm w-56" :placeholder="$t('platform.search')" @keyup.enter="loadCompanies" />
         </div>
-        <table class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <div class="overflow-x-auto">
+        <table class="data-table">
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('platform.c.name') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('platform.c.plan') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('platform.c.users') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('platform.c.status') }}</th>
+              <th>{{ $t('platform.c.name') }}</th>
+              <th class="hidden md:table-cell">{{ $t('platform.c.plan') }}</th>
+              <th class="th-num">{{ $t('platform.c.users') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('platform.c.status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="c in companies" :key="c.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selected?.id === c.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+                class="cursor-pointer"
+                :class="selected?.id === c.id && 'is-selected'"
                 @click="openCompany(c)">
-              <td class="px-3 py-2">
+              <td>
                 <div class="text-ink dark:text-ink-dark flex items-center gap-1.5">
                   {{ c.name }}
                   <span v-if="c.is_platform" class="text-[10px] px-1.5 py-0.5 rounded bg-primary-100 text-primary-700">{{ $t('platform.master') }}</span>
                 </div>
                 <div class="text-[11px] text-ink-subtle font-mono">{{ c.code }}</div>
               </td>
-              <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ c.plan?.name || '—' }}</td>
-              <td class="px-3 py-2 text-right tabular-nums text-ink-muted">{{ c.users_count }}</td>
-              <td class="px-3 py-2 hidden lg:table-cell">
+              <td class="hidden md:table-cell text-ink-muted">{{ c.plan?.name || '—' }}</td>
+              <td class="td-num text-ink-muted">{{ c.users_count }}</td>
+              <td class="hidden lg:table-cell">
                 <span class="text-[10px] px-1.5 py-0.5 rounded" :class="c.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'">
                   {{ c.is_active ? $t('settings.active') : $t('settings.inactive') }}
                 </span>
@@ -41,6 +44,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
       </div>
 
       <!-- Detail panel -->
@@ -58,7 +62,7 @@
                 <option value="professional">Professional</option>
                 <option value="enterprise">Enterprise</option>
               </select>
-              <button class="btn-primary text-xs px-3 py-1.5" :disabled="savingPlan || planCode === selected.plan?.code" @click="savePlan">
+              <button class="btn-primary btn-sm" :disabled="savingPlan || planCode === selected.plan?.code" @click="savePlan">
                 {{ savingPlan ? $t('settings.saving') : $t('settings.save') }}
               </button>
             </div>
@@ -71,7 +75,7 @@
               <select v-model.number="grantForm.hours" class="input text-sm w-24">
                 <option v-for="h in [1,2,4,8]" :key="h" :value="h">{{ h }}h</option>
               </select>
-              <button class="btn-secondary text-xs px-3 py-1.5 flex-1" :disabled="grantForm.saving || !grantForm.reason" @click="submitGrant">
+              <button class="btn-secondary btn-sm flex-1" :disabled="grantForm.saving || !grantForm.reason" @click="submitGrant">
                 {{ $t('platform.grant_access') }}
               </button>
             </div>

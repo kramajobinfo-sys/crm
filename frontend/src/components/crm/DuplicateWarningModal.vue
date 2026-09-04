@@ -30,8 +30,8 @@
       </div>
 
       <div class="flex justify-end gap-2 mt-4">
-        <button class="btn-secondary text-xs px-3 py-1.5" @click="$emit('cancel')">{{ $t('duplicates.review') }}</button>
-        <button class="btn-primary text-xs px-3 py-1.5 bg-amber-600 hover:bg-amber-700" @click="$emit('proceed')">{{ $t('duplicates.save_anyway') }}</button>
+        <button class="btn-secondary btn-sm" @click="$emit('cancel')">{{ $t('duplicates.review') }}</button>
+        <button class="btn-primary btn-sm bg-amber-600 hover:bg-amber-700" @click="$emit('proceed')">{{ $t('duplicates.save_anyway') }}</button>
       </div>
     </div>
   </div>

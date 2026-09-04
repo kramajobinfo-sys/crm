@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('mfg.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('mfg.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('mfg.title') }}</h1>
+        <p class="page-sub">{{ $t('mfg.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('mfg.refresh') }}
         </button>
-        <button v-if="tab === 'boms' && can('manufacturing.manage')" class="btn-primary text-xs px-3 py-1.5" @click="openBom()">
+        <button v-if="tab === 'boms' && can('manufacturing.manage')" class="btn-primary btn-sm" @click="openBom()">
           <Plus :size="12" /> {{ $t('mfg.define_bom') }}
         </button>
       </div>
@@ -26,27 +26,27 @@
     </div>
 
     <!-- ===== BOMs ===== -->
-    <div v-if="tab === 'boms'" class="card overflow-hidden">
+    <div v-if="tab === 'boms'" class="panel">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-      <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('mfg.empty_boms') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <div v-else-if="!rows.length" class="empty">{{ $t('mfg.empty_boms') }}</div>
+      <table v-else class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('mfg.finished_good') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('mfg.category') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('mfg.components') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('mfg.finished_good') }}</th>
+            <th class="hidden md:table-cell">{{ $t('mfg.category') }}</th>
+            <th class="th-num">{{ $t('mfg.components') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="p in rows" :key="p.id" class="border-t border-slate-100 dark:border-slate-700/60">
-            <td class="px-3 py-2">
+          <tr v-for="p in rows" :key="p.id">
+            <td>
               <div class="text-ink dark:text-ink-dark">{{ p.name }}</div>
               <div class="text-[11px] text-ink-subtle font-mono">{{ p.sku }}</div>
             </td>
-            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ p.category || '—' }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted">{{ p.components_count }}</td>
-            <td class="px-3 py-2 text-right whitespace-nowrap">
+            <td class="hidden md:table-cell text-ink-muted">{{ p.category || '—' }}</td>
+            <td class="td-num text-ink-muted">{{ p.components_count }}</td>
+            <td class="text-right whitespace-nowrap">
               <button v-if="can('manufacturing.build')" class="text-[11px] text-primary-600 hover:underline" @click="openBuild(p)">{{ $t('mfg.build') }}</button>
               <button v-if="can('manufacturing.manage')" class="text-[11px] text-primary-600 hover:underline ml-2" @click="openBom(p)">{{ $t('mfg.edit_bom') }}</button>
             </td>
@@ -56,28 +56,28 @@
     </div>
 
     <!-- ===== BUILDS ===== -->
-    <div v-else class="card overflow-hidden">
+    <div v-else class="panel">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-      <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('mfg.empty_builds') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <div v-else-if="!rows.length" class="empty">{{ $t('mfg.empty_builds') }}</div>
+      <table v-else class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('mfg.build_no') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('mfg.finished_good') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('mfg.qty') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('mfg.warehouse') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('mfg.total_cost') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('mfg.when') }}</th>
+            <th>{{ $t('mfg.build_no') }}</th>
+            <th>{{ $t('mfg.finished_good') }}</th>
+            <th class="th-num">{{ $t('mfg.qty') }}</th>
+            <th class="hidden md:table-cell">{{ $t('mfg.warehouse') }}</th>
+            <th class="th-num hidden lg:table-cell">{{ $t('mfg.total_cost') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('mfg.when') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="b in rows" :key="b.id" class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-dark-subtle" @click="openBuildDetail(b.id)">
-            <td class="px-3 py-2 font-mono text-[11px] text-ink dark:text-ink-dark">{{ b.build_no }}</td>
-            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ b.product?.name }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ b.quantity }}</td>
-            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ b.warehouse?.name }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted hidden lg:table-cell">{{ b.total_cost }}</td>
-            <td class="px-3 py-2 hidden lg:table-cell text-ink-subtle">{{ b.built_human }}</td>
+          <tr v-for="b in rows" :key="b.id" class="cursor-pointer" @click="openBuildDetail(b.id)">
+            <td class="font-mono text-[11px] text-ink dark:text-ink-dark">{{ b.build_no }}</td>
+            <td class="text-ink dark:text-ink-dark">{{ b.product?.name }}</td>
+            <td class="td-num">{{ b.quantity }}</td>
+            <td class="hidden md:table-cell text-ink-muted">{{ b.warehouse?.name }}</td>
+            <td class="td-num text-ink-muted hidden lg:table-cell">{{ b.total_cost }}</td>
+            <td class="hidden lg:table-cell text-ink-subtle">{{ b.built_human }}</td>
           </tr>
         </tbody>
       </table>
@@ -111,8 +111,8 @@
         </div>
         <p class="text-[11px] text-ink-subtle mt-1">{{ $t('mfg.qty_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="bomForm.open = false">{{ $t('mfg.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="bomForm.saving || !bomForm.product_id" @click="submitBom">{{ bomForm.saving ? $t('mfg.saving') : $t('mfg.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="bomForm.open = false">{{ $t('mfg.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="bomForm.saving || !bomForm.product_id" @click="submitBom">{{ bomForm.saving ? $t('mfg.saving') : $t('mfg.save') }}</button>
         </div>
       </div>
     </div>
@@ -139,8 +139,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="buildForm.open = false">{{ $t('mfg.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="buildForm.saving || !canBuild" @click="submitBuild">{{ buildForm.saving ? $t('mfg.building') : $t('mfg.do_build') }}</button>
+          <button class="btn-secondary btn-sm" @click="buildForm.open = false">{{ $t('mfg.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="buildForm.saving || !canBuild" @click="submitBuild">{{ buildForm.saving ? $t('mfg.building') : $t('mfg.do_build') }}</button>
         </div>
       </div>
     </div>

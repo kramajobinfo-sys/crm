@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('price_books.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('price_books.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('price_books.title') }}</h1>
+        <p class="page-sub">{{ $t('price_books.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('price_books.refresh') }}
         </button>
-        <button v-if="can('price_books.create')" class="btn-primary text-xs px-3 py-1.5" @click="openBook()">
+        <button v-if="can('price_books.create')" class="btn-primary btn-sm" @click="openBook()">
           <Plus :size="12" /> {{ $t('price_books.new') }}
         </button>
       </div>
@@ -30,14 +30,14 @@
     <div class="card overflow-hidden">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
       <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('price_books.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('price_books.name') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('price_books.currency') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('price_books.products') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('price_books.status') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('price_books.name') }}</th>
+            <th>{{ $t('price_books.currency') }}</th>
+            <th class="th-num">{{ $t('price_books.products') }}</th>
+            <th class="hidden md:table-cell">{{ $t('price_books.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -85,8 +85,8 @@
             <input v-model="bookForm.data.description" class="input text-sm" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="bookForm.open = false">{{ $t('price_books.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="bookForm.saving" @click="submitBook">{{ bookForm.saving ? $t('price_books.saving') : $t('price_books.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="bookForm.open = false">{{ $t('price_books.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="bookForm.saving" @click="submitBook">{{ bookForm.saving ? $t('price_books.saving') : $t('price_books.save') }}</button>
         </div>
       </div>
     </div>
@@ -101,12 +101,12 @@
         <div class="text-[11px] text-ink-subtle mb-3">{{ $t('price_books.prices_hint') }}</div>
         <input v-model="priceForm.q" class="input text-sm w-full mb-2" :placeholder="$t('price_books.search_products')" />
         <div class="max-h-[50vh] overflow-y-auto border border-slate-100 dark:border-slate-700/60 rounded">
-          <table class="w-full text-sm">
-            <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle sticky top-0">
+          <table class="data-table">
+            <thead>
               <tr>
-                <th class="text-left font-medium px-3 py-2">{{ $t('price_books.product') }}</th>
-                <th class="text-right font-medium px-3 py-2 hidden md:table-cell">{{ $t('price_books.list_price') }}</th>
-                <th class="text-right font-medium px-3 py-2 w-40">{{ $t('price_books.book_price') }}</th>
+                <th>{{ $t('price_books.product') }}</th>
+                <th class="hidden md:table-cell th-num">{{ $t('price_books.list_price') }}</th>
+                <th class="w-40 th-num">{{ $t('price_books.book_price') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -127,8 +127,8 @@
         <div class="flex items-center justify-between mt-4">
           <div class="text-[11px] text-ink-subtle">{{ $t('price_books.entries_set', { n: setCount }) }}</div>
           <div class="flex gap-2">
-            <button class="btn-secondary text-xs px-3 py-1.5" @click="priceForm.open = false">{{ $t('price_books.cancel') }}</button>
-            <button class="btn-primary text-xs px-3 py-1.5" :disabled="priceForm.saving" @click="submitPrices">{{ priceForm.saving ? $t('price_books.saving') : $t('price_books.save_prices') }}</button>
+            <button class="btn-secondary btn-sm" @click="priceForm.open = false">{{ $t('price_books.cancel') }}</button>
+            <button class="btn-primary btn-sm" :disabled="priceForm.saving" @click="submitPrices">{{ priceForm.saving ? $t('price_books.saving') : $t('price_books.save_prices') }}</button>
           </div>
         </div>
       </div>
@@ -152,8 +152,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('price_books.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

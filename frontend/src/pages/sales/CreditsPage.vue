@@ -1,16 +1,16 @@
 <template>
   <div class="space-y-4">
     <!-- Header -->
-    <div class="flex items-start justify-between gap-3 flex-wrap">
-      <div>
-        <h1 class="text-lg font-semibold text-ink dark:text-ink-dark">{{ $t('credits.title') }}</h1>
-        <p class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('credits.subtitle') }}</p>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('credits.title') }}</h1>
+        <p class="page-sub">{{ $t('credits.subtitle') }}</p>
       </div>
       <div class="flex items-center gap-2">
-        <button class="btn-secondary text-xs px-2.5 py-1.5" @click="loadAll">
+        <button class="btn-secondary btn-sm" @click="loadAll">
           <RefreshCw :size="12" /> {{ $t('credits.refresh') }}
         </button>
-        <button v-if="can('credits.create')" class="btn-primary text-xs px-2.5 py-1.5" @click="openIssue">
+        <button v-if="can('credits.create')" class="btn-primary btn-sm" @click="openIssue">
           <Plus :size="12" /> {{ $t('credits.new') }}
         </button>
       </div>
@@ -18,36 +18,38 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-subtle">{{ s.label }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark tabular-nums mt-0.5">{{ s.value }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <span class="stat-label">{{ s.label }}</span>
+        <span class="stat-value">{{ s.value }}</span>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="flex items-center gap-2 flex-wrap">
-      <input v-model="filters.q" class="input text-sm max-w-xs" :placeholder="$t('credits.search')" @keyup.enter="loadList" />
-      <select v-model="filters.status" class="input text-sm w-auto" @change="loadList">
-        <option value="available">{{ $t('credits.available') }}</option>
-        <option value="all">{{ $t('credits.all') }}</option>
-        <option value="open">{{ $t('credits.open') }}</option>
-        <option value="applied">{{ $t('credits.applied') }}</option>
-        <option value="void">{{ $t('credits.void') }}</option>
-      </select>
+    <div class="card">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm max-w-xs" :placeholder="$t('credits.search')" @keyup.enter="loadList" />
+        <select v-model="filters.status" class="input input-sm w-auto" @change="loadList">
+          <option value="available">{{ $t('credits.available') }}</option>
+          <option value="all">{{ $t('credits.all') }}</option>
+          <option value="open">{{ $t('credits.open') }}</option>
+          <option value="applied">{{ $t('credits.applied') }}</option>
+          <option value="void">{{ $t('credits.void') }}</option>
+        </select>
+      </div>
     </div>
 
     <!-- List -->
-    <div class="card overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+    <div class="panel overflow-x-auto">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('credits.credit_no') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('credits.customer') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('credits.source') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('credits.amount') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('credits.remaining') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('credits.status') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('credits.credit_no') }}</th>
+            <th>{{ $t('credits.customer') }}</th>
+            <th>{{ $t('credits.source') }}</th>
+            <th class="th-num">{{ $t('credits.amount') }}</th>
+            <th class="th-num">{{ $t('credits.remaining') }}</th>
+            <th>{{ $t('credits.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -55,17 +57,17 @@
             <td colspan="7" class="text-center text-[11px] text-ink-subtle py-8">{{ $t('credits.no_credits') }}</td>
           </tr>
           <tr v-for="c in rows" :key="c.id"
-              class="border-t border-slate-100 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-surface-dark-subtle cursor-pointer"
+              class="cursor-pointer"
               @click="openDetail(c.id)">
-            <td class="px-3 py-2 font-medium text-ink dark:text-ink-dark">{{ c.credit_no }}</td>
-            <td class="px-3 py-2 text-ink-muted">{{ c.customer?.name || '—' }}</td>
-            <td class="px-3 py-2 text-ink-muted text-xs">{{ sourceLabel(c.source) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ money(c.amount, c.currency) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums font-medium">{{ money(c.remaining, c.currency) }}</td>
-            <td class="px-3 py-2"><span class="badge" :class="statusClass(c.status)">{{ $t('credits.' + c.status) }}</span></td>
-            <td class="px-3 py-2 text-right">
+            <td class="font-medium text-ink dark:text-ink-dark">{{ c.credit_no }}</td>
+            <td class="text-ink-muted">{{ c.customer?.name || '—' }}</td>
+            <td class="text-ink-muted text-xs">{{ sourceLabel(c.source) }}</td>
+            <td class="td-num">{{ money(c.amount, c.currency) }}</td>
+            <td class="td-num font-medium">{{ money(c.remaining, c.currency) }}</td>
+            <td><span class="badge" :class="statusClass(c.status)">{{ $t('credits.' + c.status) }}</span></td>
+            <td class="text-right">
               <button v-if="can('credits.delete') && c.status !== 'void' && c.applied_amount === 0"
-                      class="btn-secondary text-[11px] px-2 py-0.5" @click.stop="doVoid(c)">
+                      class="btn-secondary btn-xs" @click.stop="doVoid(c)">
                 {{ $t('credits.void') }}
               </button>
             </td>
@@ -97,8 +99,8 @@
         </div>
 
         <div class="flex justify-end gap-2 pt-1">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="issueForm.open = false">{{ $t('common.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5"
+          <button class="btn-secondary btn-sm" @click="issueForm.open = false">{{ $t('common.cancel') }}</button>
+          <button class="btn-primary btn-sm"
                   :disabled="!issueForm.customer_id || !issueForm.amount || !issueForm.reason || issueForm.saving"
                   @click="submitIssue">
             {{ issueForm.saving ? $t('credits.issuing') : $t('credits.issue') }}

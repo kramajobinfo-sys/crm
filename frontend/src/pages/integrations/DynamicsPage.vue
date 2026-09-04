@@ -1,12 +1,12 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1200px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('dynamics.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('dynamics.subtitle') }}</div>
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('dynamics.title') }}</h1>
+        <p class="page-sub">{{ $t('dynamics.subtitle') }}</p>
       </div>
-      <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
+      <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
         <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('dynamics.refresh') }}
       </button>
     </div>
@@ -24,7 +24,7 @@
         <Plug :size="22" class="mx-auto mb-3 text-ink-subtle" />
         <div class="text-sm text-ink dark:text-ink-dark mb-1">{{ $t('dynamics.none_title') }}</div>
         <div class="text-xs text-ink-muted dark:text-ink-dark-muted mb-4">{{ $t('dynamics.none_body') }}</div>
-        <button class="btn-primary text-xs px-3 py-1.5" @click="showForm = true">
+        <button class="btn-primary btn-sm" @click="showForm = true">
           <Plus :size="12" /> {{ $t('dynamics.add_connection') }}
         </button>
       </div>
@@ -47,7 +47,7 @@
             </div>
           </div>
           <div class="flex gap-2 shrink-0">
-            <button class="btn-secondary text-xs px-2.5 py-1" :disabled="testing === c.id" @click="test(c)">
+            <button class="btn-secondary btn-sm" :disabled="testing === c.id" @click="test(c)">
               <Plug :size="12" /> {{ testing === c.id ? $t('dynamics.testing') : $t('dynamics.test') }}
             </button>
           </div>
@@ -72,32 +72,32 @@
         <div class="text-[10px] tracking-wider text-ink-subtle dark:text-ink-dark-subtle mb-1">
           {{ $t('dynamics.mappings') }}
         </div>
-        <div v-if="!c.mappings?.length" class="text-xs text-ink-subtle py-2">{{ $t('dynamics.no_mappings') }}</div>
+        <div v-if="!c.mappings?.length" class="empty">{{ $t('dynamics.no_mappings') }}</div>
         <div v-else class="overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead class="text-ink-subtle dark:text-ink-dark-subtle">
-              <tr class="border-b border-slate-200 dark:border-slate-700">
-                <th class="text-left font-medium py-1.5 pr-3">{{ $t('dynamics.crm_entity') }}</th>
-                <th class="text-left font-medium py-1.5 pr-3">{{ $t('dynamics.bc_entity') }}</th>
-                <th class="text-left font-medium py-1.5 pr-3">{{ $t('dynamics.direction') }}</th>
-                <th class="text-left font-medium py-1.5 pr-3">{{ $t('dynamics.last_run') }}</th>
-                <th class="py-1.5"></th>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>{{ $t('dynamics.crm_entity') }}</th>
+                <th>{{ $t('dynamics.bc_entity') }}</th>
+                <th>{{ $t('dynamics.direction') }}</th>
+                <th>{{ $t('dynamics.last_run') }}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="m in c.mappings" :key="m.id" class="border-b border-slate-100 dark:border-slate-700/60">
-                <td class="py-1.5 pr-3 text-ink dark:text-ink-dark">
+              <tr v-for="m in c.mappings" :key="m.id">
+                <td class="text-ink dark:text-ink-dark">
                   {{ m.crm_entity }}
                   <span v-if="!implemented.includes(m.crm_entity)"
                         class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-subtle"
                         :title="$t('dynamics.not_implemented_hint')">{{ $t('dynamics.not_implemented') }}</span>
                 </td>
-                <td class="py-1.5 pr-3 text-ink-muted dark:text-ink-dark-muted">{{ m.bc_entity }}</td>
-                <td class="py-1.5 pr-3 text-ink-muted dark:text-ink-dark-muted">{{ $t(`dynamics.dir.${m.direction}`) }}</td>
-                <td class="py-1.5 pr-3 text-ink-subtle">{{ m.last_run_human || '—' }}</td>
-                <td class="py-1.5 text-right">
+                <td class="text-ink-muted dark:text-ink-dark-muted">{{ m.bc_entity }}</td>
+                <td class="text-ink-muted dark:text-ink-dark-muted">{{ $t(`dynamics.dir.${m.direction}`) }}</td>
+                <td class="text-ink-subtle">{{ m.last_run_human || '—' }}</td>
+                <td class="text-right">
                   <button
-                    class="btn-secondary text-[11px] px-2 py-0.5"
+                    class="btn-secondary btn-xs"
                     :disabled="!implemented.includes(m.crm_entity) || syncing === m.id"
                     :title="implemented.includes(m.crm_entity) ? '' : $t('dynamics.not_implemented_hint')"
                     @click="runSync(c, m)"

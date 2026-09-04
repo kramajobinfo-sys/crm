@@ -21,3 +21,8 @@ frontend/dist/
 /migrate/
 *.bak-*
 *.mariadb
+
+# session backups (auto-created, do not commit)
+*.bak.*
+.redesign-bak-*/
+.src-bak-*.tgz

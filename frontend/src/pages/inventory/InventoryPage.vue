@@ -1,19 +1,19 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('inventory.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('inventory.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('inventory.title') }}</h1>
+        <p class="page-sub">{{ $t('inventory.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('inventory.refresh') }}
         </button>
-        <button v-if="tab === 'warehouses' && can('warehouses.create')" class="btn-primary text-xs px-3 py-1.5" @click="openWarehouse()">
+        <button v-if="tab === 'warehouses' && can('warehouses.create')" class="btn-primary btn-sm" @click="openWarehouse()">
           <Plus :size="12" /> {{ $t('inventory.new_warehouse') }}
         </button>
-        <button v-if="tab === 'transfers' && can('inventory.transfer')" class="btn-primary text-xs px-3 py-1.5" @click="openTransfer()">
+        <button v-if="tab === 'transfers' && can('inventory.transfer')" class="btn-primary btn-sm" @click="openTransfer()">
           <Plus :size="12" /> {{ $t('inventory.new_transfer') }}
         </button>
       </div>
@@ -21,8 +21,8 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
         <div class="text-lg font-semibold mt-0.5" :class="(s.key === 'low_stock' && stats.low_stock) || (s.key === 'out_of_stock' && stats.out_of_stock) ? 'text-amber-600' : 'text-ink dark:text-ink-dark'">
           <span v-if="s.money">{{ compact(stats[s.key]) }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
@@ -60,14 +60,14 @@
     <div v-if="tab === 'stock'" class="card overflow-hidden">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
       <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('inventory.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('inventory.s.product') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('inventory.s.warehouse') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('inventory.s.on_hand') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('inventory.s.available') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('inventory.s.product') }}</th>
+            <th class="hidden md:table-cell">{{ $t('inventory.s.warehouse') }}</th>
+            <th class="th-num">{{ $t('inventory.s.on_hand') }}</th>
+            <th class="hidden lg:table-cell th-num">{{ $t('inventory.s.available') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -96,13 +96,13 @@
     <!-- ===== WAREHOUSES ===== -->
     <div v-else-if="tab === 'warehouses'" class="card overflow-hidden">
       <div v-if="!warehouses.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('inventory.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('inventory.w.name') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('inventory.w.address') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('inventory.w.skus') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('inventory.w.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('inventory.w.address') }}</th>
+            <th class="th-num">{{ $t('inventory.w.skus') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -128,13 +128,13 @@
       <div class="card flex-1 min-w-0 overflow-hidden">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
         <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('inventory.empty') }}</div>
-        <table v-else class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <table class="data-table" v-else>
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('inventory.t.number') }}</th>
-              <th class="text-left font-medium px-3 py-2">{{ $t('inventory.t.route') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('inventory.t.status') }}</th>
-              <th class="text-right font-medium px-3 py-2">{{ $t('inventory.t.items') }}</th>
+              <th>{{ $t('inventory.t.number') }}</th>
+              <th>{{ $t('inventory.t.route') }}</th>
+              <th class="hidden md:table-cell">{{ $t('inventory.t.status') }}</th>
+              <th class="th-num">{{ $t('inventory.t.items') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -161,9 +161,9 @@
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
         <div v-if="can('inventory.transfer')" class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 flex gap-1.5">
-          <button v-if="selected.status === 'draft'" class="btn-primary text-[11px] px-2 py-1" @click="transferAction('ship')">{{ $t('inventory.ship') }}</button>
-          <button v-if="selected.status === 'in_transit'" class="btn-primary text-[11px] px-2 py-1" @click="transferAction('receive')">{{ $t('inventory.receive_transfer') }}</button>
-          <button v-if="['draft','in_transit'].includes(selected.status)" class="btn-secondary text-[11px] px-2 py-1 text-red-600" @click="transferAction('cancel')">{{ $t('inventory.cancel_transfer') }}</button>
+          <button v-if="selected.status === 'draft'" class="btn-primary btn-xs" @click="transferAction('ship')">{{ $t('inventory.ship') }}</button>
+          <button v-if="selected.status === 'in_transit'" class="btn-primary btn-xs" @click="transferAction('receive')">{{ $t('inventory.receive_transfer') }}</button>
+          <button v-if="['draft','in_transit'].includes(selected.status)" class="btn-secondary btn-xs text-red-600" @click="transferAction('cancel')">{{ $t('inventory.cancel_transfer') }}</button>
         </div>
         <div class="flex-1 overflow-y-auto p-3 text-xs">
           <div v-for="it in selected.items" :key="it.id" class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
@@ -178,15 +178,15 @@
     <div v-else-if="tab === 'movements'" class="card overflow-hidden">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
       <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('inventory.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('inventory.m.type') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('inventory.s.product') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('inventory.s.warehouse') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('inventory.m.qty') }}</th>
-            <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('inventory.m.balance') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('inventory.m.when') }}</th>
+            <th>{{ $t('inventory.m.type') }}</th>
+            <th>{{ $t('inventory.s.product') }}</th>
+            <th class="hidden md:table-cell">{{ $t('inventory.s.warehouse') }}</th>
+            <th class="th-num">{{ $t('inventory.m.qty') }}</th>
+            <th class="hidden lg:table-cell th-num">{{ $t('inventory.m.balance') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('inventory.m.when') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -220,8 +220,8 @@
           <div><label class="label">{{ $t('inventory.note') }}</label><input v-model="moveForm.note" class="input text-sm" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="moveForm.open = false">{{ $t('inventory.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="moveForm.saving" @click="submitMove">{{ moveForm.saving ? $t('inventory.saving') : $t('inventory.confirm') }}</button>
+          <button class="btn-secondary btn-sm" @click="moveForm.open = false">{{ $t('inventory.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="moveForm.saving" @click="submitMove">{{ moveForm.saving ? $t('inventory.saving') : $t('inventory.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -241,8 +241,8 @@
           </label>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="whForm.open = false">{{ $t('inventory.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="whForm.saving" @click="submitWarehouse">{{ whForm.saving ? $t('inventory.saving') : $t('inventory.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="whForm.open = false">{{ $t('inventory.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="whForm.saving" @click="submitWarehouse">{{ whForm.saving ? $t('inventory.saving') : $t('inventory.save') }}</button>
         </div>
       </div>
     </div>
@@ -281,8 +281,8 @@
           <p v-if="trForm.error" class="text-[11px] text-red-500">{{ trForm.error }}</p>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="trForm.open = false">{{ $t('inventory.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="trForm.saving" @click="submitTransfer">{{ trForm.saving ? $t('inventory.saving') : $t('inventory.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="trForm.open = false">{{ $t('inventory.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="trForm.saving" @click="submitTransfer">{{ trForm.saving ? $t('inventory.saving') : $t('inventory.save') }}</button>
         </div>
       </div>
     </div>
@@ -307,8 +307,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('inventory.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

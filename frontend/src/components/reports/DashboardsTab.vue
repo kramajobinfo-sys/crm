@@ -22,8 +22,8 @@
         <div class="flex items-center justify-between mb-3">
           <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ active.name }}</div>
           <div class="flex gap-2">
-            <button v-if="can('reports.create')" class="btn-secondary text-[11px] px-2.5 py-1" @click="openAddWidget"><Plus :size="11" /> {{ $t('reports.dashboards.add_widget') }}</button>
-            <button v-if="can('reports.create')" class="btn-secondary text-[11px] px-2.5 py-1 text-red-600" @click="removeDashboard"><Trash2 :size="11" /> {{ $t('reports.dashboards.delete') }}</button>
+            <button v-if="can('reports.create')" class="btn-secondary btn-xs" @click="openAddWidget"><Plus :size="11" /> {{ $t('reports.dashboards.add_widget') }}</button>
+            <button v-if="can('reports.create')" class="btn-secondary btn-xs text-red-600" @click="removeDashboard"><Trash2 :size="11" /> {{ $t('reports.dashboards.delete') }}</button>
           </div>
         </div>
 
@@ -37,11 +37,11 @@
             <div v-if="widgetData[i] === undefined" class="h-40 flex items-center justify-center text-xs text-ink-subtle">{{ $t('reports.dashboards.loading') }}</div>
             <div v-else-if="widgetData[i] === null" class="h-20 flex items-center justify-center text-xs text-ink-subtle">{{ $t('reports.dashboards.unavailable') }}</div>
             <div v-else-if="widgetData[i].report.chart_type === 'table'" class="overflow-x-auto max-h-56">
-              <table class="w-full text-xs">
-                <thead class="text-ink-subtle"><tr><th v-for="c in widgetData[i].result.columns" :key="c.key" class="text-left px-2 py-1">{{ c.label }}</th></tr></thead>
+              <table class="data-table">
+                <thead><tr><th v-for="c in widgetData[i].result.columns" :key="c.key">{{ c.label }}</th></tr></thead>
                 <tbody>
-                  <tr v-for="(row, ri) in widgetData[i].result.rows" :key="ri" class="border-t border-slate-100 dark:border-slate-700/60">
-                    <td v-for="c in widgetData[i].result.columns" :key="c.key" class="px-2 py-1">{{ row[c.key] }}</td>
+                  <tr v-for="(row, ri) in widgetData[i].result.rows" :key="ri">
+                    <td v-for="c in widgetData[i].result.columns" :key="c.key">{{ row[c.key] }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -59,8 +59,8 @@
         <label class="label">{{ $t('reports.name') }} *</label>
         <input v-model="createForm.name" class="input text-sm mb-2" />
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="createForm.open = false">{{ $t('reports.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="!createForm.name || createForm.saving" @click="submitCreate">{{ createForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="createForm.open = false">{{ $t('reports.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="!createForm.name || createForm.saving" @click="submitCreate">{{ createForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
         </div>
       </div>
     </div>
@@ -79,8 +79,8 @@
           <option value="full">{{ $t('reports.dashboards.full') }}</option>
         </select>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="addForm.open = false">{{ $t('reports.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="!addForm.reportId || addForm.saving" @click="submitAddWidget">{{ addForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="addForm.open = false">{{ $t('reports.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="!addForm.reportId || addForm.saving" @click="submitAddWidget">{{ addForm.saving ? $t('reports.saving') : $t('reports.save') }}</button>
         </div>
       </div>
     </div>

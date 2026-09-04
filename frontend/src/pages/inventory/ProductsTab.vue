@@ -8,7 +8,7 @@
         <option value="goods">{{ $t('invproducts.goods') }}</option>
         <option value="service">{{ $t('invproducts.service') }}</option>
       </select>
-      <button v-if="can('products.create')" class="btn-primary text-xs px-3 py-1.5 ml-auto" @click="openForm()">
+      <button v-if="can('products.create')" class="btn-primary btn-sm ml-auto" @click="openForm()">
         <Plus :size="12" /> {{ $t('invproducts.new') }}
       </button>
     </div>
@@ -16,14 +16,14 @@
     <div class="card overflow-hidden">
       <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
       <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('invproducts.empty') }}</div>
-      <table v-else class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table" v-else>
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('invproducts.product') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('invproducts.category') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('invproducts.preferred_supplier') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('invproducts.sale_price') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('invproducts.product') }}</th>
+            <th class="hidden md:table-cell">{{ $t('invproducts.category') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('invproducts.preferred_supplier') }}</th>
+            <th class="th-num">{{ $t('invproducts.sale_price') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -45,8 +45,8 @@
       <div v-if="pagination.last_page > 1" class="flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs">
         <span class="text-ink-subtle">{{ $t('invproducts.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}</span>
         <div class="flex gap-1">
-          <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page <= 1" @click="page--; load()">‹</button>
-          <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
+          <button class="btn-secondary btn-xs" :disabled="page <= 1" @click="page--; load()">‹</button>
+          <button class="btn-secondary btn-xs" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
         </div>
       </div>
     </div>
@@ -139,8 +139,8 @@
         </template>
 
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('invproducts.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit">{{ form.saving ? $t('invproducts.saving') : $t('invproducts.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('invproducts.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submit">{{ form.saving ? $t('invproducts.saving') : $t('invproducts.save') }}</button>
         </div>
       </div>
     </div>

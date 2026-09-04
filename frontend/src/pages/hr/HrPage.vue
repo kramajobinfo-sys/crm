@@ -1,22 +1,22 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('hr.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('hr.subtitle') }}</div>
+  <div class="page">
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('hr.title') }}</h1>
+        <p class="page-sub">{{ $t('hr.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('hr.refresh') }}</button>
-        <button v-if="tab === 'employees' && can('employees.create')" class="btn-primary text-xs px-3 py-1.5" @click="openEmployee()"><Plus :size="12" /> {{ $t('hr.new_employee') }}</button>
-        <button v-if="tab === 'leave' && can('leave.create')" class="btn-primary text-xs px-3 py-1.5" @click="openLeave()"><Plus :size="12" /> {{ $t('hr.request_leave') }}</button>
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload"><RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('hr.refresh') }}</button>
+        <button v-if="tab === 'employees' && can('employees.create')" class="btn-primary btn-sm" @click="openEmployee()"><Plus :size="12" /> {{ $t('hr.new_employee') }}</button>
+        <button v-if="tab === 'leave' && can('leave.create')" class="btn-primary btn-sm" @click="openLeave()"><Plus :size="12" /> {{ $t('hr.request_leave') }}</button>
       </div>
     </div>
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">{{ stats[s.key] ?? 0 }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <span class="stat-label">{{ $t(s.label) }}</span>
+        <span class="stat-value">{{ stats[s.key] ?? 0 }}</span>
       </div>
     </div>
 
@@ -32,34 +32,34 @@
 
     <!-- ===== EMPLOYEES ===== -->
     <div v-if="tab === 'employees'" class="flex gap-3 items-start">
-      <div class="card flex-1 min-w-0 overflow-hidden">
-        <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2">
-          <input v-model="empFilters.q" class="input text-sm w-52" :placeholder="$t('hr.search')" @keyup.enter="loadEmployees" />
-          <select v-model="empFilters.status" class="input text-sm w-auto" @change="loadEmployees">
+      <div class="panel flex-1 min-w-0">
+        <div class="toolbar border-b border-line dark:border-line-dark">
+          <input v-model="empFilters.q" class="input input-sm w-52" :placeholder="$t('hr.search')" @keyup.enter="loadEmployees" />
+          <select v-model="empFilters.status" class="input input-sm w-auto" @change="loadEmployees">
             <option value="all">{{ $t('hr.all_statuses') }}</option>
             <option value="active">{{ $t('hr.st.active') }}</option>
             <option value="on_leave">{{ $t('hr.st.on_leave') }}</option>
             <option value="terminated">{{ $t('hr.st.terminated') }}</option>
           </select>
         </div>
-        <table class="w-full text-sm">
-          <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+        <table class="data-table">
+          <thead>
             <tr>
-              <th class="text-left font-medium px-3 py-2">{{ $t('hr.e.name') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('hr.e.department') }}</th>
-              <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('hr.e.title') }}</th>
-              <th class="text-left font-medium px-3 py-2">{{ $t('hr.e.status') }}</th>
+              <th>{{ $t('hr.e.name') }}</th>
+              <th class="hidden md:table-cell">{{ $t('hr.e.department') }}</th>
+              <th class="hidden lg:table-cell">{{ $t('hr.e.title') }}</th>
+              <th>{{ $t('hr.e.status') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="e in employees" :key="e.id"
-                class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer"
-                :class="selectedEmp?.id === e.id ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-slate-50 dark:hover:bg-surface-dark-subtle'"
+                class="cursor-pointer"
+                :class="selectedEmp?.id === e.id && 'is-selected'"
                 @click="openEmpDetail(e.id)">
-              <td class="px-3 py-2"><div class="text-ink dark:text-ink-dark">{{ e.full_name }}</div><div class="text-[11px] text-ink-subtle font-mono">{{ e.employee_no }}</div></td>
-              <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ e.department?.name || '—' }}</td>
-              <td class="px-3 py-2 hidden lg:table-cell text-ink-muted">{{ e.job_title || '—' }}</td>
-              <td class="px-3 py-2"><span class="text-[10px] px-1.5 py-0.5 rounded" :class="empStatusClass(e.status)">{{ $t(`hr.st.${e.status}`) }}</span></td>
+              <td><div class="text-ink dark:text-ink-dark">{{ e.full_name }}</div><div class="text-[11px] text-ink-subtle font-mono">{{ e.employee_no }}</div></td>
+              <td class="hidden md:table-cell text-ink-muted">{{ e.department?.name || '—' }}</td>
+              <td class="hidden lg:table-cell text-ink-muted">{{ e.job_title || '—' }}</td>
+              <td><span class="text-[10px] px-1.5 py-0.5 rounded" :class="empStatusClass(e.status)">{{ $t(`hr.st.${e.status}`) }}</span></td>
             </tr>
           </tbody>
         </table>
@@ -72,7 +72,7 @@
             <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ selectedEmp.full_name }}</div>
             <div class="text-[11px] text-ink-subtle">{{ selectedEmp.job_title }} · {{ selectedEmp.employee_no }}</div>
           </div>
-          <button v-if="can('employees.update')" class="btn-secondary text-[11px] px-2 py-0.5" @click="openEmployee(selectedEmp)">{{ $t('hr.edit') }}</button>
+          <button v-if="can('employees.update')" class="btn-secondary btn-xs" @click="openEmployee(selectedEmp)">{{ $t('hr.edit') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selectedEmp = null"><X :size="14" /></button>
         </div>
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
@@ -95,28 +95,28 @@
     </div>
 
     <!-- ===== ATTENDANCE ===== -->
-    <div v-else-if="tab === 'attendance'" class="card overflow-hidden">
-      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2 items-center">
-        <input v-model="attDate" type="date" class="input text-sm w-auto" @change="loadAttendance" />
+    <div v-else-if="tab === 'attendance'" class="panel">
+      <div class="toolbar border-b border-line dark:border-line-dark">
+        <input v-model="attDate" type="date" class="input input-sm w-auto" @change="loadAttendance" />
         <span class="text-[11px] text-ink-subtle">{{ $t('hr.attendance_for') }}</span>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.e.name') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.a.check_in') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.a.check_out') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('hr.a.hours') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.a.status') }}</th>
+            <th>{{ $t('hr.e.name') }}</th>
+            <th>{{ $t('hr.a.check_in') }}</th>
+            <th>{{ $t('hr.a.check_out') }}</th>
+            <th>{{ $t('hr.a.hours') }}</th>
+            <th>{{ $t('hr.a.status') }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="a in attendance" :key="a.id" class="border-t border-slate-100 dark:border-slate-700/60">
-            <td class="px-3 py-2 text-ink dark:text-ink-dark">{{ a.employee }}</td>
-            <td class="px-3 py-2 text-ink-muted tabular-nums">{{ a.check_in || '—' }}</td>
-            <td class="px-3 py-2 text-ink-muted tabular-nums">{{ a.check_out || '—' }}</td>
-            <td class="px-3 py-2 text-right tabular-nums text-ink-muted">{{ a.hours_worked }}</td>
-            <td class="px-3 py-2"><span class="text-[10px] px-1.5 py-0.5 rounded" :class="attStatusClass(a.status)">{{ $t(`hr.as.${a.status}`) }}</span></td>
+          <tr v-for="a in attendance" :key="a.id">
+            <td class="text-ink dark:text-ink-dark">{{ a.employee }}</td>
+            <td class="text-ink-muted tabular-nums">{{ a.check_in || '—' }}</td>
+            <td class="text-ink-muted tabular-nums">{{ a.check_out || '—' }}</td>
+            <td class="td-num text-ink-muted">{{ a.hours_worked }}</td>
+            <td><span class="text-[10px] px-1.5 py-0.5 rounded" :class="attStatusClass(a.status)">{{ $t(`hr.as.${a.status}`) }}</span></td>
           </tr>
           <tr v-if="!attendance.length"><td colspan="5" class="text-center text-ink-subtle py-10">{{ $t('hr.no_attendance') }}</td></tr>
         </tbody>
@@ -131,15 +131,15 @@
           <option v-for="s in ['pending','approved','rejected','cancelled']" :key="s" :value="s">{{ $t(`hr.ls.${s}`) }}</option>
         </select>
       </div>
-      <table class="w-full text-sm">
-        <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+      <table class="data-table">
+        <thead>
           <tr>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.e.name') }}</th>
-            <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('hr.l.type') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.l.dates') }}</th>
-            <th class="text-right font-medium px-3 py-2">{{ $t('hr.l.days') }}</th>
-            <th class="text-left font-medium px-3 py-2">{{ $t('hr.l.status') }}</th>
-            <th class="px-3 py-2"></th>
+            <th>{{ $t('hr.e.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('hr.l.type') }}</th>
+            <th>{{ $t('hr.l.dates') }}</th>
+            <th class="th-num">{{ $t('hr.l.days') }}</th>
+            <th>{{ $t('hr.l.status') }}</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -192,8 +192,8 @@
             </select></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="empForm.open = false">{{ $t('hr.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="empForm.saving" @click="submitEmployee">{{ empForm.saving ? $t('hr.saving') : $t('hr.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="empForm.open = false">{{ $t('hr.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="empForm.saving" @click="submitEmployee">{{ empForm.saving ? $t('hr.saving') : $t('hr.save') }}</button>
         </div>
       </div>
     </div>
@@ -218,8 +218,8 @@
           <div class="col-span-2"><label class="label">{{ $t('hr.l.reason') }}</label><input v-model="leaveForm.data.reason" class="input text-sm" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="leaveForm.open = false">{{ $t('hr.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="leaveForm.saving" @click="submitLeave">{{ leaveForm.saving ? $t('hr.saving') : $t('hr.submit') }}</button>
+          <button class="btn-secondary btn-sm" @click="leaveForm.open = false">{{ $t('hr.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="leaveForm.saving" @click="submitLeave">{{ leaveForm.saving ? $t('hr.saving') : $t('hr.submit') }}</button>
         </div>
       </div>
     </div>

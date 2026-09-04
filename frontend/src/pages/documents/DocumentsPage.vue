@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('documents.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('documents.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('documents.title') }}</h1>
+        <p class="page-sub">{{ $t('documents.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('documents.refresh') }}
         </button>
-        <button v-if="can('documents.create')" class="btn-primary text-xs px-3 py-1.5" :disabled="uploading" @click="pickFile">
+        <button v-if="can('documents.create')" class="btn-primary btn-sm" :disabled="uploading" @click="pickFile">
           <Upload :size="12" /> {{ uploading ? $t('documents.uploading') : $t('documents.upload') }}
         </button>
         <input ref="fileInput" type="file" class="hidden" @change="onFilePicked" />
@@ -48,14 +48,14 @@
         <div class="card overflow-hidden">
           <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
           <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('documents.empty') }}</div>
-          <table v-else class="w-full text-sm">
-            <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+          <table class="data-table" v-else>
+            <thead>
               <tr>
-                <th class="text-left font-medium px-3 py-2">{{ $t('documents.name') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('documents.folder') }}</th>
-                <th class="text-right font-medium px-3 py-2 hidden lg:table-cell">{{ $t('documents.size') }}</th>
-                <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('documents.uploaded_by') }}</th>
-                <th class="px-3 py-2"></th>
+                <th>{{ $t('documents.name') }}</th>
+                <th class="hidden md:table-cell">{{ $t('documents.folder') }}</th>
+                <th class="hidden lg:table-cell th-num">{{ $t('documents.size') }}</th>
+                <th class="hidden lg:table-cell">{{ $t('documents.uploaded_by') }}</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -107,8 +107,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="editForm.open = false">{{ $t('documents.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="editForm.saving" @click="submitEdit">{{ editForm.saving ? $t('documents.saving') : $t('documents.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="editForm.open = false">{{ $t('documents.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="editForm.saving" @click="submitEdit">{{ editForm.saving ? $t('documents.saving') : $t('documents.save') }}</button>
         </div>
       </div>
     </div>
@@ -131,8 +131,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('documents.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

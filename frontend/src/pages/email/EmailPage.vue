@@ -1,19 +1,19 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('email.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('email.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('email.title') }}</h1>
+        <p class="page-sub">{{ $t('email.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('email.refresh') }}
         </button>
-        <button v-if="can('email.manage_templates')" class="btn-secondary text-xs px-2.5 py-1" @click="openAccounts">
+        <button v-if="can('email.manage_templates')" class="btn-secondary btn-sm" @click="openAccounts">
           <Settings2 :size="12" /> {{ $t('email.accounts_btn') }}
         </button>
-        <button v-if="can('email.send')" class="btn-primary text-xs px-3 py-1.5" @click="openCompose()">
+        <button v-if="can('email.send')" class="btn-primary btn-sm" @click="openCompose()">
           <Plus :size="12" /> {{ $t('email.compose') }}
         </button>
       </div>
@@ -21,9 +21,9 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
-        <div class="text-lg font-semibold text-ink dark:text-ink-dark mt-0.5">
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
+        <div class="stat-value text-xl">
           <span v-if="s.pct">{{ stats[s.key] == null ? '—' : stats[s.key] + '%' }}</span>
           <span v-else>{{ stats[s.key] ?? 0 }}</span>
         </div>
@@ -72,7 +72,7 @@
             <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ selected.subject || $t('email.no_subject') }}</div>
             <div class="text-[11px] text-ink-subtle">{{ selected.from_name || selected.from_address }} → {{ (selected.to || []).join(', ') }}</div>
           </div>
-          <button v-if="['draft','failed'].includes(selected.status) && can('email.send')" class="btn-primary text-[11px] px-2 py-1" @click="sendDraft">
+          <button v-if="['draft','failed'].includes(selected.status) && can('email.send')" class="btn-primary btn-xs" @click="sendDraft">
             {{ selected.status === 'failed' ? $t('email.retry') : $t('email.send') }}
           </button>
           <button v-if="can('email.send')" class="p-1 text-ink-subtle hover:text-red-500" @click="removeEmail(selected.id)"><Trash2 :size="13" /></button>
@@ -132,9 +132,9 @@
             <textarea v-model="form.data.body_html" rows="7" class="input text-sm font-mono"></textarea></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('email.cancel') }}</button>
-          <button class="btn-secondary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit(false)">{{ $t('email.save_draft') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submit(true)">{{ form.saving ? $t('email.sending') : $t('email.send') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('email.cancel') }}</button>
+          <button class="btn-secondary btn-sm" :disabled="form.saving" @click="submit(false)">{{ $t('email.save_draft') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submit(true)">{{ form.saving ? $t('email.sending') : $t('email.send') }}</button>
         </div>
       </div>
     </div>
@@ -145,7 +145,7 @@
         <div class="w-56 shrink-0 border-r border-slate-100 dark:border-slate-700/60 pr-3">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm font-medium text-ink dark:text-ink-dark">{{ $t('email.accounts_btn') }}</span>
-            <button class="btn-secondary text-[11px] px-2 py-0.5" @click="openAccountForm()"><Plus :size="11" /></button>
+            <button class="btn-secondary btn-xs" @click="openAccountForm()"><Plus :size="11" /></button>
           </div>
           <div v-for="a in accounts" :key="a.id"
                class="flex items-center gap-1.5 px-2 py-1.5 rounded cursor-pointer text-xs"
@@ -210,13 +210,13 @@
             </p>
           </div>
           <div class="flex justify-end gap-2 mt-3">
-            <button v-if="accForm.id" class="btn-secondary text-xs px-3 py-1.5" :disabled="accForm.fetching" @click="fetchAccount">
+            <button v-if="accForm.id" class="btn-secondary btn-sm" :disabled="accForm.fetching" @click="fetchAccount">
               {{ accForm.fetching ? $t('email.acc.fetching') : $t('email.acc.fetch') }}
             </button>
-            <button v-if="accForm.id" class="btn-secondary text-xs px-3 py-1.5" :disabled="accForm.testing" @click="testAccount">
+            <button v-if="accForm.id" class="btn-secondary btn-sm" :disabled="accForm.testing" @click="testAccount">
               {{ accForm.testing ? $t('email.acc.testing') : $t('email.acc.test') }}
             </button>
-            <button class="btn-primary text-xs px-3 py-1.5" :disabled="accForm.saving" @click="saveAccount">
+            <button class="btn-primary btn-sm" :disabled="accForm.saving" @click="saveAccount">
               {{ accForm.saving ? $t('settings.saving') : $t('settings.save') }}
             </button>
           </div>
@@ -245,8 +245,8 @@ const can = (p) => auth.can(p);
 const Pager = (props, { emit }) => h('div', { class: 'flex items-center justify-between px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 text-xs' }, [
   h('span', { class: 'text-ink-subtle' }, t('email.showing', { from: props.p.from, to: props.p.to, total: props.p.total })),
   h('div', { class: 'flex gap-1' }, [
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
-    h('button', { class: 'btn-secondary text-xs px-2 py-0.5', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page <= 1, onClick: () => emit('go', -1) }, '‹'),
+    h('button', { class: 'btn-secondary btn-xs', disabled: props.page >= props.p.last_page, onClick: () => emit('go', 1) }, '›'),
   ]),
 ]);
 Pager.props = ['p', 'page'];

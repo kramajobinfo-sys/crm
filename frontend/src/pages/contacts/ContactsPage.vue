@@ -1,64 +1,69 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
-    <div class="flex items-end justify-between mb-4 gap-3">
-      <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('contacts.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('contacts.subtitle') }}</div>
+  <div class="page">
+    <div class="page-header">
+      <div class="min-w-0">
+        <h1 class="page-title">{{ $t('contacts.title') }}</h1>
+        <p class="page-sub">{{ $t('contacts.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="load">
-          <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('contacts.refresh') }}
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="load">
+          <RefreshCw :size="14" :class="loading && 'animate-spin'" /> {{ $t('contacts.refresh') }}
         </button>
-        <button v-if="can('contacts.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate">
-          <Plus :size="12" /> {{ $t('contacts.new') }}
+        <button v-if="can('contacts.create')" class="btn-primary btn-sm" @click="openCreate">
+          <Plus :size="14" /> {{ $t('contacts.new') }}
         </button>
       </div>
     </div>
 
-    <div class="card p-2.5 mb-3 flex flex-wrap gap-2 items-center">
-      <input v-model="filters.q" class="input text-sm w-64" :placeholder="$t('contacts.search')" @keyup.enter="load" />
-      <select v-model="filters.customer_id" class="input text-sm w-56" @change="load">
-        <option value="">{{ $t('contacts.all_accounts') }}</option>
-        <option v-for="a in meta.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
-      </select>
-      <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted">
-        <input v-model="filters.primaryOnly" type="checkbox" class="rounded border-slate-300" @change="load" />
-        {{ $t('contacts.primary_only') }}
-      </label>
-      <button class="btn-secondary text-xs px-2.5 py-1 ml-auto" @click="resetFilters">{{ $t('contacts.reset') }}</button>
+    <div class="card mb-4">
+      <div class="toolbar">
+        <input v-model="filters.q" class="input input-sm w-64" :placeholder="$t('contacts.search')" @keyup.enter="load" />
+        <select v-model="filters.customer_id" class="input input-sm w-56" @change="load">
+          <option value="">{{ $t('contacts.all_accounts') }}</option>
+          <option v-for="a in meta.accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        </select>
+        <label class="flex items-center gap-1.5 text-xs text-ink-muted dark:text-ink-dark-muted">
+          <input v-model="filters.primaryOnly" type="checkbox" class="rounded border-slate-300" @change="load" />
+          {{ $t('contacts.primary_only') }}
+        </label>
+        <button class="btn-ghost btn-sm ml-auto" @click="resetFilters">{{ $t('contacts.reset') }}</button>
+      </div>
     </div>
 
     <div class="flex gap-3 items-start">
-      <div class="card overflow-hidden flex-1 min-w-0">
+      <div class="panel flex-1 min-w-0">
         <div v-if="loading" class="text-sm text-ink-subtle py-16 text-center">{{ $t('app.loading') }}</div>
-        <div v-else-if="!rows.length" class="text-sm text-ink-subtle py-16 text-center">{{ $t('contacts.empty') }}</div>
+        <div v-else-if="!rows.length" class="empty">
+          <div class="empty-icon"><UserRound :size="18" /></div>
+          <div class="text-sm text-ink-muted dark:text-ink-dark-muted">{{ $t('contacts.empty') }}</div>
+        </div>
         <template v-else>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead class="text-xs text-ink-subtle bg-slate-50 dark:bg-surface-dark-subtle">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <th class="text-left font-medium px-3 py-2">{{ $t('contacts.name') }}</th>
-                  <th class="text-left font-medium px-3 py-2">{{ $t('contacts.account') }}</th>
-                  <th class="text-left font-medium px-3 py-2 hidden md:table-cell">{{ $t('contacts.title_field') }}</th>
-                  <th class="text-left font-medium px-3 py-2 hidden lg:table-cell">{{ $t('contacts.email') }}</th>
-                  <th class="text-left font-medium px-3 py-2 hidden xl:table-cell">{{ $t('contacts.phone') }}</th>
+                  <th>{{ $t('contacts.name') }}</th>
+                  <th>{{ $t('contacts.account') }}</th>
+                  <th class="hidden md:table-cell">{{ $t('contacts.title_field') }}</th>
+                  <th class="hidden lg:table-cell">{{ $t('contacts.email') }}</th>
+                  <th class="hidden xl:table-cell">{{ $t('contacts.phone') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="r in rows" :key="r.id"
-                    class="border-t border-slate-100 dark:border-slate-700/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-surface-dark-subtle"
-                    :class="selected?.id === r.id && 'bg-primary-50 dark:bg-primary-950/20'"
+                    class="cursor-pointer"
+                    :class="selected?.id === r.id && 'is-selected'"
                     @click="openDetail(r.id)">
-                  <td class="px-3 py-2 text-ink dark:text-ink-dark">
+                  <td class="text-ink dark:text-ink-dark">
                     <div class="flex items-center gap-1.5">
                       <span class="font-medium">{{ r.name }}</span>
                       <Star v-if="r.is_primary" :size="11" class="text-amber-500 fill-amber-500" :title="$t('contacts.primary')" />
                     </div>
                   </td>
-                  <td class="px-3 py-2 text-ink-muted">{{ r.account?.name || '—' }}</td>
-                  <td class="px-3 py-2 text-ink-muted hidden md:table-cell">{{ r.title || '—' }}</td>
-                  <td class="px-3 py-2 text-ink-muted hidden lg:table-cell">{{ r.email || '—' }}</td>
-                  <td class="px-3 py-2 text-ink-muted hidden xl:table-cell">{{ r.mobile || r.phone || '—' }}</td>
+                  <td class="text-ink-muted">{{ r.account?.name || '—' }}</td>
+                  <td class="text-ink-muted hidden md:table-cell">{{ r.title || '—' }}</td>
+                  <td class="text-ink-muted hidden lg:table-cell">{{ r.email || '—' }}</td>
+                  <td class="text-ink-muted hidden xl:table-cell">{{ r.mobile || r.phone || '—' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -66,8 +71,8 @@
           <div class="px-3 py-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center text-xs text-ink-subtle">
             {{ $t('contacts.showing', { from: pagination.from || 0, to: pagination.to || 0, total: pagination.total || 0 }) }}
             <div class="ml-auto flex gap-1">
-              <button class="btn-secondary px-2 py-0.5" :disabled="pagination.current_page <= 1" @click="goPage(pagination.current_page - 1)">‹</button>
-              <button class="btn-secondary px-2 py-0.5" :disabled="pagination.current_page >= pagination.last_page" @click="goPage(pagination.current_page + 1)">›</button>
+              <button class="btn-secondary btn-xs" :disabled="pagination.current_page <= 1" @click="goPage(pagination.current_page - 1)">‹</button>
+              <button class="btn-secondary btn-xs" :disabled="pagination.current_page >= pagination.last_page" @click="goPage(pagination.current_page + 1)">›</button>
             </div>
           </div>
         </template>
@@ -81,7 +86,7 @@
             <div class="text-[11px] text-ink-subtle truncate">{{ selected.title || selected.account?.name }}</div>
           </div>
           <button v-if="can('contacts.update')" class="p-1 text-ink-subtle hover:text-primary-600" @click="openEdit(selected)"><Pencil :size="13" /></button>
-          <button v-if="can('activities.create')" class="btn-secondary text-[10px] px-2 py-0.5" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
+          <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button v-if="can('contacts.delete')" class="p-1 text-ink-subtle hover:text-red-600" @click="removeSelected"><Trash2 :size="13" /></button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
@@ -134,8 +139,8 @@
           <div class="md:col-span-2"><label class="label">{{ $t('contacts.notes') }}</label><textarea v-model="form.data.notes" rows="3" class="input text-sm w-full"></textarea></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('contacts.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving || !form.data.customer_id || !form.data.name?.trim()" @click="submitForm">
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('contacts.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving || !form.data.customer_id || !form.data.name?.trim()" @click="submitForm">
             {{ form.saving ? $t('contacts.saving') : $t('contacts.save') }}
           </button>
         </div>
@@ -298,5 +303,5 @@ function resetFilters() {
 
 function goPage(page) { filters.page = page; load(); }
 
-onMounted(async () => { await loadMeta(); await load(); });
+onMounted(async () => { await loadMeta(); await load(); if (router.currentRoute.value.query.create) openCreate(); });
 </script>

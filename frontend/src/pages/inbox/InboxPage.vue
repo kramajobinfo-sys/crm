@@ -4,10 +4,10 @@
     <!-- Header -->
     <div class="flex items-end justify-between px-4 md:px-5 pt-4 pb-3 shrink-0">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('inbox.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('inbox.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('inbox.title') }}</h1>
+        <p class="page-sub">{{ $t('inbox.subtitle') }}</p>
       </div>
-      <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loadingList" @click="refresh">
+      <button class="btn-secondary btn-sm" :disabled="loadingList" @click="refresh">
         <RefreshCw :size="12" :class="loadingList && 'animate-spin'" /> {{ $t('inbox.refresh') }}
       </button>
     </div>
@@ -138,7 +138,7 @@
               </div>
               <div class="text-xs text-ink-muted dark:text-ink-dark-muted truncate">{{ thread.subject }}</div>
             </div>
-            <button class="btn-secondary text-xs px-2 py-1" @click="openCrm"><ContactRound :size="13" /> {{ $t('inbox.crm') }}</button>
+            <button class="btn-secondary btn-xs" @click="openCrm"><ContactRound :size="13" /> {{ $t('inbox.crm') }}</button>
             <select
               class="input text-xs py-1 w-auto" :value="thread.status"
               :disabled="!can('chat.close')" @change="changeStatus($event.target.value)"
@@ -238,7 +238,7 @@
                 />
               </div>
               <button
-                class="btn-primary text-xs px-3 py-1.5"
+                class="btn-primary btn-sm"
                 :disabled="(!draft.trim() && !pending.length) || sending || !canSend" @click="send"
               >
                 <Send :size="12" /> {{ sending ? $t('inbox.sending') : $t('inbox.send') }}
@@ -254,12 +254,12 @@
         <div class="flex items-start gap-3 mb-4"><div class="w-10 h-10 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center"><ContactRound :size="18" /></div><div class="min-w-0 flex-1"><h2 class="text-sm font-medium">{{ $t('inbox.crm_identity') }}</h2><p class="text-[11px] text-ink-subtle">{{ crmContext.identity?.name || $t('inbox.unknown_contact') }} · {{ crmContext.identity?.email || crmContext.identity?.phone || $t('inbox.no_identity_details') }}</p></div><button @click="crmModal=false"><X :size="15" /></button></div>
         <div v-if="crmLoading" class="py-12 text-center text-xs text-ink-subtle">{{ $t('app.loading') }}</div>
         <template v-else>
-          <div v-if="crmContext.linked" class="card p-4 border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/10 mb-4"><div class="text-[10px] uppercase tracking-wide text-emerald-700 mb-1">{{ $t('inbox.linked_record') }}</div><div class="flex items-center gap-3"><div class="min-w-0 flex-1"><div class="text-sm font-medium">{{ crmContext.linked.name }}</div><div class="text-[11px] text-ink-muted">{{ crmTypeLabel(crmContext.linked.type) }}<span v-if="crmContext.linked.number"> · {{ crmContext.linked.number }}</span><span v-if="crmContext.linked.company_name"> · {{ crmContext.linked.company_name }}</span></div></div><button class="btn-primary text-xs px-3 py-1.5" @click="openLinked">{{ $t('inbox.open_in_crm') }}</button><button v-if="can('chat.link_crm')" class="btn-secondary text-xs px-3 py-1.5 text-red-600" @click="unlinkCrm">{{ $t('inbox.unlink') }}</button></div></div>
+          <div v-if="crmContext.linked" class="card p-4 border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/10 mb-4"><div class="text-[10px] uppercase tracking-wide text-emerald-700 mb-1">{{ $t('inbox.linked_record') }}</div><div class="flex items-center gap-3"><div class="min-w-0 flex-1"><div class="text-sm font-medium">{{ crmContext.linked.name }}</div><div class="text-[11px] text-ink-muted">{{ crmTypeLabel(crmContext.linked.type) }}<span v-if="crmContext.linked.number"> · {{ crmContext.linked.number }}</span><span v-if="crmContext.linked.company_name"> · {{ crmContext.linked.company_name }}</span></div></div><button class="btn-primary btn-sm" @click="openLinked">{{ $t('inbox.open_in_crm') }}</button><button v-if="can('chat.link_crm')" class="btn-secondary btn-sm text-red-600" @click="unlinkCrm">{{ $t('inbox.unlink') }}</button></div></div>
           <template v-else>
             <div class="flex gap-2 mb-3"><input v-model="crmSearch" class="input text-sm flex-1" :placeholder="$t('inbox.search_crm')" @keyup.enter="searchCrm" /><button class="btn-secondary text-xs px-3" @click="searchCrm"><Search :size="13" /> {{ $t('inbox.search_action') }}</button></div>
             <div v-if="!crmMatches.length" class="card p-5 text-center text-xs text-ink-subtle mb-4">{{ $t('inbox.no_crm_matches') }}</div>
-            <div v-else class="space-y-2 mb-4"><div class="text-[10px] uppercase tracking-wide text-ink-subtle">{{ $t('inbox.possible_matches') }}</div><div v-for="item in crmMatches" :key="`${item.type}-${item.id}`" class="card p-3 flex items-center gap-3"><div class="w-8 h-8 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><Building2 v-if="item.type==='account'" :size="14" /><ContactRound v-else :size="14" /></div><div class="min-w-0 flex-1"><div class="text-xs font-medium">{{ item.name }}</div><div class="text-[10px] text-ink-subtle">{{ crmTypeLabel(item.type) }}<span v-if="item.number"> · {{ item.number }}</span><span v-if="item.company_name"> · {{ item.company_name }}</span><span v-if="item.email"> · {{ item.email }}</span></div></div><button v-if="can('chat.link_crm')" class="btn-primary text-[10px] px-2 py-1" @click="linkCrm(item)">{{ $t('inbox.link') }}</button></div></div>
-            <form v-if="can('chat.link_crm')&&can('leads.create')" class="card p-3 space-y-3" @submit.prevent="createLead"><div><div class="text-xs font-medium">{{ $t('inbox.create_new_lead') }}</div><p class="text-[10px] text-ink-subtle">{{ $t('inbox.create_lead_help') }}</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input v-model="leadForm.name" required class="input text-xs" :placeholder="$t('inbox.person_name')" /><input v-model="leadForm.company_name" class="input text-xs" :placeholder="$t('inbox.company_name')" /><input v-model="leadForm.email" type="email" class="input text-xs" :placeholder="$t('inbox.email')" /><input v-model="leadForm.phone" class="input text-xs" :placeholder="$t('inbox.phone')" /></div><div class="flex justify-end"><button class="btn-primary text-xs px-3 py-1.5" :disabled="crmSaving"><Plus :size="12" /> {{ crmSaving?$t('inbox.creating_lead'):$t('inbox.create_and_link') }}</button></div></form>
+            <div v-else class="space-y-2 mb-4"><div class="text-[10px] uppercase tracking-wide text-ink-subtle">{{ $t('inbox.possible_matches') }}</div><div v-for="item in crmMatches" :key="`${item.type}-${item.id}`" class="card p-3 flex items-center gap-3"><div class="w-8 h-8 rounded bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><Building2 v-if="item.type==='account'" :size="14" /><ContactRound v-else :size="14" /></div><div class="min-w-0 flex-1"><div class="text-xs font-medium">{{ item.name }}</div><div class="text-[10px] text-ink-subtle">{{ crmTypeLabel(item.type) }}<span v-if="item.number"> · {{ item.number }}</span><span v-if="item.company_name"> · {{ item.company_name }}</span><span v-if="item.email"> · {{ item.email }}</span></div></div><button v-if="can('chat.link_crm')" class="btn-primary btn-xs" @click="linkCrm(item)">{{ $t('inbox.link') }}</button></div></div>
+            <form v-if="can('chat.link_crm')&&can('leads.create')" class="card p-3 space-y-3" @submit.prevent="createLead"><div><div class="text-xs font-medium">{{ $t('inbox.create_new_lead') }}</div><p class="text-[10px] text-ink-subtle">{{ $t('inbox.create_lead_help') }}</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-2"><input v-model="leadForm.name" required class="input text-xs" :placeholder="$t('inbox.person_name')" /><input v-model="leadForm.company_name" class="input text-xs" :placeholder="$t('inbox.company_name')" /><input v-model="leadForm.email" type="email" class="input text-xs" :placeholder="$t('inbox.email')" /><input v-model="leadForm.phone" class="input text-xs" :placeholder="$t('inbox.phone')" /></div><div class="flex justify-end"><button class="btn-primary btn-sm" :disabled="crmSaving"><Plus :size="12" /> {{ crmSaving?$t('inbox.creating_lead'):$t('inbox.create_and_link') }}</button></div></form>
           </template>
           <div v-if="crmContext.history?.length" class="mt-4"><div class="text-[10px] uppercase tracking-wide text-ink-subtle mb-2">{{ $t('inbox.link_history') }}</div><div v-for="entry in crmContext.history" :key="entry.id" class="text-[11px] py-1.5 border-t border-slate-100 dark:border-slate-700"><span>{{ entry.title }}</span><span class="text-ink-subtle"> · {{ entry.user || $t('projects.system') }} · {{ dateTime(entry.occurred_at) }}</span></div></div>
         </template>

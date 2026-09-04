@@ -1,15 +1,15 @@
 <template>
   <aside
-    class="flex-col bg-white dark:bg-surface-dark-muted border-r border-slate-200 dark:border-slate-700 transition-all duration-200 shrink-0"
-    :class="mobile ? 'fixed inset-y-0 left-0 z-50 flex w-72 md:hidden' : ['hidden md:flex', ui.sidebarCollapsed ? 'w-16' : 'w-56']"
+    class="flex-col bg-white dark:bg-surface-dark-muted border-r border-line dark:border-line-dark transition-all duration-200 shrink-0"
+    :class="mobile ? 'fixed inset-y-0 left-0 z-50 flex w-72 md:hidden' : ['hidden md:flex', ui.sidebarCollapsed ? 'w-16' : 'w-60']"
   >
-    <div class="h-13 flex items-center gap-2 px-4 border-b border-slate-200 dark:border-slate-700 py-3">
-      <div class="w-8 h-8 rounded-md bg-primary-600 text-white flex items-center justify-center shrink-0">
-        <Building2 :size="16" />
+    <div class="h-13 flex items-center gap-2.5 px-3.5 border-b border-line dark:border-line-dark shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+        <Building2 :size="17" />
       </div>
       <div v-if="expanded" class="min-w-0 flex-1">
-        <div class="text-sm font-semibold text-ink dark:text-ink-dark truncate">{{ auth.company?.name || $t('app.name') }}</div>
-        <div class="text-[10px] text-ink-subtle dark:text-ink-dark-subtle">{{ $t('nav.business_platform') }}</div>
+        <div class="text-[13px] font-semibold text-ink dark:text-ink-dark truncate leading-tight">{{ auth.company?.name || $t('app.name') }}</div>
+        <div class="text-2xs text-ink-subtle dark:text-ink-dark-subtle truncate">{{ $t('nav.business_platform') }}</div>
       </div>
       <button v-if="mobile" class="btn-ghost p-1 md:hidden" :aria-label="$t('nav.close_menu')" @click="ui.closeMobileSidebar()">
         <X :size="16" />
@@ -17,26 +17,26 @@
     </div>
 
     <!-- The route is the source of truth, so direct links select the right workspace. -->
-    <div ref="workspaceSwitcher" class="relative p-2 border-b border-slate-200 dark:border-slate-700">
+    <div ref="workspaceSwitcher" class="relative p-2 border-b border-line dark:border-line-dark">
       <button
         type="button"
-        class="w-full flex items-center gap-2 rounded-md px-2 py-2 text-left bg-slate-100 hover:bg-slate-200 dark:bg-surface-dark-subtle dark:hover:bg-slate-700 transition-colors"
+        class="w-full flex items-center gap-2.5 rounded-lg px-2.5 h-10 text-left bg-surface-muted hover:bg-surface-subtle dark:bg-surface-dark-subtle dark:hover:bg-slate-700/60 border border-line dark:border-line-dark transition-colors"
         :class="!expanded && 'justify-center'"
         :title="!expanded ? $t(currentWorkspace.label) : ''"
         :aria-expanded="workspaceOpen"
         @click="workspaceOpen = !workspaceOpen"
       >
         <component :is="currentWorkspace.icon" :size="17" class="shrink-0 text-primary-600 dark:text-primary-400" />
-        <span v-if="expanded" class="text-xs font-medium text-ink dark:text-ink-dark truncate flex-1">{{ $t(currentWorkspace.label) }}</span>
-        <ChevronDown v-if="expanded" :size="14" class="text-ink-subtle transition-transform" :class="workspaceOpen && 'rotate-180'" />
+        <span v-if="expanded" class="text-[13px] font-semibold text-ink dark:text-ink-dark truncate flex-1">{{ $t(currentWorkspace.label) }}</span>
+        <ChevronDown v-if="expanded" :size="15" class="text-ink-subtle transition-transform" :class="workspaceOpen && 'rotate-180'" />
       </button>
 
       <div
         v-if="workspaceOpen"
-        class="absolute z-50 card p-1.5 shadow-lg"
+        class="absolute z-50 card p-1.5 shadow-pop"
         :class="expanded ? 'left-2 right-2 top-full mt-1' : 'left-full top-2 ml-2 w-52'"
       >
-        <div class="px-2 py-1 text-[10px] uppercase tracking-wider text-ink-subtle">{{ $t('nav.switch_workspace') }}</div>
+        <div class="px-2 py-1 section-label">{{ $t('nav.switch_workspace') }}</div>
         <button
           v-for="workspace in visibleWorkspaces"
           :key="workspace.id"
@@ -52,8 +52,8 @@
       </div>
     </div>
 
-    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-      <div v-if="expanded" class="text-[10px] tracking-wider text-ink-subtle dark:text-ink-dark-subtle px-3 pb-1 uppercase">
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+      <div v-if="expanded" class="section-label px-3 pb-1.5 pt-1">
         {{ $t(currentWorkspace.label) }}
       </div>
       <router-link
@@ -78,7 +78,7 @@
 
     <button
       v-if="!mobile"
-      class="h-10 flex items-center justify-center border-t border-slate-200 dark:border-slate-700 text-ink-muted dark:text-ink-dark-muted hover:bg-slate-100 dark:hover:bg-surface-dark-subtle"
+      class="h-10 flex items-center justify-center gap-2 border-t border-line dark:border-line-dark text-ink-subtle dark:text-ink-dark-subtle hover:bg-surface-subtle dark:hover:bg-surface-dark-subtle hover:text-ink dark:hover:text-ink-dark transition-colors"
       :title="ui.sidebarCollapsed ? $t('nav.expand') : $t('nav.collapse')"
       @click="ui.toggleSidebar()"
     >

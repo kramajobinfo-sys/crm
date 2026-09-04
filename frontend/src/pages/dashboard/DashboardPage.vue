@@ -1,19 +1,19 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1400px] mx-auto">
+  <div class="page">
 
     <!-- Greeting header -->
-    <div class="flex items-end justify-between mb-4">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">
+        <h1 class="page-title">
           {{ greeting }}, {{ auth.firstName }}
-        </div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">
+        </h1>
+        <p class="page-sub">
           {{ $t('dashboard.subtitle', { company: auth.company?.name || 'Krama' }) }}
-        </div>
+        </p>
       </div>
       <div class="flex gap-2">
-        <span class="btn-secondary text-xs px-2.5 py-1">{{ $t('dashboard.this_month') }}</span>
-        <button class="btn-secondary text-xs px-2.5 py-1">
+        <span class="btn-secondary btn-sm">{{ $t('dashboard.this_month') }}</span>
+        <button class="btn-secondary btn-sm">
           <Download :size="12" /> {{ $t('dashboard.export') }}
         </button>
       </div>

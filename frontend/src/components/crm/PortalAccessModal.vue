@@ -37,8 +37,8 @@
       <div class="flex items-center gap-2 mt-4">
         <a href="/portal/login" target="_blank" class="text-xs text-primary-600 hover:underline">{{ $t('contacts.portal_open') }}</a>
         <div class="ml-auto flex gap-2">
-          <button class="btn-secondary text-xs px-3 py-1.5" :disabled="saving" @click="close">{{ $t('contacts.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="saving || !contact?.email || (enabled && !contact?.portal_enabled && password.length < 8)" @click="save">
+          <button class="btn-secondary btn-sm" :disabled="saving" @click="close">{{ $t('contacts.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="saving || !contact?.email || (enabled && !contact?.portal_enabled && password.length < 8)" @click="save">
             {{ saving ? $t('contacts.saving') : $t('contacts.save') }}
           </button>
         </div>

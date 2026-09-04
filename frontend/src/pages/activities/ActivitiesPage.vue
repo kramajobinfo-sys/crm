@@ -1,16 +1,16 @@
 <template>
-  <div class="p-4 md:p-5 max-w-[1500px] mx-auto">
+  <div class="page">
 
-    <div class="flex items-end justify-between mb-4 gap-3">
+    <div class="page-header">
       <div>
-        <div class="text-lg font-medium text-ink dark:text-ink-dark">{{ $t('activities.title') }}</div>
-        <div class="text-xs text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ $t('activities.subtitle') }}</div>
+        <h1 class="page-title">{{ $t('activities.title') }}</h1>
+        <p class="page-sub">{{ $t('activities.subtitle') }}</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <button class="btn-secondary text-xs px-2.5 py-1" :disabled="loading" @click="reload">
+        <button class="btn-secondary btn-sm" :disabled="loading" @click="reload">
           <RefreshCw :size="12" :class="loading && 'animate-spin'" /> {{ $t('activities.refresh') }}
         </button>
-        <button v-if="can('activities.create')" class="btn-primary text-xs px-3 py-1.5" @click="openCreate(tab === 'feed' ? 'task' : tab.slice(0, -1))">
+        <button v-if="can('activities.create')" class="btn-primary btn-sm" @click="openCreate(tab === 'feed' ? 'task' : tab.slice(0, -1))">
           <Plus :size="12" /> {{ $t('activities.new') }}
         </button>
       </div>
@@ -18,8 +18,8 @@
 
     <!-- Stat tiles -->
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-2.5 mb-3">
-      <div v-for="s in statTiles" :key="s.key" class="card p-3">
-        <div class="text-[11px] text-ink-muted dark:text-ink-dark-muted">{{ $t(s.label) }}</div>
+      <div v-for="s in statTiles" :key="s.key" class="stat">
+        <div class="stat-label">{{ $t(s.label) }}</div>
         <div class="text-lg font-semibold mt-0.5" :class="s.key === 'overdue' && stats.overdue ? 'text-red-600' : 'text-ink dark:text-ink-dark'">
           {{ stats[s.key] ?? 0 }}
         </div>
@@ -147,8 +147,8 @@
         <div v-if="tab !== 'feed' && pagination.last_page > 1" class="flex items-center justify-between mt-2 text-xs">
           <span class="text-ink-subtle">{{ $t('activities.showing', { from: pagination.from, to: pagination.to, total: pagination.total }) }}</span>
           <div class="flex gap-1">
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page <= 1" @click="page--; load()">‹</button>
-            <button class="btn-secondary text-xs px-2 py-0.5" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
+            <button class="btn-secondary btn-xs" :disabled="page <= 1" @click="page--; load()">‹</button>
+            <button class="btn-secondary btn-xs" :disabled="page >= pagination.last_page" @click="page++; load()">›</button>
           </div>
         </div>
       </div>
@@ -242,8 +242,8 @@
           </div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <button class="btn-secondary text-xs px-3 py-1.5" @click="form.open = false">{{ $t('activities.cancel') }}</button>
-          <button class="btn-primary text-xs px-3 py-1.5" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('activities.saving') : $t('activities.save') }}</button>
+          <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('activities.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('activities.saving') : $t('activities.save') }}</button>
         </div>
       </div>
     </div>
