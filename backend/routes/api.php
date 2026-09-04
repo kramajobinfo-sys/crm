@@ -170,6 +170,8 @@ Route::prefix('v1')->group(function () {
             Route::get   ('meta', [ContactController::class, 'meta'])->middleware('permission:contacts.view');
             Route::post  ('/',    [ContactController::class, 'store'])->middleware('permission:contacts.create');
             Route::get   ('{id}', [ContactController::class, 'show'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::get   ('{id}/consents', [ContactController::class, 'consents'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::post  ('{id}/consents', [ContactController::class, 'storeConsent'])->middleware('permission:contacts.update')->whereNumber('id');
             Route::put   ('{id}', [ContactController::class, 'update'])->middleware('permission:contacts.update')->whereNumber('id');
             Route::delete('{id}', [ContactController::class, 'destroy'])->middleware('permission:contacts.delete')->whereNumber('id');
         });

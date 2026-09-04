@@ -4,6 +4,7 @@ use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -42,6 +43,26 @@ class Contact extends Authenticatable implements JWTSubject
             ->withTimestamps();
     }
     public function addresses(): MorphMany { return $this->morphMany(Address::class, 'addressable'); }
+
+    /** Full consent/opt-out history, newest first. */
+    public function consents(): HasMany
+    {
+        return $this->hasMany(ContactConsent::class)->orderByDesc('occurred_at')->orderByDesc('id');
+    }
+
+    /** The most recent consent record for a channel, or null if none logged. */
+    public function consentFor(string $channel): ?ContactConsent
+    {
+        return $this->consents->firstWhere('channel', $channel);
+    }
+
+    /** Whether we may currently contact on a channel (opt-in channels default to blocked). */
+    public function canReceive(string $channel): bool
+    {
+        $latest = $this->consentFor($channel);
+        if ($latest) return $latest->status === 'granted';
+        return !in_array($channel, ContactConsent::OPT_IN_CHANNELS, true);
+    }
 
     public function getJWTIdentifier() { return $this->getKey(); }
     public function getJWTCustomClaims(): array
