@@ -29,6 +29,7 @@ const routes = [
       { path: 'profile',    name: 'profile',    component: () => import('@/pages/settings/ProfilePage.vue') },
       { path: 'leads',      name: 'leads',      component: () => import('@/pages/leads/LeadsPage.vue'),         meta: { permission: 'leads.view' } },
       { path: 'accounts',   name: 'accounts',   component: () => import('@/pages/customers/CustomersPage.vue'), meta: { permission: 'customers.view' } },
+      { path: 'duplicates', name: 'duplicates', component: () => import('@/pages/duplicates/DuplicateReviewPage.vue'), meta: { permission: ['customers.view', 'contacts.view', 'leads.view'] } },
       { path: 'customers',  redirect: { name: 'accounts' } },
       { path: 'contacts',   name: 'contacts',   component: () => import('@/pages/contacts/ContactsPage.vue'),   meta: { permission: 'contacts.view' } },
       { path: 'deals',      name: 'deals',      component: () => import('@/pages/pipeline/PipelinePage.vue'),   meta: { permission: 'deals.view' } },

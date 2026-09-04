@@ -126,6 +126,7 @@ const workspaces = [
       { name: 'leads', label: 'nav.leads', icon: Users, permission: 'leads.view', module: 'leads' },
       { name: 'accounts', label: 'nav.accounts', icon: UserCheck, permission: 'customers.view', module: 'customers' },
       { name: 'contacts', label: 'nav.contacts', icon: Contact, permission: 'contacts.view', module: 'contacts' },
+      { name: 'duplicates', label: 'nav.duplicates', icon: Users, permission: 'customers.view', module: 'customers' },
       { name: 'deals', label: 'nav.deals', icon: PieChart, permission: 'deals.view', module: 'deals' },
       { name: 'email', label: 'nav.email', icon: Mail, permission: 'email.view', module: 'email' },
       { name: 'marketing', label: 'nav.marketing', icon: Megaphone, permission: 'campaigns.view', module: 'campaigns' },
