@@ -172,6 +172,7 @@
               <div class="flex items-center gap-1.5">
                 <span class="text-[9px] px-1 py-0.5 rounded" :class="timelineClass(t.type)">{{ $t(`customers.tl.${t.type}`) }}</span>
                 <span class="text-ink dark:text-ink-dark truncate">{{ t.title }}</span>
+                <span v-if="t.source && t.source.type !== 'Customer'" class="text-[9px] text-ink-subtle shrink-0">{{ t.source.type }}: {{ t.source.name }}</span>
                 <span class="text-ink-subtle ml-auto shrink-0">{{ t.occurred_human }}</span>
               </div>
               <div v-if="t.body" class="text-ink-muted dark:text-ink-dark-muted mt-0.5">{{ t.body }}</div>
@@ -355,6 +356,10 @@ async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    try {
+      const tl = await api.timeline(id);
+      selected.value.timeline = tl.data?.data?.data ?? selected.value.timeline ?? [];
+    } catch { /* keep the embedded timeline as fallback */ }
   } catch { /* interceptor surfaces the error */ }
 }
 

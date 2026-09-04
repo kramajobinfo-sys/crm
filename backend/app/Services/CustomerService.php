@@ -66,6 +66,7 @@ class CustomerService
             'body'        => $t->body,
             'meta'        => $t->meta,
             'occurred_at' => optional($t->occurred_at)->toIso8601String(),
+            'occurred_human' => optional($t->occurred_at)->diffForHumans(),
             'user'        => $t->user ? ['id' => $t->user->id, 'name' => $t->user->name] : null,
             'source'      => [
                 'type' => class_basename($t->subject_type),

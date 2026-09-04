@@ -7,6 +7,7 @@ export default {
   stats:         ()                => http.get(`${base}/stats`),
   meta:          ()                => http.get(`${base}/meta`),
   show:          (id)              => http.get(`${base}/${id}`),
+  timeline:      (id, params = {}) => http.get(`${base}/${id}/timeline`, { params }),
   create:        (payload)         => http.post(base, payload),
   update:        (id, payload)     => http.put(`${base}/${id}`, payload),
   remove:        (id)              => http.delete(`${base}/${id}`),
