@@ -16,3 +16,5 @@ frontend/dist/
 *.orig
 *.orig-*
 .attfix-backup-*/
+/.env.bak*
+/.env.*.bak
