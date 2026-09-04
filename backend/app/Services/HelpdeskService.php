@@ -63,6 +63,7 @@ class HelpdeskService
                 'is_internal' => true, 'body' => 'Ticket created via '.$ticket->channel.'.',
             ]);
             $this->workflows->fireEvent('tickets', 'ticket.created', $ticket);
+            \App\Models\TimelineActivity::record($ticket, 'system', 'Ticket created');
             return $this->find($ticket->id);
         });
     }
@@ -126,7 +127,7 @@ class HelpdeskService
             $patch['reopened_count'] = $ticket->reopened_count + 1;
         }
         $ticket->forceFill($patch)->save();
-        if ($changed) $this->workflows->fireEvent('tickets', 'ticket.status_changed', $ticket);
+        if ($changed) { $this->workflows->fireEvent('tickets', 'ticket.status_changed', $ticket); \App\Models\TimelineActivity::record($ticket, 'status_change', 'Ticket '.$status, null, ['status' => $status]); }
         return $this->find($ticket->id);
     }
 

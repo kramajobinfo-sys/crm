@@ -5,6 +5,11 @@ use App\Models\Address;
 use App\Models\Contact;
 use App\Models\Customer;
 use App\Models\Deal;
+use App\Models\Invoice;
+use App\Models\Project;
+use App\Models\ProjectTask;
+use App\Models\Quotation;
+use App\Models\Ticket;
 use App\Models\TimelineActivity;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -38,20 +43,28 @@ class CustomerService
      */
     public function timeline(Customer $customer, array $opts = []): LengthAwarePaginator
     {
-        $perPage    = (int) ($opts['per_page'] ?? 30);
-        $companyId  = $customer->company_id;
-        $contactIds = $customer->contacts()->pluck('id')->all();
-        $dealIds    = Deal::where('customer_id', $customer->id)->pluck('id')->all();
+        $perPage   = (int) ($opts['per_page'] ?? 30);
+        $companyId = $customer->company_id;
+
+        // Everything in this customer's 360, keyed by timeline subject_type.
+        $projectIds = Project::where('customer_id', $customer->id)->pluck('id')->all();
+        $subjects = [
+            Customer::class    => [$customer->id],
+            Contact::class     => $customer->contacts()->pluck('id')->all(),
+            Deal::class        => Deal::where('customer_id', $customer->id)->pluck('id')->all(),
+            Quotation::class   => Quotation::where('customer_id', $customer->id)->pluck('id')->all(),
+            Invoice::class     => Invoice::where('customer_id', $customer->id)->pluck('id')->all(),
+            Ticket::class      => Ticket::where('customer_id', $customer->id)->pluck('id')->all(),
+            ProjectTask::class => $projectIds ? ProjectTask::whereIn('project_id', $projectIds)->pluck('id')->all() : [],
+        ];
 
         $page = TimelineActivity::query()
             ->where('company_id', $companyId)
-            ->where(function ($w) use ($customer, $contactIds, $dealIds) {
-                $w->where(fn ($x) => $x->where('subject_type', Customer::class)->where('subject_id', $customer->id));
-                if ($contactIds) {
-                    $w->orWhere(fn ($x) => $x->where('subject_type', Contact::class)->whereIn('subject_id', $contactIds));
-                }
-                if ($dealIds) {
-                    $w->orWhere(fn ($x) => $x->where('subject_type', Deal::class)->whereIn('subject_id', $dealIds));
+            ->where(function ($w) use ($subjects) {
+                foreach ($subjects as $type => $ids) {
+                    if (!empty($ids)) {
+                        $w->orWhere(fn ($x) => $x->where('subject_type', $type)->whereIn('subject_id', $ids));
+                    }
                 }
             })
             ->when(!empty($opts['type']), fn ($q) => $q->where('type', $opts['type']))

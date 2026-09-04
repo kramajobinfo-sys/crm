@@ -88,6 +88,7 @@ class SalesService
         }
         $quote->forceFill(['status' => 'sent'])->save();
         $this->workflows->fireEvent('quotations', 'quotation.sent', $quote);
+        \App\Models\TimelineActivity::record($quote, 'email', 'Quotation sent');
 
         $contact = $quote->customer?->contacts()->where('is_primary', true)->first()
             ?? $quote->customer?->contacts()->whereNotNull('email')->first();
@@ -126,6 +127,7 @@ class SalesService
         ])->save();
 
         $this->workflows->fireEvent('quotations', 'quotation.signed', $quote);
+        \App\Models\TimelineActivity::record($quote, 'system', 'Quotation signed'.($signedName ? ' by '.$signedName : ''));
 
         return $this->findQuotation($quote->id);
     }
@@ -241,6 +243,7 @@ class SalesService
             $this->syncItems($invoice, $items);
             $this->recalcInvoice($invoice);
             $this->workflows->fireEvent('invoices', 'invoice.created', $invoice);
+            \App\Models\TimelineActivity::record($invoice, 'system', 'Invoice created');
             return $this->findInvoice($invoice->id);
         });
     }
@@ -528,7 +531,7 @@ class SalesService
             'status' => $status,
         ])->save();
 
-        if ($status === 'paid' && !$wasPaid) $this->workflows->fireEvent('invoices', 'invoice.paid', $invoice);
+        if ($status === 'paid' && !$wasPaid) { $this->workflows->fireEvent('invoices', 'invoice.paid', $invoice); \App\Models\TimelineActivity::record($invoice, 'system', 'Invoice paid'); }
     }
 
     private function copyHeader(SalesDocument $src, array $overrides): array
