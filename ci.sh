@@ -26,6 +26,7 @@ if docker run --rm -v /opt/npcrm/frontend:/src:ro -w /app node:20-alpine sh -c '
         set -e
         cp -r /src/. /app && rm -rf node_modules
         echo "-- npm ci";        npm ci --no-audit --no-fund --silent
+        echo "-- vue-tsc type-check"; npm run type-check
         echo "-- npm audit (advisory)"; npm audit --omit=dev --audit-level=moderate || echo "   (audit warnings — not blocking)"
         echo "-- npm run build";  npm run build
       '; then echo ">>> frontend: PASS"; else echo ">>> frontend: FAIL"; FAIL=1; fi
