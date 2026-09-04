@@ -18,3 +18,6 @@ frontend/dist/
 .attfix-backup-*/
 /.env.bak*
 /.env.*.bak
+/migrate/
+*.bak-*
+*.mariadb

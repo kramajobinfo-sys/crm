@@ -65,7 +65,7 @@ services:
     networks: [krama]
 
   mysql:
-    image: mariadb:10.11
+    image: mysql:8.0
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
@@ -73,7 +73,7 @@ services:
       MYSQL_USER: ${DB_USERNAME:-krama}
       MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql8_data:/var/lib/mysql
       - ./deployment/database/krama_crm.sql:/docker-entrypoint-initdb.d/001-krama-crm.sql:ro
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     healthcheck:
@@ -101,6 +101,7 @@ services:
 
 volumes:
   mysql_data:
+  mysql8_data:
   redis_data:
 
 networks:
