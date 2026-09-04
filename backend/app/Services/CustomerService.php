@@ -2,7 +2,9 @@
 namespace App\Services;
 
 use App\Models\Address;
+use App\Models\Contact;
 use App\Models\Customer;
+use App\Models\Deal;
 use App\Models\TimelineActivity;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +30,60 @@ class CustomerService
             })
             ->orderByDesc('id')
             ->paginate($perPage);
+    }
+
+    /**
+     * Customer-360 timeline: merge timeline_activities whose subject is the customer,
+     * one of its contacts, or one of its deals. Newest first, paginated, tenant-safe.
+     */
+    public function timeline(Customer $customer, array $opts = []): LengthAwarePaginator
+    {
+        $perPage    = (int) ($opts['per_page'] ?? 30);
+        $companyId  = $customer->company_id;
+        $contactIds = $customer->contacts()->pluck('id')->all();
+        $dealIds    = Deal::where('customer_id', $customer->id)->pluck('id')->all();
+
+        $page = TimelineActivity::query()
+            ->where('company_id', $companyId)
+            ->where(function ($w) use ($customer, $contactIds, $dealIds) {
+                $w->where(fn ($x) => $x->where('subject_type', Customer::class)->where('subject_id', $customer->id));
+                if ($contactIds) {
+                    $w->orWhere(fn ($x) => $x->where('subject_type', Contact::class)->whereIn('subject_id', $contactIds));
+                }
+                if ($dealIds) {
+                    $w->orWhere(fn ($x) => $x->where('subject_type', Deal::class)->whereIn('subject_id', $dealIds));
+                }
+            })
+            ->when(!empty($opts['type']), fn ($q) => $q->where('type', $opts['type']))
+            ->with(['user:id,name', 'subject'])
+            ->orderByDesc('occurred_at')->orderByDesc('id')
+            ->paginate($perPage);
+
+        $page->getCollection()->transform(fn (TimelineActivity $t) => [
+            'id'          => $t->id,
+            'type'        => $t->type,
+            'title'       => $t->title,
+            'body'        => $t->body,
+            'meta'        => $t->meta,
+            'occurred_at' => optional($t->occurred_at)->toIso8601String(),
+            'user'        => $t->user ? ['id' => $t->user->id, 'name' => $t->user->name] : null,
+            'source'      => [
+                'type' => class_basename($t->subject_type),
+                'id'   => $t->subject_id,
+                'name' => $this->subjectLabel($t->subject),
+            ],
+        ]);
+        return $page;
+    }
+
+    private function subjectLabel($s): ?string
+    {
+        if (!$s) return null;
+        foreach (['name', 'title', 'subject'] as $f) {
+            if (!empty($s->{$f})) return (string) $s->{$f};
+        }
+        $full = trim(($s->first_name ?? '') . ' ' . ($s->last_name ?? ''));
+        return $full ?: null;
     }
 
     public function find(int $id): Customer

@@ -56,6 +56,17 @@ class CustomerController extends Controller
         return $this->success(new CustomerResource($this->customers->find($id)));
     }
 
+    /** Unified Customer-360 timeline: the customer's own events + its contacts' + its deals'. */
+    public function timeline(Request $request, int $id): JsonResponse
+    {
+        $customer = $this->customers->find($id); // company-scoped; 404 if not in tenant
+        $opts = $request->validate([
+            'type'     => 'nullable|string|max:32',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+        return $this->success($this->customers->timeline($customer, $opts));
+    }
+
     public function store(StoreCustomerRequest $request): JsonResponse
     {
         $customer = $this->customers->create($request->validated());
