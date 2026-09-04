@@ -1,18 +1,13 @@
 import { createI18n } from 'vue-i18n';
 import en from '@/locales/en.json';
-import ar from '@/locales/ar.json';
 
-const savedLocale = (() => {
-  try {
-    const raw = localStorage.getItem('ui');
-    if (raw) return JSON.parse(raw)?.locale || 'en';
-  } catch { /* ignore */ }
-  return 'en';
-})();
-
+// English-only for now. Messages are PRE-COMPILED at build by
+// @intlify/unplugin-vue-i18n (see vite.config.js) so vue-i18n needs no runtime
+// eval -> the CSP stays strict (script-src 'self'). Add a locale later by
+// importing its JSON and adding it to `messages`.
 export default createI18n({
   legacy: false,
-  locale: savedLocale,
+  locale: 'en',
   fallbackLocale: 'en',
-  messages: { en, ar },
+  messages: { en },
 });
