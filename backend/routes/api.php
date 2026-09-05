@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\V1\Purchase\PurchaseRequestController;
 use App\Http\Controllers\Api\V1\Purchase\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\Purchase\ApprovalController;
 use App\Http\Controllers\Api\V1\Helpdesk\TicketController;
+use App\Http\Controllers\Api\V1\Helpdesk\TicketRoutingController;
 use App\Http\Controllers\Api\V1\Email\EmailController;
 use App\Http\Controllers\Api\V1\Marketing\CampaignController;
 use App\Http\Controllers\Api\V1\Settings\UserManagementController;
@@ -453,6 +454,10 @@ Route::prefix('v1')->group(function () {
             Route::get   ('{id}',  [TicketController::class, 'show'])->middleware('permission:tickets.view')->whereNumber('id');
             Route::put   ('{id}',  [TicketController::class, 'update'])->middleware('permission:tickets.update')->whereNumber('id');
             Route::delete('{id}',  [TicketController::class, 'destroy'])->middleware('permission:tickets.delete')->whereNumber('id');
+            Route::get   ('routing-rules',      [TicketRoutingController::class, 'index'])->middleware('permission:tickets.view');
+            Route::post  ('routing-rules',      [TicketRoutingController::class, 'store'])->middleware('permission:tickets.update');
+            Route::put   ('routing-rules/{id}', [TicketRoutingController::class, 'update'])->middleware('permission:tickets.update')->whereNumber('id');
+            Route::delete('routing-rules/{id}', [TicketRoutingController::class, 'destroy'])->middleware('permission:tickets.update')->whereNumber('id');
             Route::post  ('{id}/replies',  [TicketController::class, 'reply'])->middleware('permission:tickets.update')->whereNumber('id');
             Route::post  ('{id}/assign',   [TicketController::class, 'assign'])->middleware('permission:tickets.assign')->whereNumber('id');
             Route::post  ('{id}/status',   [TicketController::class, 'setStatus'])->middleware('permission:tickets.update')->whereNumber('id');

@@ -5,6 +5,7 @@ use App\Models\Escalation;
 use App\Models\SlaPolicy;
 use App\Models\Ticket;
 use App\Models\TicketReply;
+use App\Models\TicketRoutingRule;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -57,6 +58,7 @@ class HelpdeskService
             // also produced the reply body "Ticket created via ." just below.
             $ticket->refresh();
             $this->applySla($ticket);
+            if (!$ticket->assigned_to) $this->autoRoute($ticket);
             TicketReply::create([
                 'company_id' => $ticket->company_id, 'ticket_id' => $ticket->id,
                 'user_id' => auth()->id(), 'author_type' => 'system',
@@ -115,6 +117,52 @@ class HelpdeskService
         if ($userId && $ticket->status === 'new') $patch['status'] = 'open';
         $ticket->forceFill($patch)->save();
         return $this->find($ticket->id);
+    }
+
+    /** Auto-assign an unassigned ticket via the first matching routing rule. Returns the user id, or null. */
+    public function autoRoute(Ticket $ticket): ?int
+    {
+        $rules = TicketRoutingRule::where('company_id', $ticket->company_id)
+            ->where('is_active', true)->orderBy('priority')->orderBy('id')->get();
+
+        foreach ($rules as $rule) {
+            if (!$rule->matches($ticket)) continue;
+            $userId = $this->resolveAssignee($rule, $ticket);
+            if ($userId) {
+                $patch = ['assigned_to' => $userId];
+                if ($ticket->status === 'new') $patch['status'] = 'open';
+                $ticket->forceFill($patch)->save();
+                \App\Models\TimelineActivity::record($ticket, 'system', "Auto-routed by rule \u{201C}{$rule->name}\u{201D}");
+                return $userId;
+            }
+        }
+        return null;
+    }
+
+    private function resolveAssignee(TicketRoutingRule $rule, Ticket $ticket): ?int
+    {
+        if ($rule->strategy === 'specific') return $rule->assign_to_user_id;
+
+        $pool = array_values(array_filter(array_map('intval', $rule->pool_user_ids ?? [])));
+        if (!$pool) return null;
+
+        if ($rule->strategy === 'round_robin') {
+            $userId = $pool[$rule->round_robin_cursor % count($pool)];
+            $rule->forceFill(['round_robin_cursor' => $rule->round_robin_cursor + 1])->save();
+            return $userId;
+        }
+
+        // least_busy — fewest OPEN tickets among the pool; ties broken by lowest user id.
+        $counts = [];
+        foreach ($pool as $uid) {
+            $counts[$uid] = Ticket::withoutGlobalScopes()
+                ->where('company_id', $ticket->company_id)->open()
+                ->where('assigned_to', $uid)->count();
+        }
+        $min = min($counts);
+        $tied = array_keys(array_filter($counts, fn ($c) => $c === $min));
+        sort($tied);
+        return $tied[0] ?? null;
     }
 
     public function setStatus(Ticket $ticket, string $status): Ticket
