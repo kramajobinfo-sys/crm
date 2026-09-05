@@ -58,15 +58,31 @@
     <div class="w-px h-6 bg-line dark:bg-line-dark mx-1" />
 
     <!-- Language -->
-    <button class="btn-ghost btn-icon btn-sm" @click="toggleLocale" :title="ui.locale === 'en' ? 'العربية' : 'English'">
-      <Languages :size="17" />
-    </button>
-
-    <!-- Theme -->
-    <button class="btn-ghost btn-icon btn-sm" @click="ui.toggleTheme()" :title="ui.theme === 'light' ? 'Dark mode' : 'Light mode'">
-      <Moon v-if="ui.theme === 'light'" :size="17" />
-      <Sun v-else :size="17" />
-    </button>
+    <div ref="themeMenu" class="relative">
+      <button class="btn-ghost btn-icon btn-sm" @click="showTheme = !showTheme" :title="$t('theme.title')" :aria-expanded="showTheme">
+        <Palette :size="17" />
+      </button>
+      <div v-if="showTheme" class="absolute right-0 top-full mt-2 w-56 card shadow-pop p-3 z-30 space-y-3">
+        <div>
+          <div class="section-label mb-1.5">{{ $t('theme.mode') }}</div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button class="btn-secondary btn-sm justify-center" :class="ui.theme === 'light' && '!border-primary-500 !text-primary-600'" @click="ui.setTheme('light')"><Sun :size="14" /> {{ $t('theme.light') }}</button>
+            <button class="btn-secondary btn-sm justify-center" :class="ui.theme === 'dark' && '!border-primary-500 !text-primary-600'" @click="ui.setTheme('dark')"><Moon :size="14" /> {{ $t('theme.dark') }}</button>
+          </div>
+        </div>
+        <div>
+          <div class="section-label mb-1.5">{{ $t('theme.accent') }}</div>
+          <div class="flex items-center gap-2.5">
+            <button v-for="a in ACCENTS" :key="a.key" type="button"
+                    class="w-7 h-7 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted flex items-center justify-center transition"
+                    :class="ui.accent === a.key ? 'ring-current' : 'ring-transparent hover:ring-slate-300'"
+                    :style="{ backgroundColor: a.color, color: a.color }" :title="a.label" @click="ui.setAccent(a.key)">
+              <Check v-if="ui.accent === a.key" :size="14" class="text-white" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Notifications -->
     <div class="relative">
@@ -132,7 +148,7 @@ import { useUiStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { useNotificationsStore } from '@/stores/notifications';
 import http from '@/services/http';
-import { Menu, Search, Languages, Moon, Sun, Bell, Plus, ChevronDown, Users, UserCheck, Contact, PieChart } from 'lucide-vue-next';
+import { Menu, Search, Moon, Sun, Bell, Plus, ChevronDown, Palette, Check, Users, UserCheck, Contact, PieChart } from 'lucide-vue-next';
 
 const ui = useUiStore();
 const auth = useAuthStore();
@@ -145,8 +161,17 @@ const showResults = ref(false);
 const showNotifs = ref(false);
 const showUser = ref(false);
 const showCreate = ref(false);
+const showTheme = ref(false);
 const searchInput = ref(null);
 const createMenu = ref(null);
+const themeMenu = ref(null);
+const ACCENTS = [
+  { key: 'blue', color: '#1D6FE0', label: 'Blue' },
+  { key: 'indigo', color: '#4F46E5', label: 'Indigo' },
+  { key: 'emerald', color: '#059669', label: 'Emerald' },
+  { key: 'violet', color: '#7C3AED', label: 'Violet' },
+  { key: 'rose', color: '#E11D48', label: 'Rose' },
+];
 
 // Global quick-create — routes to the module list with ?create=1 (pages auto-open their form).
 const quickCreateItems = computed(() => [
@@ -172,13 +197,6 @@ const onSearch = () => {
       results.value = data.data;
     } catch { results.value = {}; }
   }, 250);
-};
-
-const toggleLocale = () => {
-  ui.setLocale(ui.locale === 'en' ? 'ar' : 'en');
-  // vue-i18n hot-swap
-  const i18nEl = document.querySelector('html');
-  i18nEl.setAttribute('lang', ui.locale);
 };
 
 const toggleNotifications = async () => {
@@ -219,6 +237,7 @@ const onKeydown = (e) => {
 };
 const onDocClick = (e) => {
   if (createMenu.value && !createMenu.value.contains(e.target)) showCreate.value = false;
+  if (themeMenu.value && !themeMenu.value.contains(e.target)) showTheme.value = false;
 };
 
 onMounted(() => {

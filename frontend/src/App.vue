@@ -6,6 +6,7 @@
 import { onMounted, watch } from 'vue';
 import { useUiStore } from '@/stores/ui';
 const ui = useUiStore();
-onMounted(() => { ui.applyTheme(); if (ui.locale === 'ar') ui.setLocale('ar'); });
+onMounted(() => { ui.applyTheme(); ui.applyAccent(); });
 watch(() => ui.theme, () => ui.applyTheme());
+watch(() => ui.accent, () => ui.applyAccent());
 </script>

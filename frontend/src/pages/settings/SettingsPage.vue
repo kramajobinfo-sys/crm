@@ -37,6 +37,32 @@
     </div>
 
     <!-- ===== USERS ===== -->
+    <!-- ===== APPEARANCE ===== -->
+    <div v-else-if="tab === 'appearance'" class="card p-4 max-w-lg space-y-5">
+      <div>
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-0.5">{{ $t('theme.mode') }}</div>
+        <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.mode_hint') }}</p>
+        <div class="flex gap-2">
+          <button class="btn-secondary btn-sm" :class="ui.theme === 'light' && '!border-primary-500 !text-primary-600'" @click="ui.setTheme('light')"><Sun :size="14" /> {{ $t('theme.light') }}</button>
+          <button class="btn-secondary btn-sm" :class="ui.theme === 'dark' && '!border-primary-500 !text-primary-600'" @click="ui.setTheme('dark')"><Moon :size="14" /> {{ $t('theme.dark') }}</button>
+        </div>
+      </div>
+      <div class="divider" />
+      <div>
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-0.5">{{ $t('theme.accent') }}</div>
+        <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.accent_hint') }}</p>
+        <div class="flex items-center gap-3">
+          <button v-for="a in APPEARANCE_ACCENTS" :key="a.key" type="button"
+                  class="w-9 h-9 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted flex items-center justify-center transition"
+                  :class="ui.accent === a.key ? 'ring-current' : 'ring-transparent hover:ring-slate-300'"
+                  :style="{ backgroundColor: a.color, color: a.color }" :title="a.label" @click="ui.setAccent(a.key)">
+            <Check v-if="ui.accent === a.key" :size="16" class="text-white" />
+          </button>
+        </div>
+      </div>
+      <p class="text-[11px] text-ink-subtle">{{ $t('settings.appearance.note') }}</p>
+    </div>
+
     <div v-else-if="tab === 'users'" class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex gap-2">
         <input v-model="userFilters.q" class="input text-sm w-52" :placeholder="$t('settings.search_users')" @keyup.enter="loadUsers" />
@@ -589,16 +615,25 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
+import { useUiStore } from '@/stores/ui';
 import api from '@/services/settings';
-import { Plus, X, ShieldCheck, ChevronUp, ChevronDown } from 'lucide-vue-next';
+import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
 const auth = useAuthStore();
+const ui = useUiStore();
 const can = (p) => auth.can(p);
+const APPEARANCE_ACCENTS = [
+  { key: 'blue', color: '#1D6FE0', label: 'Blue' },
+  { key: 'indigo', color: '#4F46E5', label: 'Indigo' },
+  { key: 'emerald', color: '#059669', label: 'Emerald' },
+  { key: 'violet', color: '#7C3AED', label: 'Violet' },
+  { key: 'rose', color: '#E11D48', label: 'Rose' },
+];
 
-const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
-const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
+const allTabs = ['company', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 

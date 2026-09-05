@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 export const useUiStore = defineStore('ui', {
   state: () => ({
     theme: 'light', // 'light' | 'dark'
+    accent: 'blue', // 'blue' | 'indigo' | 'emerald' | 'violet' | 'rose'
     sidebarCollapsed: false,
     sidebarMobileOpen: false,
     locale: 'en',
@@ -28,6 +29,15 @@ export const useUiStore = defineStore('ui', {
       }
     },
 
+    setAccent(accent) {
+      this.accent = accent;
+      this.applyAccent();
+    },
+
+    applyAccent() {
+      document.documentElement.setAttribute('data-accent', this.accent || 'blue');
+    },
+
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed;
     },
@@ -49,6 +59,6 @@ export const useUiStore = defineStore('ui', {
   },
 
   persist: {
-    paths: ['theme', 'sidebarCollapsed', 'locale'],
+    paths: ['theme', 'accent', 'sidebarCollapsed', 'locale'],
   },
 });

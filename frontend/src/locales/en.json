@@ -1496,7 +1496,8 @@
       "departments": "Departments",
       "webhooks": "Webhooks",
       "routing": "Ticket Routing",
-      "sms": "SMS Providers"
+      "sms": "SMS Providers",
+      "appearance": "Appearance"
     },
     "c": {
       "name": "Company name",
@@ -1640,6 +1641,11 @@
       "confirm_delete": "Delete this SMS provider?",
       "provider_nexmo": "Vonage (Nexmo)",
       "provider_unifonic": "Unifonic"
+    },
+    "appearance": {
+      "mode_hint": "Choose a light or dark interface.",
+      "accent_hint": "Pick the accent color used across buttons, links and highlights.",
+      "note": "Your appearance preferences are saved on this device."
     }
   },
   "reports": {
@@ -2278,5 +2284,12 @@
     "saving": "Saving…",
     "saved": "Document updated",
     "showing": "{from}–{to} of {total}"
+  },
+  "theme": {
+    "title": "Theme & appearance",
+    "mode": "Mode",
+    "light": "Light",
+    "dark": "Dark",
+    "accent": "Accent color"
   }
 }
