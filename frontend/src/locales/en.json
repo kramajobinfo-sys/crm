@@ -1493,7 +1493,8 @@
       "api_keys": "API Keys",
       "branches": "Branches",
       "departments": "Departments",
-      "webhooks": "Webhooks"
+      "webhooks": "Webhooks",
+      "routing": "Ticket Routing"
     },
     "c": {
       "name": "Company name",
@@ -1569,6 +1570,43 @@
       "result": "Result",
       "when": "When",
       "type_email_status": "Email status (bounce/complaint)"
+    },
+    "rt": {
+      "new": "New rule",
+      "edit": "Edit rule",
+      "name": "Rule name",
+      "name_ph": "e.g. Urgent → senior agents",
+      "priority": "Order",
+      "strategy": "Strategy",
+      "strategy_specific": "Specific agent",
+      "strategy_round_robin": "Round-robin",
+      "strategy_least_busy": "Least busy",
+      "assignee": "Assign to",
+      "pool": "Agent pool",
+      "pool_hint": "Tickets are distributed among the selected agents.",
+      "conditions": "Conditions",
+      "cond_hint": "All conditions must match (leave empty to match every ticket).",
+      "add_condition": "Add condition",
+      "field": "Field",
+      "op": "Operator",
+      "value": "Value",
+      "target": "Target",
+      "matches": "Matches",
+      "any": "Any ticket",
+      "agents": "agents",
+      "active": "Active",
+      "inactive": "Off",
+      "empty": "No routing rules. New tickets stay unassigned until you add one.",
+      "confirm_delete": "Delete this routing rule?",
+      "op_equals": "equals",
+      "op_not_equals": "not equals",
+      "op_contains": "contains",
+      "op_is_set": "is set",
+      "op_is_empty": "is empty",
+      "f_priority": "Priority",
+      "f_channel": "Channel",
+      "f_subject": "Subject",
+      "f_category_id": "Category ID"
     }
   },
   "reports": {

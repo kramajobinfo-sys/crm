@@ -216,6 +216,52 @@
       </table>
     </div>
 
+    <!-- ===== TICKET ROUTING ===== -->
+    <div v-else-if="tab === 'routing'" class="card overflow-hidden">
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+        <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.routing') }}</span>
+        <button v-if="can('tickets.update')" class="btn-primary btn-xs ml-auto" @click="openRouting()"><Plus :size="11" /> {{ $t('settings.rt.new') }}</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ $t('settings.rt.priority') }}</th>
+            <th>{{ $t('settings.rt.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.rt.strategy') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.rt.target') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('settings.rt.matches') }}</th>
+            <th>{{ $t('settings.rt.active') }}</th>
+            <th class="text-right">{{ $t('settings.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(r, i) in routingRules" :key="r.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2 tabular-nums text-ink-subtle">
+              <div class="flex items-center gap-1">
+                <span>{{ r.priority }}</span>
+                <span class="flex flex-col leading-none">
+                  <button class="text-ink-subtle hover:text-ink disabled:opacity-30" :disabled="i === 0" @click="moveRouting(r, -1)"><ChevronUp :size="11" /></button>
+                  <button class="text-ink-subtle hover:text-ink disabled:opacity-30" :disabled="i === routingRules.length - 1" @click="moveRouting(r, 1)"><ChevronDown :size="11" /></button>
+                </span>
+              </div>
+            </td>
+            <td class="px-3 py-2 font-medium text-ink dark:text-ink-dark">{{ r.name }}</td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ $t(`settings.rt.strategy_${r.strategy}`) }}</td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ routingTarget(r) }}</td>
+            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted text-[11px]">{{ r.conditions && r.conditions.length ? `${r.conditions.length} ${$t('settings.rt.conditions').toLowerCase()}` : $t('settings.rt.any') }}</td>
+            <td class="px-3 py-2">
+              <button @click="toggleRouting(r)"><span class="badge" :class="r.is_active ? 'badge-success' : 'badge-neutral'">{{ r.is_active ? $t('settings.rt.active') : $t('settings.rt.inactive') }}</span></button>
+            </td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button v-if="can('tickets.update')" class="text-[11px] text-primary-600 hover:underline" @click="openRouting(r)">{{ $t('settings.edit') }}</button>
+              <button v-if="can('tickets.update')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeRouting(r.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+          <tr v-if="!routingRules.length"><td colspan="7" class="px-3 py-6 text-center text-xs text-ink-subtle">{{ $t('settings.rt.empty') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- ===== BRANCHES / DEPARTMENTS ===== -->
     <div v-else class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
@@ -365,6 +411,65 @@
       </div>
     </div>
 
+    <!-- Routing rule modal -->
+    <div v-if="routingForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="routingForm.open = false">
+      <div class="card w-full max-w-lg p-4 mt-8 space-y-3">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ routingForm.id ? $t('settings.rt.edit') : $t('settings.rt.new') }}</div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="col-span-2">
+            <label class="label">{{ $t('settings.rt.name') }} *</label>
+            <input v-model="routingForm.data.name" class="input text-sm w-full" :placeholder="$t('settings.rt.name_ph')" />
+            <p v-if="routingForm.errors.name" class="text-[11px] text-red-500">{{ routingForm.errors.name[0] }}</p>
+          </div>
+          <div>
+            <label class="label">{{ $t('settings.rt.priority') }}</label>
+            <input v-model.number="routingForm.data.priority" type="number" class="input text-sm w-full" />
+          </div>
+        </div>
+        <div>
+          <label class="label">{{ $t('settings.rt.strategy') }}</label>
+          <select v-model="routingForm.data.strategy" class="input text-sm w-full">
+            <option v-for="s in ROUTE_STRATEGIES" :key="s" :value="s">{{ $t(`settings.rt.strategy_${s}`) }}</option>
+          </select>
+        </div>
+        <div v-if="routingForm.data.strategy === 'specific'">
+          <label class="label">{{ $t('settings.rt.assignee') }} *</label>
+          <select v-model="routingForm.data.assign_to_user_id" class="input text-sm w-full">
+            <option :value="null" disabled>—</option>
+            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+          </select>
+        </div>
+        <div v-else>
+          <label class="label">{{ $t('settings.rt.pool') }} *</label>
+          <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto border border-line dark:border-line-dark rounded-lg p-2">
+            <button v-for="u in users" :key="u.id" type="button" class="chip cursor-pointer"
+                    :class="routingForm.data.pool_user_ids.includes(u.id) && '!bg-primary-50 !text-primary-700 dark:!bg-primary-900/25 dark:!text-primary-300'"
+                    @click="toggleRoutingPool(u.id)">{{ u.name }}</button>
+          </div>
+          <p class="text-[11px] text-ink-subtle mt-1">{{ $t('settings.rt.pool_hint') }}</p>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <label class="label mb-0">{{ $t('settings.rt.conditions') }}</label>
+            <button type="button" class="btn-secondary btn-xs ml-auto" @click="addRoutingCond"><Plus :size="10" /> {{ $t('settings.rt.add_condition') }}</button>
+          </div>
+          <p v-if="!routingForm.data.conditions.length" class="text-[11px] text-ink-subtle">{{ $t('settings.rt.cond_hint') }}</p>
+          <div v-for="(c, i) in routingForm.data.conditions" :key="i" class="flex items-center gap-1.5 mb-1.5">
+            <select v-model="c.field" class="input input-sm w-32"><option v-for="f in ROUTE_FIELDS" :key="f" :value="f">{{ $t(`settings.rt.f_${f}`) }}</option></select>
+            <select v-model="c.op" class="input input-sm w-28"><option v-for="o in ROUTE_OPS" :key="o" :value="o">{{ $t(`settings.rt.op_${o}`) }}</option></select>
+            <input v-if="!['is_set','is_empty'].includes(c.op)" v-model="c.value" class="input input-sm flex-1" :placeholder="$t('settings.rt.value')" />
+            <span v-else class="flex-1" />
+            <button type="button" class="p-1 text-ink-subtle hover:text-red-500" @click="removeRoutingCond(i)"><X :size="13" /></button>
+          </div>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-ink-muted"><input type="checkbox" v-model="routingForm.data.is_active" class="rounded border-slate-300" /> {{ $t('settings.rt.active') }}</label>
+        <div class="flex justify-end gap-2 pt-1">
+          <button class="btn-secondary btn-sm" @click="routingForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="routingForm.saving" @click="submitRouting">{{ routingForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Org modal -->
     <div v-if="orgForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="orgForm.open = false">
       <div class="card w-full max-w-md p-4 mt-8">
@@ -399,15 +504,15 @@ import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/settings';
-import { Plus, X, ShieldCheck } from 'lucide-vue-next';
+import { Plus, X, ShieldCheck, ChevronUp, ChevronDown } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
 const auth = useAuthStore();
 const can = (p) => auth.can(p);
 
-const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view' };
-const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update' };
+const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 
@@ -435,6 +540,11 @@ const webhooks = ref([]);
 const newWebhook = ref(null);
 const webhookForm = reactive({ open: false, saving: false, data: { name: '', type: 'web_to_lead' }, errors: {} });
 const webhookEvents = reactive({ open: false, endpoint: null, events: [] });
+const routingRules = ref([]);
+const routingForm = reactive({ open: false, saving: false, id: null, data: {}, errors: {} });
+const ROUTE_STRATEGIES = ['least_busy', 'round_robin', 'specific'];
+const ROUTE_FIELDS = ['priority', 'channel', 'subject', 'category_id'];
+const ROUTE_OPS = ['equals', 'not_equals', 'contains', 'is_set', 'is_empty'];
 
 const orgRows = computed(() => tab.value === 'branches' ? branches.value : departments.value);
 
@@ -448,6 +558,7 @@ async function loadTab() {
   else if (tab.value === 'departments') { const { data } = await api.departments(); departments.value = data.data || []; }
   else if (tab.value === 'api_keys') await loadApiKeys();
   else if (tab.value === 'webhooks') await loadWebhooks();
+  else if (tab.value === 'routing') { if (!users.value.length) await loadUsers(); await loadRoutingRules(); }
 }
 
 async function loadMeta() { try { const { data } = await api.usersMeta(); Object.assign(meta, data.data || {}); } catch { /* noop */ } }
@@ -620,6 +731,62 @@ async function viewWebhookEvents(w) {
 }
 function copyText(txt, msg) {
   try { navigator.clipboard.writeText(txt); toast.success(msg); } catch { /* noop */ }
+}
+
+async function loadRoutingRules() {
+  try { const { data } = await api.routingRules(); routingRules.value = data.data || []; } catch { /* noop */ }
+}
+function openRouting(rule) {
+  routingForm.errors = {};
+  routingForm.id = rule?.id ?? null;
+  routingForm.data = rule
+    ? { name: rule.name, priority: rule.priority, strategy: rule.strategy, assign_to_user_id: rule.assign_to_user_id,
+        pool_user_ids: [...(rule.pool_user_ids || [])], conditions: (rule.conditions || []).map((c) => ({ ...c })), is_active: rule.is_active }
+    : { name: '', priority: routingRules.value.length + 1, strategy: 'least_busy', assign_to_user_id: null, pool_user_ids: [], conditions: [], is_active: true };
+  routingForm.open = true;
+}
+const fullRoutingPayload = (r, priority = r.priority) => ({
+  name: r.name, strategy: r.strategy, priority,
+  assign_to_user_id: r.assign_to_user_id, pool_user_ids: r.pool_user_ids, conditions: r.conditions, is_active: r.is_active,
+});
+function addRoutingCond() { routingForm.data.conditions.push({ field: 'priority', op: 'equals', value: '' }); }
+function removeRoutingCond(i) { routingForm.data.conditions.splice(i, 1); }
+function toggleRoutingPool(uid) {
+  const pool = routingForm.data.pool_user_ids;
+  const i = pool.indexOf(uid);
+  if (i >= 0) pool.splice(i, 1); else pool.push(uid);
+}
+async function submitRouting() {
+  routingForm.saving = true; routingForm.errors = {};
+  const payload = { ...routingForm.data, conditions: (routingForm.data.conditions || []).filter((c) => c.field) };
+  try {
+    routingForm.id ? await api.updateRouting(routingForm.id, payload) : await api.createRouting(payload);
+    routingForm.open = false;
+    await loadRoutingRules();
+  } catch (e) { if (e.response?.status === 422) routingForm.errors = e.response.data?.errors || {}; }
+  finally { routingForm.saving = false; }
+}
+async function toggleRouting(r) {
+  try { await api.updateRouting(r.id, { ...fullRoutingPayload(r), is_active: !r.is_active }); await loadRoutingRules(); } catch { /* noop */ }
+}
+async function removeRouting(id) {
+  if (!window.confirm(t('settings.rt.confirm_delete'))) return;
+  try { await api.removeRouting(id); await loadRoutingRules(); } catch { /* noop */ }
+}
+async function moveRouting(rule, dir) {
+  const sorted = [...routingRules.value].sort((a, b) => a.priority - b.priority || a.id - b.id);
+  const idx = sorted.findIndex((r) => r.id === rule.id);
+  const swap = sorted[idx + dir];
+  if (!swap) return;
+  try {
+    await api.updateRouting(rule.id, fullRoutingPayload(rule, swap.priority));
+    await api.updateRouting(swap.id, fullRoutingPayload(swap, rule.priority));
+    await loadRoutingRules();
+  } catch { /* noop */ }
+}
+function routingTarget(r) {
+  if (r.strategy === 'specific') return r.assignee?.name || users.value.find((u) => u.id === r.assign_to_user_id)?.name || '—';
+  return `${r.pool_user_ids?.length || 0} ${t('settings.rt.agents')}`;
 }
 async function copyKey() {
   try { await navigator.clipboard.writeText(newKeyPlain.value); toast.success(t('settings.ak.copied')); }

@@ -39,4 +39,9 @@ export default {
   createWebhook:  (p)           => http.post('/webhook-endpoints', p),
   updateWebhook:  (id, p)       => http.put(`/webhook-endpoints/${id}`, p),
   removeWebhook:  (id)          => http.delete(`/webhook-endpoints/${id}`),
+
+  routingRules:   ()      => http.get('/tickets/routing-rules'),
+  createRouting:  (p)     => http.post('/tickets/routing-rules', p),
+  updateRouting:  (id, p) => http.put(`/tickets/routing-rules/${id}`, p),
+  removeRouting:  (id)    => http.delete(`/tickets/routing-rules/${id}`),
 };
