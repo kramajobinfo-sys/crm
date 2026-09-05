@@ -9,4 +9,7 @@ export default {
   create: (payload)     => http.post(base, payload),
   update: (id, payload) => http.put(`${base}/${id}`, payload),
   remove: (id)          => http.delete(`${base}/${id}`),
+
+  consents:   (id)          => http.get(`${base}/${id}/consents`),
+  setConsent: (id, payload) => http.post(`${base}/${id}/consents`, payload),
 };

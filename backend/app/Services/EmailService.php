@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\ContactConsent;
 use App\Models\Email;
 use App\Models\EmailAccount;
 use App\Models\EmailTemplate;
@@ -86,6 +87,10 @@ class EmailService
 
     private function deliverAndFinalize(Email $email): void
     {
+        if ($email->to && ContactConsent::isSuppressed($email->company_id, ['email'], $email->to)) {
+            $email->forceFill(['status' => 'failed', 'error' => 'Blocked: recipient has opted out of email (consent).'])->save();
+            return;
+        }
         $account = $email->email_account_id ? EmailAccount::find($email->email_account_id) : null;
         try {
             $this->mailer->deliver($email, $account);

@@ -569,7 +569,17 @@
     "created": "Contact created.",
     "updated": "Contact updated.",
     "deleted": "Contact deleted.",
-    "confirm_delete": "Delete contact {name}?"
+    "confirm_delete": "Delete contact {name}?",
+    "consent": {
+      "title": "Communication consent",
+      "reachable": "Reachable",
+      "opted_out": "Opted out",
+      "opt_in_required": "Opt-in required",
+      "opt_out": "Opt out",
+      "opt_in": "Opt in",
+      "history": "History",
+      "hide": "Hide"
+    }
   },
   "duplicates": {
     "title": "Possible duplicate found",

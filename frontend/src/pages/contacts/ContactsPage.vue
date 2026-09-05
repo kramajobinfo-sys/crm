@@ -109,6 +109,33 @@
           <dt class="text-ink-subtle">{{ $t('contacts.notes') }}</dt>
           <dd class="col-span-2 text-ink dark:text-ink-dark whitespace-pre-wrap">{{ selected.notes || '—' }}</dd>
         </dl>
+
+        <!-- Communication consent -->
+        <div class="border-t border-line dark:border-line-dark p-3">
+          <div class="section-label mb-2">{{ $t('contacts.consent.title') }}</div>
+          <div v-if="selected.consents" class="space-y-1.5">
+            <div v-for="c in selected.consents.current" :key="c.channel" class="flex items-center gap-2">
+              <span class="text-xs text-ink dark:text-ink-dark flex-1">{{ channelLabel(c.channel) }}</span>
+              <span class="badge" :class="c.can_receive ? 'badge-success' : (c.status === 'withdrawn' ? 'badge-danger' : 'badge-neutral')">
+                {{ c.can_receive ? $t('contacts.consent.reachable') : (c.status === 'withdrawn' ? $t('contacts.consent.opted_out') : $t('contacts.consent.opt_in_required')) }}
+              </span>
+              <button v-if="can('contacts.update')" class="btn-ghost btn-xs shrink-0" :disabled="consentBusy" @click="toggleConsent(c)">
+                {{ c.can_receive ? $t('contacts.consent.opt_out') : $t('contacts.consent.opt_in') }}
+              </button>
+            </div>
+
+            <button v-if="selected.consents.history?.length" class="text-[11px] text-primary-600 hover:underline mt-1"
+                    @click="showConsentHistory = !showConsentHistory">
+              {{ showConsentHistory ? $t('contacts.consent.hide') : $t('contacts.consent.history') }} ({{ selected.consents.history.length }})
+            </button>
+            <div v-if="showConsentHistory" class="mt-1 space-y-1">
+              <div v-for="h in selected.consents.history" :key="h.id" class="text-[11px] text-ink-subtle">
+                <span :class="h.status === 'granted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">{{ h.status === 'granted' ? $t('contacts.consent.opt_in') : $t('contacts.consent.opt_out') }}</span>
+                · {{ channelLabel(h.channel) }}<span v-if="h.occurred_at"> · {{ new Date(h.occurred_at).toLocaleDateString() }}</span><span v-if="h.user"> · {{ h.user.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </aside>
     </div>
 
@@ -187,6 +214,8 @@ function addFollowUp(contact) {
 const rows = ref([]);
 const selected = ref(null);
 const loading = ref(false);
+const consentBusy = ref(false);
+const showConsentHistory = ref(false);
 const meta = reactive({ accounts: [] });
 const filters = reactive({ q: '', customer_id: '', primaryOnly: false, page: 1 });
 const pagination = reactive({ current_page: 1, last_page: 1, from: 0, to: 0, total: 0 });
@@ -242,7 +271,30 @@ async function loadMeta() {
 }
 
 async function openDetail(id) {
-  try { const { data } = await api.show(id); selected.value = data.data; } catch { /* noop */ }
+  try { const { data } = await api.show(id); selected.value = data.data; await loadConsents(id); } catch { /* noop */ }
+}
+
+async function loadConsents(id) {
+  try {
+    const { data } = await api.consents(id);
+    if (selected.value?.id === id) selected.value = { ...selected.value, consents: data.data };
+  } catch { /* non-critical */ }
+}
+
+const channelLabel = (c) => ({ email: 'Email', sms: 'SMS', phone: 'Phone', whatsapp: 'WhatsApp', marketing: 'Marketing' }[c] || c);
+
+async function toggleConsent(c) {
+  if (consentBusy.value) return;
+  consentBusy.value = true;
+  try {
+    await api.setConsent(selected.value.id, {
+      channel: c.channel,
+      status: c.can_receive ? 'withdrawn' : 'granted',
+      source: 'agent',
+    });
+    await loadConsents(selected.value.id);
+  } catch { /* interceptor surfaces the error */ }
+  finally { consentBusy.value = false; }
 }
 
 function openCreate() {

@@ -1,6 +1,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use Illuminate\Routing\Middleware\ValidateSignature;
+use App\Http\Controllers\Api\UnsubscribeController;
 use App\Http\Controllers\Api\V1\System\AttachmentController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\TwoFactorController;
@@ -71,6 +72,11 @@ Route::prefix('v1')->group(function () {
     // Public branding lookup for the login/register screens — read-only, advisory (see
     // TenantResolver). Covered by the default 60/min API throttle, not the strict auth one.
     Route::get('tenant-info', [TenantInfoController::class, 'show']);
+
+    // Public self-service unsubscribe (tokenized, no auth) — see UnsubscribeController.
+    Route::get('unsubscribe/{token}',             [UnsubscribeController::class, 'unsubscribe'])->name('unsubscribe');
+    Route::post('unsubscribe/{token}',            [UnsubscribeController::class, 'oneClick'])->name('unsubscribe.oneclick');
+    Route::get('unsubscribe/{token}/resubscribe', [UnsubscribeController::class, 'resubscribe'])->name('unsubscribe.resubscribe');
 
     // Website visitor tracking — the app's ONLY public write endpoint (docs/VISITS_SCOPE.md).
     // The beacon answers 204 for every outcome, including an unknown site key, so it is never
