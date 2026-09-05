@@ -2,6 +2,7 @@
 namespace App\Services;
 
 use App\Jobs\SendCampaignMessage;
+use App\Jobs\SendCampaignSms;
 use App\Models\Campaign;
 use App\Models\ContactConsent;
 use App\Models\CampaignMessage;
@@ -88,9 +89,8 @@ class MarketingService
 
         if ($rows->isEmpty()) throw new RuntimeException('All recipients in this audience have opted out.');
 
-        $isEmail = $campaign->type === 'email';
-        // Email is delivered asynchronously via the queue; SMS stays record-only for now.
-        [$result, $messageIds] = DB::transaction(function () use ($campaign, $rows, $field, $suppressed, $isEmail) {
+        // Both email and SMS deliver asynchronously via the queue.
+        [$result, $messageIds] = DB::transaction(function () use ($campaign, $rows, $field, $suppressed) {
             $campaign->recipients()->delete();
             $campaign->messages()->delete();
 
@@ -100,32 +100,30 @@ class MarketingService
                     'company_id' => $campaign->company_id,
                     'recipient_type' => $r['type'], 'recipient_id' => $r['id'],
                     'name' => $r['name'], 'email' => $r['email'] ?? null, 'phone' => $r['phone'] ?? null,
-                    'status' => $isEmail ? 'queued' : 'sent', 'sent_at' => $isEmail ? null : now(),
+                    'status' => 'queued', 'sent_at' => null,
                 ]);
                 $message = CampaignMessage::create([
                     'company_id' => $campaign->company_id, 'campaign_id' => $campaign->id,
                     'campaign_recipient_id' => $recipient->id, 'channel' => $campaign->type,
                     'to_address' => $r[$field], 'subject' => $campaign->subject, 'body' => $campaign->body,
-                    'status' => $isEmail ? 'queued' : 'sent',
-                    'message_id' => $isEmail ? null : sprintf('<%s@krama.local>', bin2hex(random_bytes(8))),
-                    'sent_at' => $isEmail ? null : now(),
+                    'status' => 'queued', 'message_id' => null, 'sent_at' => null,
                 ]);
-                if ($isEmail) $messageIds[] = $message->id;
+                $messageIds[] = $message->id;
                 $count++;
             }
 
             $campaign->forceFill([
-                'status' => $isEmail ? 'running' : 'sent',
-                'sent_at' => $isEmail ? null : now(),
-                'recipients_count' => $count,
-                'sent_count' => $isEmail ? 0 : $count,
+                'status' => 'running', 'sent_at' => null,
+                'recipients_count' => $count, 'sent_count' => 0,
                 'failed_count' => 0, 'suppressed_count' => $suppressed,
             ])->save();
             return [$this->find($campaign->id), $messageIds];
         });
 
+        $isSms = $campaign->type === 'sms';
         foreach ($messageIds as $id) {
-            SendCampaignMessage::dispatch($id)->onQueue('emails');
+            ($isSms ? SendCampaignSms::dispatch($id) : SendCampaignMessage::dispatch($id))
+                ->onQueue($isSms ? 'default' : 'emails');
         }
         return $result;
     }

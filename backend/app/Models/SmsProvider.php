@@ -10,6 +10,6 @@ class SmsProvider extends Model
 
     public const PROVIDERS = ['twilio', 'nexmo', 'unifonic', 'generic'];
 
-    protected $fillable = ['company_id','name','provider','sender_id','is_default','is_active'];
-    protected function casts(): array { return ['is_default' => 'boolean', 'is_active' => 'boolean']; }
+    protected $fillable = ['company_id','name','provider','sender_id','config','is_default','is_active'];
+    protected function casts(): array { return ['config' => 'encrypted:array', 'is_default' => 'boolean', 'is_active' => 'boolean']; }
 }
