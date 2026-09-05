@@ -9,6 +9,7 @@ use App\Models\EmailAccount;
 use App\Models\EmailTemplate;
 use App\Models\SmsProvider;
 use App\Services\MarketingService;
+use App\Services\SmsSender;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -109,15 +110,95 @@ class CampaignController extends Controller
         ]));
     }
 
+    public function smsProviders(): JsonResponse
+    {
+        return $this->success(
+            SmsProvider::orderByDesc('is_default')->orderBy('name')->get()->map(fn ($p) => $this->presentSmsProvider($p))->all()
+        );
+    }
+
     public function storeSmsProvider(Request $request): JsonResponse
     {
-        $data = $request->validate([
+        $data = $this->validateSmsProvider($request);
+        $p = SmsProvider::create($this->smsProviderPayload($data, null));
+        if (!empty($data['is_default'])) SmsProvider::where('id', '!=', $p->id)->update(['is_default' => false]);
+        return $this->success($this->presentSmsProvider($p), 'SMS provider added', 201);
+    }
+
+    public function updateSmsProvider(Request $request, int $id): JsonResponse
+    {
+        $p = SmsProvider::findOrFail($id);
+        $data = $this->validateSmsProvider($request);
+        $p->update($this->smsProviderPayload($data, $p));
+        if (!empty($data['is_default'])) SmsProvider::where('id', '!=', $p->id)->update(['is_default' => false]);
+        return $this->success($this->presentSmsProvider($p->fresh()));
+    }
+
+    public function destroySmsProvider(int $id): JsonResponse
+    {
+        SmsProvider::findOrFail($id)->delete();
+        return $this->success(null, 'Deleted');
+    }
+
+    public function testSmsProvider(Request $request, int $id, SmsSender $sender): JsonResponse
+    {
+        $data = $request->validate(['to' => 'required|string|max:32']);
+        $p = SmsProvider::findOrFail($id);
+        try {
+            $sender->send($p, $data['to'], 'Krama CRM: SMS provider test message.');
+            return $this->success(['ok' => true], 'Test message sent to ' . $data['to']);
+        } catch (\Throwable $e) {
+            return $this->success(['ok' => false, 'error' => substr($e->getMessage(), 0, 200)], 'Test failed');
+        }
+    }
+
+    private function validateSmsProvider(Request $request): array
+    {
+        return $request->validate([
             'name' => 'required|string|max:128',
-            'provider' => ['nullable', Rule::in(SmsProvider::PROVIDERS)],
+            'provider' => ['required', Rule::in(['twilio', 'generic'])],
             'sender_id' => 'nullable|string|max:32',
             'is_default' => 'nullable|boolean',
+            'is_active' => 'nullable|boolean',
+            'config' => 'nullable|array',
+            'config.channel' => ['nullable', Rule::in(['sms', 'whatsapp'])],
+            'config.account_sid' => 'nullable|string|max:128',
+            'config.auth_token' => 'nullable|string|max:255',
+            'config.url' => 'nullable|string|max:255',
         ]);
-        $p = $this->marketing->createSmsProvider($data);
-        return $this->success(['id' => $p->id, 'name' => $p->name], 'SMS provider added', 201);
+    }
+
+    private function smsProviderPayload(array $data, ?SmsProvider $existing): array
+    {
+        $config = $existing?->config ?? [];
+        foreach ($data['config'] ?? [] as $k => $v) {
+            if ($k === 'auth_token' && ($v === '' || $v === null)) continue; // blank secret keeps stored value
+            $config[$k] = $v;
+        }
+        return [
+            'company_id' => $existing->company_id ?? auth()->user()->company_id,
+            'name' => $data['name'], 'provider' => $data['provider'],
+            'sender_id' => $data['sender_id'] ?? null,
+            'is_default' => $data['is_default'] ?? ($existing->is_default ?? false),
+            'is_active' => $data['is_active'] ?? ($existing->is_active ?? true),
+            'config' => $config,
+        ];
+    }
+
+    private function presentSmsProvider(SmsProvider $p): array
+    {
+        $c = $p->config ?? [];
+        return [
+            'id' => $p->id, 'name' => $p->name, 'provider' => $p->provider,
+            'sender_id' => $p->sender_id, 'channel' => $c['channel'] ?? 'sms',
+            'is_default' => $p->is_default, 'is_active' => $p->is_active,
+            'configured' => app(SmsSender::class)->isConfigured($p),
+            'config' => [
+                'channel' => $c['channel'] ?? 'sms',
+                'account_sid' => $c['account_sid'] ?? null,
+                'url' => $c['url'] ?? null,
+                'has_auth_token' => filled($c['auth_token'] ?? null),
+            ],
+        ];
     }
 }

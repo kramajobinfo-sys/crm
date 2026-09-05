@@ -262,6 +262,43 @@
       </table>
     </div>
 
+    <!-- ===== SMS PROVIDERS ===== -->
+    <div v-else-if="tab === 'sms'" class="card overflow-hidden">
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex items-center gap-2">
+        <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.sms') }}</span>
+        <button v-if="can('campaigns.create')" class="btn-primary btn-xs ml-auto" @click="openSms()"><Plus :size="11" /> {{ $t('settings.sms.new') }}</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ $t('settings.sms.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.sms.provider') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.sms.channel') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('settings.sms.sender_id') }}</th>
+            <th>{{ $t('settings.sms.configured') }}</th>
+            <th class="text-right">{{ $t('settings.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in smsProviders" :key="p.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2 font-medium text-ink dark:text-ink-dark">
+              {{ p.name }} <span v-if="p.is_default" class="badge badge-info ml-1">{{ $t('settings.sms.default') }}</span>
+            </td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ $t(`settings.sms.provider_${p.provider}`) }}</td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ $t(`settings.sms.channel_${p.channel}`) }}</td>
+            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted font-mono text-[11px]">{{ p.sender_id || '—' }}</td>
+            <td class="px-3 py-2"><span class="badge" :class="p.configured ? (p.is_active ? 'badge-success' : 'badge-neutral') : 'badge-warning'">{{ p.configured ? (p.is_active ? $t('settings.sms.configured') : $t('settings.sms.off')) : $t('settings.sms.not_configured') }}</span></td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button v-if="p.configured && can('campaigns.create')" class="text-[11px] text-primary-600 hover:underline" @click="testSms(p)">{{ $t('settings.sms.test') }}</button>
+              <button v-if="can('campaigns.update')" class="text-[11px] text-primary-600 hover:underline ml-2" @click="openSms(p)">{{ $t('settings.edit') }}</button>
+              <button v-if="can('campaigns.delete')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeSms(p.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+          <tr v-if="!smsProviders.length"><td colspan="6" class="px-3 py-6 text-center text-xs text-ink-subtle">{{ $t('settings.sms.empty') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- ===== BRANCHES / DEPARTMENTS ===== -->
     <div v-else class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
@@ -470,6 +507,54 @@
       </div>
     </div>
 
+    <!-- SMS provider modal -->
+    <div v-if="smsForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="smsForm.open = false">
+      <div class="card w-full max-w-md p-4 mt-8 space-y-3">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ smsForm.id ? $t('settings.sms.edit') : $t('settings.sms.new') }}</div>
+        <div>
+          <label class="label">{{ $t('settings.sms.name') }} *</label>
+          <input v-model="smsForm.data.name" class="input text-sm w-full" :placeholder="$t('settings.sms.name_ph')" />
+          <p v-if="smsForm.errors.name" class="text-[11px] text-red-500">{{ smsForm.errors.name[0] }}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">{{ $t('settings.sms.provider') }}</label>
+            <select v-model="smsForm.data.provider" class="input text-sm w-full"><option v-for="pr in SMS_PROVIDERS" :key="pr" :value="pr">{{ $t(`settings.sms.provider_${pr}`) }}</option></select>
+          </div>
+          <div>
+            <label class="label">{{ $t('settings.sms.channel') }}</label>
+            <select v-model="smsForm.data.config.channel" class="input text-sm w-full"><option v-for="ch in SMS_CHANNELS" :key="ch" :value="ch">{{ $t(`settings.sms.channel_${ch}`) }}</option></select>
+          </div>
+        </div>
+        <div>
+          <label class="label">{{ $t('settings.sms.sender_id') }}</label>
+          <input v-model="smsForm.data.sender_id" class="input text-sm w-full" :placeholder="$t('settings.sms.sender_ph')" />
+        </div>
+        <template v-if="smsForm.data.provider === 'twilio'">
+          <div>
+            <label class="label">{{ $t('settings.sms.account_sid') }}</label>
+            <input v-model="smsForm.data.config.account_sid" class="input text-sm w-full" placeholder="AC…" />
+          </div>
+          <div>
+            <label class="label">{{ $t('settings.sms.auth_token') }}</label>
+            <input v-model="smsForm.data.config.auth_token" type="password" class="input text-sm w-full" :placeholder="smsForm.id ? $t('settings.sms.auth_token_keep') : ''" />
+          </div>
+        </template>
+        <div v-else>
+          <label class="label">{{ $t('settings.sms.url') }}</label>
+          <input v-model="smsForm.data.config.url" class="input text-sm w-full" :placeholder="$t('settings.sms.url_ph')" />
+        </div>
+        <div class="flex items-center gap-4">
+          <label class="flex items-center gap-2 text-xs text-ink-muted"><input type="checkbox" v-model="smsForm.data.is_default" class="rounded border-slate-300" /> {{ $t('settings.sms.default') }}</label>
+          <label class="flex items-center gap-2 text-xs text-ink-muted"><input type="checkbox" v-model="smsForm.data.is_active" class="rounded border-slate-300" /> {{ $t('settings.sms.active') }}</label>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button class="btn-secondary btn-sm" @click="smsForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="smsForm.saving" @click="submitSms">{{ smsForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Org modal -->
     <div v-if="orgForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="orgForm.open = false">
       <div class="card w-full max-w-md p-4 mt-8">
@@ -511,8 +596,8 @@ const { t } = useI18n();
 const auth = useAuthStore();
 const can = (p) => auth.can(p);
 
-const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update' };
-const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
+const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 
@@ -545,6 +630,10 @@ const routingForm = reactive({ open: false, saving: false, id: null, data: {}, e
 const ROUTE_STRATEGIES = ['least_busy', 'round_robin', 'specific'];
 const ROUTE_FIELDS = ['priority', 'channel', 'subject', 'category_id'];
 const ROUTE_OPS = ['equals', 'not_equals', 'contains', 'is_set', 'is_empty'];
+const smsProviders = ref([]);
+const smsForm = reactive({ open: false, saving: false, id: null, data: {}, errors: {} });
+const SMS_PROVIDERS = ['twilio', 'generic'];
+const SMS_CHANNELS = ['sms', 'whatsapp'];
 
 const orgRows = computed(() => tab.value === 'branches' ? branches.value : departments.value);
 
@@ -559,6 +648,7 @@ async function loadTab() {
   else if (tab.value === 'api_keys') await loadApiKeys();
   else if (tab.value === 'webhooks') await loadWebhooks();
   else if (tab.value === 'routing') { if (!users.value.length) await loadUsers(); await loadRoutingRules(); }
+  else if (tab.value === 'sms') await loadSmsProviders();
 }
 
 async function loadMeta() { try { const { data } = await api.usersMeta(); Object.assign(meta, data.data || {}); } catch { /* noop */ } }
@@ -787,6 +877,40 @@ async function moveRouting(rule, dir) {
 function routingTarget(r) {
   if (r.strategy === 'specific') return r.assignee?.name || users.value.find((u) => u.id === r.assign_to_user_id)?.name || '—';
   return `${r.pool_user_ids?.length || 0} ${t('settings.rt.agents')}`;
+}
+
+async function loadSmsProviders() {
+  try { const { data } = await api.smsProviders(); smsProviders.value = data.data || []; } catch { /* noop */ }
+}
+function openSms(prov) {
+  smsForm.errors = {};
+  smsForm.id = prov?.id ?? null;
+  smsForm.data = prov
+    ? { name: prov.name, provider: prov.provider, sender_id: prov.sender_id, is_default: prov.is_default, is_active: prov.is_active,
+        config: { channel: prov.config?.channel || 'sms', account_sid: prov.config?.account_sid || '', auth_token: '', url: prov.config?.url || '' } }
+    : { name: '', provider: 'twilio', sender_id: '', is_default: false, is_active: true, config: { channel: 'sms', account_sid: '', auth_token: '', url: '' } };
+  smsForm.open = true;
+}
+async function submitSms() {
+  smsForm.saving = true; smsForm.errors = {};
+  try {
+    smsForm.id ? await api.updateSmsProvider(smsForm.id, smsForm.data) : await api.createSmsProvider(smsForm.data);
+    smsForm.open = false;
+    await loadSmsProviders();
+  } catch (e) { if (e.response?.status === 422) smsForm.errors = e.response.data?.errors || {}; }
+  finally { smsForm.saving = false; }
+}
+async function removeSms(id) {
+  if (!window.confirm(t('settings.sms.confirm_delete'))) return;
+  try { await api.removeSmsProvider(id); await loadSmsProviders(); } catch { /* noop */ }
+}
+async function testSms(prov) {
+  const to = window.prompt(t('settings.sms.test_prompt'));
+  if (!to) return;
+  try {
+    const { data } = await api.testSmsProvider(prov.id, { to });
+    data.data?.ok ? toast.success(data.message) : toast.error(data.data?.error || data.message);
+  } catch (e) { toast.error(e.response?.data?.message || 'Test failed'); }
 }
 async function copyKey() {
   try { await navigator.clipboard.writeText(newKeyPlain.value); toast.success(t('settings.ak.copied')); }

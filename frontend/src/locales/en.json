@@ -1494,7 +1494,8 @@
       "branches": "Branches",
       "departments": "Departments",
       "webhooks": "Webhooks",
-      "routing": "Ticket Routing"
+      "routing": "Ticket Routing",
+      "sms": "SMS Providers"
     },
     "c": {
       "name": "Company name",
@@ -1607,6 +1608,36 @@
       "f_channel": "Channel",
       "f_subject": "Subject",
       "f_category_id": "Category ID"
+    },
+    "sms": {
+      "new": "New provider",
+      "edit": "Edit provider",
+      "name": "Name",
+      "name_ph": "e.g. Twilio production",
+      "provider": "Provider",
+      "provider_twilio": "Twilio",
+      "provider_generic": "Generic HTTP gateway",
+      "sender_id": "Sender ID / From",
+      "sender_ph": "+1555… or a sender name",
+      "channel": "Channel",
+      "channel_sms": "SMS",
+      "channel_whatsapp": "WhatsApp",
+      "account_sid": "Account SID",
+      "auth_token": "Auth token",
+      "auth_token_keep": "Leave blank to keep current",
+      "url": "Gateway URL",
+      "url_ph": "https://…",
+      "default": "Default",
+      "active": "Active",
+      "off": "Off",
+      "configured": "Ready",
+      "not_configured": "Incomplete",
+      "test": "Test",
+      "test_prompt": "Send a test message to which number?",
+      "empty": "No SMS providers. Add one to send SMS/WhatsApp campaigns.",
+      "confirm_delete": "Delete this SMS provider?",
+      "provider_nexmo": "Vonage (Nexmo)",
+      "provider_unifonic": "Unifonic"
     }
   },
   "reports": {

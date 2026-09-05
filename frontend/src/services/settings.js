@@ -44,4 +44,10 @@ export default {
   createRouting:  (p)     => http.post('/tickets/routing-rules', p),
   updateRouting:  (id, p) => http.put(`/tickets/routing-rules/${id}`, p),
   removeRouting:  (id)    => http.delete(`/tickets/routing-rules/${id}`),
+
+  smsProviders:      ()      => http.get('/sms-providers'),
+  createSmsProvider: (p)     => http.post('/sms-providers', p),
+  updateSmsProvider: (id, p) => http.put(`/sms-providers/${id}`, p),
+  removeSmsProvider: (id)    => http.delete(`/sms-providers/${id}`),
+  testSmsProvider:   (id, p) => http.post(`/sms-providers/${id}/test`, p),
 };

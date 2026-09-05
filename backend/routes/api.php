@@ -532,7 +532,11 @@ Route::prefix('v1')->group(function () {
             Route::post  ('{id}/launch',     [CampaignController::class, 'launch'])->middleware('permission:campaigns.launch')->whereNumber('id');
         });
         Route::prefix('sms-providers')->middleware('feature:campaigns')->group(function () {
-            Route::post('/', [CampaignController::class, 'storeSmsProvider'])->middleware('permission:campaigns.create');
+            Route::get   ('/',         [CampaignController::class, 'smsProviders'])->middleware('permission:campaigns.view');
+            Route::post  ('/',         [CampaignController::class, 'storeSmsProvider'])->middleware('permission:campaigns.create');
+            Route::put   ('{id}',      [CampaignController::class, 'updateSmsProvider'])->middleware('permission:campaigns.update')->whereNumber('id');
+            Route::delete('{id}',      [CampaignController::class, 'destroySmsProvider'])->middleware('permission:campaigns.delete')->whereNumber('id');
+            Route::post  ('{id}/test', [CampaignController::class, 'testSmsProvider'])->middleware('permission:campaigns.create')->whereNumber('id');
         });
 
         // Settings — user management, roles, organization
