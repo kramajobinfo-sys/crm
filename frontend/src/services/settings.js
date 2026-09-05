@@ -33,4 +33,10 @@ export default {
   createApiKey:  (p)           => http.post('/api-keys', p),
   updateApiKey:  (id, p)       => http.put(`/api-keys/${id}`, p),
   removeApiKey:  (id)          => http.delete(`/api-keys/${id}`),
+
+  webhooks:       (params = {}) => http.get('/webhook-endpoints', { params }),
+  webhook:        (id)          => http.get(`/webhook-endpoints/${id}`),
+  createWebhook:  (p)           => http.post('/webhook-endpoints', p),
+  updateWebhook:  (id, p)       => http.put(`/webhook-endpoints/${id}`, p),
+  removeWebhook:  (id)          => http.delete(`/webhook-endpoints/${id}`),
 };

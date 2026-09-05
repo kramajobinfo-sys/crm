@@ -1492,7 +1492,8 @@
       "roles": "Roles",
       "api_keys": "API Keys",
       "branches": "Branches",
-      "departments": "Departments"
+      "departments": "Departments",
+      "webhooks": "Webhooks"
     },
     "c": {
       "name": "Company name",
@@ -1541,6 +1542,32 @@
       "reveal_title": "Copy this key now — it will not be shown again.",
       "copy": "Copy",
       "copied": "Copied to clipboard"
+    },
+    "actions": "Actions",
+    "wh": {
+      "new": "New endpoint",
+      "name": "Name",
+      "name_ph": "e.g. Website contact form",
+      "type": "Type",
+      "type_web_to_lead": "Website → Lead",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Disabled",
+      "last_received": "Last received",
+      "never": "Never",
+      "events": "Events",
+      "disable": "Disable",
+      "enable": "Enable",
+      "empty": "No webhook endpoints yet. Create one to receive events from external systems.",
+      "created_notice": "Copy the signing secret now — it won't be shown again.",
+      "url": "URL",
+      "secret": "Secret",
+      "copied": "Copied to clipboard",
+      "confirm_delete": "Delete this webhook endpoint? Incoming requests to it will stop working.",
+      "no_events": "No events received yet.",
+      "event_id": "Event",
+      "result": "Result",
+      "when": "When"
     }
   },
   "reports": {

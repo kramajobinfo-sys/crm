@@ -166,6 +166,56 @@
       </table>
     </div>
 
+    <!-- ===== WEBHOOKS ===== -->
+    <div v-else-if="tab === 'webhooks'" class="card overflow-hidden">
+      <div v-if="newWebhook" class="p-3 border-b border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800 space-y-2">
+        <div class="text-xs font-medium text-amber-800 dark:text-amber-300">{{ $t('settings.wh.created_notice') }}</div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-ink-subtle w-12 shrink-0">{{ $t('settings.wh.url') }}</span>
+          <code class="flex-1 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded border border-amber-200 dark:border-amber-800 overflow-x-auto">{{ newWebhook.url }}</code>
+          <button class="btn-secondary btn-xs" @click="copyText(newWebhook.url, $t('settings.wh.copied'))">{{ $t('settings.ak.copy') }}</button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] text-ink-subtle w-12 shrink-0">{{ $t('settings.wh.secret') }}</span>
+          <code class="flex-1 text-xs bg-white dark:bg-surface-dark px-2 py-1 rounded border border-amber-200 dark:border-amber-800 overflow-x-auto">{{ newWebhook.secret }}</code>
+          <button class="btn-secondary btn-xs" @click="copyText(newWebhook.secret, $t('settings.wh.copied'))">{{ $t('settings.ak.copy') }}</button>
+          <button class="p-1 text-amber-700 hover:text-amber-900" @click="newWebhook = null"><X :size="14" /></button>
+        </div>
+      </div>
+      <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
+        <span class="text-xs font-medium text-ink dark:text-ink-dark">{{ $t('settings.tab.webhooks') }}</span>
+        <button v-if="can('api_keys.create')" class="btn-primary btn-xs ml-auto" @click="openWebhook()"><Plus :size="11" /> {{ $t('settings.wh.new') }}</button>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>{{ $t('settings.wh.name') }}</th>
+            <th class="hidden md:table-cell">{{ $t('settings.wh.type') }}</th>
+            <th>{{ $t('settings.wh.status') }}</th>
+            <th class="hidden lg:table-cell">{{ $t('settings.wh.last_received') }}</th>
+            <th class="th-num">{{ $t('settings.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="w in webhooks" :key="w.id" class="border-t border-slate-100 dark:border-slate-700/60">
+            <td class="px-3 py-2">
+              <div class="font-medium text-ink dark:text-ink-dark">{{ w.name }}</div>
+              <div class="text-[10px] text-ink-subtle font-mono">{{ w.secret_prefix }}…</div>
+            </td>
+            <td class="px-3 py-2 hidden md:table-cell text-ink-muted">{{ $t(`settings.wh.type_${w.type}`) }}</td>
+            <td class="px-3 py-2"><span class="badge" :class="w.is_active ? 'badge-success' : 'badge-neutral'">{{ w.is_active ? $t('settings.wh.active') : $t('settings.wh.inactive') }}</span></td>
+            <td class="px-3 py-2 hidden lg:table-cell text-ink-muted text-[11px]">{{ w.last_received_at ? new Date(w.last_received_at).toLocaleString() : $t('settings.wh.never') }}</td>
+            <td class="px-3 py-2 text-right whitespace-nowrap">
+              <button class="text-[11px] text-primary-600 hover:underline" @click="viewWebhookEvents(w)">{{ $t('settings.wh.events') }}</button>
+              <button v-if="can('api_keys.update')" class="text-[11px] text-amber-600 hover:underline ml-2" @click="toggleWebhook(w)">{{ w.is_active ? $t('settings.wh.disable') : $t('settings.wh.enable') }}</button>
+              <button v-if="can('api_keys.delete')" class="text-[11px] text-red-500 hover:underline ml-2" @click="removeWebhook(w.id)">{{ $t('settings.delete') }}</button>
+            </td>
+          </tr>
+          <tr v-if="!webhooks.length"><td colspan="5" class="px-3 py-6 text-center text-xs text-ink-subtle">{{ $t('settings.wh.empty') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- ===== BRANCHES / DEPARTMENTS ===== -->
     <div v-else class="card overflow-hidden">
       <div class="p-2.5 border-b border-slate-100 dark:border-slate-700/60 flex">
@@ -272,6 +322,48 @@
       </div>
     </div>
 
+    <!-- Webhook create modal -->
+    <div v-if="webhookForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="webhookForm.open = false">
+      <div class="card w-full max-w-sm p-4 mt-8">
+        <div class="text-sm font-medium text-ink dark:text-ink-dark mb-3">{{ $t('settings.wh.new') }}</div>
+        <label class="label">{{ $t('settings.wh.name') }} *</label>
+        <input v-model="webhookForm.data.name" class="input text-sm w-full" :placeholder="$t('settings.wh.name_ph')" />
+        <p v-if="webhookForm.errors.name" class="text-[11px] text-red-500">{{ webhookForm.errors.name[0] }}</p>
+        <label class="label mt-2.5">{{ $t('settings.wh.type') }}</label>
+        <select v-model="webhookForm.data.type" class="input text-sm w-full">
+          <option value="web_to_lead">{{ $t('settings.wh.type_web_to_lead') }}</option>
+        </select>
+        <div class="flex justify-end gap-2 mt-4">
+          <button class="btn-secondary btn-sm" @click="webhookForm.open = false">{{ $t('settings.cancel') }}</button>
+          <button class="btn-primary btn-sm" :disabled="webhookForm.saving" @click="submitWebhook">{{ webhookForm.saving ? $t('settings.saving') : $t('settings.save') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Webhook events modal -->
+    <div v-if="webhookEvents.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="webhookEvents.open = false">
+      <div class="card w-full max-w-2xl p-4 mt-10">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-sm font-medium text-ink dark:text-ink-dark">{{ $t('settings.wh.events') }} · {{ webhookEvents.endpoint?.name }}</span>
+          <button class="p-1 text-ink-subtle hover:text-ink ml-auto" @click="webhookEvents.open = false"><X :size="14" /></button>
+        </div>
+        <div v-if="!webhookEvents.events.length" class="text-xs text-ink-subtle py-8 text-center">{{ $t('settings.wh.no_events') }}</div>
+        <div v-else class="overflow-x-auto max-h-[60vh]">
+          <table class="data-table">
+            <thead><tr><th>{{ $t('settings.wh.status') }}</th><th>{{ $t('settings.wh.event_id') }}</th><th>{{ $t('settings.wh.result') }}</th><th>{{ $t('settings.wh.when') }}</th></tr></thead>
+            <tbody>
+              <tr v-for="ev in webhookEvents.events" :key="ev.id">
+                <td class="px-3 py-2"><span class="badge" :class="ev.status === 'processed' ? 'badge-success' : (ev.status === 'failed' ? 'badge-danger' : 'badge-neutral')">{{ ev.status }}</span></td>
+                <td class="px-3 py-2 font-mono text-[11px] text-ink-muted truncate max-w-[10rem]">{{ ev.event_id }}</td>
+                <td class="px-3 py-2 text-[11px] text-ink-muted">{{ ev.error || (ev.result ? JSON.stringify(ev.result) : '—') }}</td>
+                <td class="px-3 py-2 text-[11px] text-ink-subtle whitespace-nowrap">{{ ev.created_at ? new Date(ev.created_at).toLocaleString() : '' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Org modal -->
     <div v-if="orgForm.open" class="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="orgForm.open = false">
       <div class="card w-full max-w-md p-4 mt-8">
@@ -313,8 +405,8 @@ const { t } = useI18n();
 const auth = useAuthStore();
 const can = (p) => auth.can(p);
 
-const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view' };
-const allTabs = ['company', 'users', 'roles', 'api_keys', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view' };
+const allTabs = ['company', 'users', 'roles', 'api_keys', 'webhooks', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 
@@ -338,10 +430,14 @@ const cloneForm = reactive({ open: false, sourceId: null, sourceName: '', name: 
 const apiKeys = ref([]);
 const newKeyPlain = ref('');
 const apiKeyForm = reactive({ open: false, saving: false, data: { name: '', user_id: null }, errors: {} });
+const webhooks = ref([]);
+const newWebhook = ref(null);
+const webhookForm = reactive({ open: false, saving: false, data: { name: '', type: 'web_to_lead' }, errors: {} });
+const webhookEvents = reactive({ open: false, endpoint: null, events: [] });
 
 const orgRows = computed(() => tab.value === 'branches' ? branches.value : departments.value);
 
-function switchTab(tb) { tab.value = tb; selectedRole.value = null; newKeyPlain.value = ''; loadTab(); }
+function switchTab(tb) { tab.value = tb; selectedRole.value = null; newKeyPlain.value = ''; newWebhook.value = null; loadTab(); }
 
 async function loadTab() {
   if (tab.value === 'company') { const { data } = await api.company(); Object.assign(company, data.data); }
@@ -350,6 +446,7 @@ async function loadTab() {
   else if (tab.value === 'branches') { const { data } = await api.branches(); branches.value = data.data || []; }
   else if (tab.value === 'departments') { const { data } = await api.departments(); departments.value = data.data || []; }
   else if (tab.value === 'api_keys') await loadApiKeys();
+  else if (tab.value === 'webhooks') await loadWebhooks();
 }
 
 async function loadMeta() { try { const { data } = await api.usersMeta(); Object.assign(meta, data.data || {}); } catch { /* noop */ } }
@@ -490,6 +587,38 @@ async function revokeApiKey(k) {
 async function removeApiKey(id) {
   try { await api.removeApiKey(id); await loadApiKeys(); }
   catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message); }
+}
+
+async function loadWebhooks() {
+  try { const { data } = await api.webhooks(); webhooks.value = data.data || []; } catch { /* noop */ }
+}
+function openWebhook() {
+  webhookForm.errors = {};
+  webhookForm.data = { name: '', type: 'web_to_lead' };
+  webhookForm.open = true;
+}
+async function submitWebhook() {
+  webhookForm.saving = true; webhookForm.errors = {};
+  try {
+    const { data } = await api.createWebhook(webhookForm.data);
+    newWebhook.value = { name: data.data.endpoint.name, url: data.data.endpoint.url, secret: data.data.plain_secret };
+    webhookForm.open = false;
+    await loadWebhooks();
+  } catch (e) { if (e.response?.status === 422) webhookForm.errors = e.response.data?.errors || {}; }
+  finally { webhookForm.saving = false; }
+}
+async function toggleWebhook(w) {
+  try { await api.updateWebhook(w.id, { is_active: !w.is_active }); await loadWebhooks(); } catch { /* noop */ }
+}
+async function removeWebhook(id) {
+  if (!window.confirm(t('settings.wh.confirm_delete'))) return;
+  try { await api.removeWebhook(id); await loadWebhooks(); } catch { /* noop */ }
+}
+async function viewWebhookEvents(w) {
+  try { const { data } = await api.webhook(w.id); webhookEvents.endpoint = data.data; webhookEvents.events = data.data.events || []; webhookEvents.open = true; } catch { /* noop */ }
+}
+function copyText(txt, msg) {
+  try { navigator.clipboard.writeText(txt); toast.success(msg); } catch { /* noop */ }
 }
 async function copyKey() {
   try { await navigator.clipboard.writeText(newKeyPlain.value); toast.success(t('settings.ak.copied')); }
