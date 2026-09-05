@@ -2,6 +2,8 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Routing\Middleware\ValidateSignature;
 use App\Http\Controllers\Api\UnsubscribeController;
+use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\V1\Settings\WebhookEndpointController;
 use App\Http\Controllers\Api\V1\System\AttachmentController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\TwoFactorController;
@@ -77,6 +79,9 @@ Route::prefix('v1')->group(function () {
     Route::get('unsubscribe/{token}',             [UnsubscribeController::class, 'unsubscribe'])->name('unsubscribe');
     Route::post('unsubscribe/{token}',            [UnsubscribeController::class, 'oneClick'])->name('unsubscribe.oneclick');
     Route::get('unsubscribe/{token}/resubscribe', [UnsubscribeController::class, 'resubscribe'])->name('unsubscribe.resubscribe');
+
+    // Public inbound webhook receiver (verified by HMAC signature — see WebhookController).
+    Route::post('webhooks/{slug}', [WebhookController::class, 'receive'])->middleware('throttle:120,1')->name('webhooks.receive');
 
     // Website visitor tracking — the app's ONLY public write endpoint (docs/VISITS_SCOPE.md).
     // The beacon answers 204 for every outcome, including an unknown site key, so it is never
@@ -555,6 +560,14 @@ Route::prefix('v1')->group(function () {
             Route::put   ('{id}',        [RoleController::class, 'update'])->middleware('permission:roles.update')->whereNumber('id');
             Route::delete('{id}',        [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->whereNumber('id');
             Route::post  ('{id}/clone',  [RoleController::class, 'clone'])->middleware('permission:roles.create')->whereNumber('id');
+        });
+
+        Route::prefix('webhook-endpoints')->group(function () {
+            Route::get   ('/',    [WebhookEndpointController::class, 'index'])->middleware('permission:api_keys.view');
+            Route::post  ('/',    [WebhookEndpointController::class, 'store'])->middleware('permission:api_keys.create');
+            Route::get   ('{id}', [WebhookEndpointController::class, 'show'])->middleware('permission:api_keys.view')->whereNumber('id');
+            Route::put   ('{id}', [WebhookEndpointController::class, 'update'])->middleware('permission:api_keys.update')->whereNumber('id');
+            Route::delete('{id}', [WebhookEndpointController::class, 'destroy'])->middleware('permission:api_keys.delete')->whereNumber('id');
         });
 
         Route::prefix('api-keys')->middleware('feature:api_keys')->group(function () {
