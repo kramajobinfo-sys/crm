@@ -416,6 +416,7 @@
         <select v-model="webhookForm.data.type" class="input text-sm w-full">
           <option value="web_to_lead">{{ $t('settings.wh.type_web_to_lead') }}</option>
           <option value="email_status">{{ $t('settings.wh.type_email_status') }}</option>
+          <option value="call_log">{{ $t('settings.wh.type_call_log') }}</option>
         </select>
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="webhookForm.open = false">{{ $t('settings.cancel') }}</button>

@@ -1,11 +1,18 @@
 <?php
 namespace App\Services;
 
+use App\Models\Call;
+use App\Models\Contact;
+use App\Models\Customer;
 use App\Models\EmailSuppression;
+use App\Models\Lead;
+use App\Models\TimelineActivity;
 use App\Models\User;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class WebhookIngestService
@@ -49,6 +56,7 @@ class WebhookIngestService
             $result = match ($endpoint->type) {
                 'web_to_lead' => $this->handleWebToLead($payload),
                 'email_status' => $this->handleEmailStatus($payload, $endpoint->company_id),
+                'call_log' => $this->handleCallLog($payload, $endpoint->company_id),
                 default => throw new \RuntimeException('Unsupported webhook type: ' . $endpoint->type),
             };
             $event->forceFill(['status' => 'processed', 'result' => $result])->save();
@@ -143,6 +151,68 @@ class WebhookIngestService
         if (str_contains($type, 'unsubscribe')) return 'unsubscribe';
         foreach (['bounce', 'blocked', 'dropped', 'failed', 'rejected'] as $k) {
             if (str_contains($type, $k)) return 'bounce';
+        }
+        return null;
+    }
+
+    /**
+     * Telephony/PBX call event → a Call record, auto-linked to a Lead/Contact/Customer by phone,
+     * and surfaced on that record's timeline. @return array{call_id:int, matched:?string}
+     */
+    private function handleCallLog(array $p, int $companyId): array
+    {
+        $phone = trim((string) ($p['phone'] ?? $p['from'] ?? $p['caller'] ?? $p['to'] ?? $p['callee'] ?? ''));
+        $direction = strtolower((string) ($p['direction'] ?? 'inbound'));
+        if (!in_array($direction, Call::DIRECTIONS, true)) $direction = 'inbound';
+        $status = $this->normalizeCallStatus((string) ($p['status'] ?? $p['result'] ?? 'completed'));
+        $duration = (int) ($p['duration_seconds'] ?? $p['duration'] ?? 0);
+        $occurred = $this->parseTime($p['occurred_at'] ?? $p['timestamp'] ?? $p['ended_at'] ?? null);
+        $match = $phone !== '' ? $this->matchByPhone($companyId, $phone) : null;
+
+        $call = Call::create([
+            'company_id' => $companyId,
+            'subject' => $p['subject'] ?? ($direction === 'inbound' ? 'Inbound call' : 'Outbound call'),
+            'direction' => $direction, 'status' => $status,
+            'phone' => $phone ?: null, 'duration_seconds' => $duration,
+            'user_id' => null, 'notes' => $p['notes'] ?? null,
+            'occurred_at' => $occurred, 'scheduled_at' => null,
+            'related_type' => $match['type'] ?? null, 'related_id' => $match['id'] ?? null,
+        ]);
+
+        if ($match && ($subject = $match['type']::withoutGlobalScopes()->find($match['id']))) {
+            TimelineActivity::record($subject, 'call', $call->subject, $call->notes,
+                ['direction' => $direction, 'status' => $status, 'duration' => $duration]);
+        }
+        return ['call_id' => $call->id, 'matched' => $match ? class_basename($match['type']) . '#' . $match['id'] : null];
+    }
+
+    private function normalizeCallStatus(string $s): string
+    {
+        $s = strtolower($s);
+        if (str_contains($s, 'miss') || str_contains($s, 'no-answer') || str_contains($s, 'no_answer') || str_contains($s, 'noanswer')) return 'missed';
+        if (str_contains($s, 'cancel')) return 'cancelled';
+        if (str_contains($s, 'schedul')) return 'scheduled';
+        return 'completed';
+    }
+
+    private function parseTime($v): Carbon
+    {
+        if (!$v) return now();
+        try { return Carbon::parse($v); } catch (\Throwable) { return now(); }
+    }
+
+    /** Find a CRM record whose phone/mobile ends with the same 9 digits. @return array{type:string,id:int}|null */
+    private function matchByPhone(int $companyId, string $phone): ?array
+    {
+        $digits = preg_replace('/[^0-9]+/', '', $phone);
+        if (strlen($digits) < 6) return null;
+        $tail = substr($digits, -9);
+
+        foreach ([[Contact::class, 'contacts'], [Customer::class, 'customers'], [Lead::class, 'leads']] as [$cls, $table]) {
+            $row = DB::table($table)->where('company_id', $companyId)->whereNull('deleted_at')
+                ->whereRaw("RIGHT(REGEXP_REPLACE(COALESCE(`phone`,''), '[^0-9]+', ''), 9) = ? OR RIGHT(REGEXP_REPLACE(COALESCE(`mobile`,''), '[^0-9]+', ''), 9) = ?", [$tail, $tail])
+                ->first(['id']);
+            if ($row) return ['type' => $cls, 'id' => (int) $row->id];
         }
         return null;
     }

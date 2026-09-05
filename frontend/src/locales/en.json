@@ -1570,7 +1570,8 @@
       "event_id": "Event",
       "result": "Result",
       "when": "When",
-      "type_email_status": "Email status (bounce/complaint)"
+      "type_email_status": "Email status (bounce/complaint)",
+      "type_call_log": "Call log (telephony/PBX)"
     },
     "rt": {
       "new": "New rule",
