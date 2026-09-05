@@ -1567,7 +1567,8 @@
       "no_events": "No events received yet.",
       "event_id": "Event",
       "result": "Result",
-      "when": "When"
+      "when": "When",
+      "type_email_status": "Email status (bounce/complaint)"
     }
   },
   "reports": {

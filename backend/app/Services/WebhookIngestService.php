@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\EmailSuppression;
 use App\Models\User;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
@@ -47,6 +48,7 @@ class WebhookIngestService
         try {
             $result = match ($endpoint->type) {
                 'web_to_lead' => $this->handleWebToLead($payload),
+                'email_status' => $this->handleEmailStatus($payload, $endpoint->company_id),
                 default => throw new \RuntimeException('Unsupported webhook type: ' . $endpoint->type),
             };
             $event->forceFill(['status' => 'processed', 'result' => $result])->save();
@@ -86,5 +88,62 @@ class WebhookIngestService
             'estimated_value' => is_numeric($p['value'] ?? null) ? (float) $p['value'] : 0,
         ]);
         return ['lead_id' => $lead->id, 'lead_no' => $lead->lead_no];
+    }
+
+    /**
+     * Email delivery-status callback (ESP bounce/complaint). Hard bounces and complaints
+     * add the address to the marketing suppression list (honored by campaign delivery).
+     * Accepts a single event, a {events:[...]} batch, or a top-level array of events, with
+     * provider-agnostic field names.
+     * @return array{processed:int, suppressed:int}
+     */
+    private function handleEmailStatus(array $payload, int $companyId): array
+    {
+        $suppressed = 0; $processed = 0;
+        foreach ($this->normalizeEvents($payload) as $ev) {
+            if (!is_array($ev)) continue;
+            $processed++;
+            $email = strtolower(trim((string) ($ev['email'] ?? $ev['recipient'] ?? $ev['Recipient'] ?? $ev['to'] ?? '')));
+            $type  = strtolower((string) ($ev['event'] ?? $ev['type'] ?? $ev['eventType'] ?? $ev['record_type'] ?? ''));
+            $extra = strtolower((string) ($ev['bounce_type'] ?? $ev['subtype'] ?? $ev['severity'] ?? $ev['reason'] ?? ''));
+            if ($email === '') continue;
+            if ($this->isSoft($type . ' ' . $extra)) continue;      // transient — don't suppress
+            $reason = $this->suppressReason($type);
+            if (!$reason) continue;
+
+            EmailSuppression::updateOrCreate(
+                ['company_id' => $companyId, 'email' => $email],
+                ['source' => $reason, 'campaign_id' => null],
+            );
+            $suppressed++;
+        }
+        return ['processed' => $processed, 'suppressed' => $suppressed];
+    }
+
+    /** @return array<int, mixed> */
+    private function normalizeEvents(array $p): array
+    {
+        if (isset($p['events']) && is_array($p['events'])) return array_values($p['events']);
+        if (array_is_list($p)) return $p;   // a top-level JSON array of events
+        return [$p];                        // a single event object
+    }
+
+    private function isSoft(string $s): bool
+    {
+        foreach (['soft', 'transient', 'deferred', 'delayed', 'temporary'] as $k) {
+            if (str_contains($s, $k)) return true;
+        }
+        return false;
+    }
+
+    /** Map an ESP event name to a suppression reason, or null if it shouldn't suppress. */
+    private function suppressReason(string $type): ?string
+    {
+        if (str_contains($type, 'complaint') || str_contains($type, 'spam')) return 'complaint';
+        if (str_contains($type, 'unsubscribe')) return 'unsubscribe';
+        foreach (['bounce', 'blocked', 'dropped', 'failed', 'rejected'] as $k) {
+            if (str_contains($type, $k)) return 'bounce';
+        }
+        return null;
     }
 }

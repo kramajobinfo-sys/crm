@@ -12,7 +12,7 @@ class WebhookEndpoint extends Model
     use HasFactory, BelongsToCompany, SoftDeletes;
 
     /** Supported inbound handler types. */
-    public const TYPES = ['web_to_lead'];
+    public const TYPES = ['web_to_lead', 'email_status'];
 
     protected $fillable = [
         'company_id', 'name', 'type', 'slug', 'secret', 'secret_prefix',
