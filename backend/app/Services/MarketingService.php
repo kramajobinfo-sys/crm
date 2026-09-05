@@ -1,11 +1,14 @@
 <?php
 namespace App\Services;
 
+use App\Jobs\SendCampaignMessage;
 use App\Models\Campaign;
+use App\Models\ContactConsent;
 use App\Models\CampaignMessage;
 use App\Models\Customer;
 use App\Models\Lead;
 use App\Models\SmsProvider;
+use App\Support\UnsubscribeToken;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -70,33 +73,61 @@ class MarketingService
 
         if ($rows->isEmpty()) throw new RuntimeException('No reachable recipients in this audience.');
 
-        return DB::transaction(function () use ($campaign, $rows, $field) {
+        // Honor opt-outs: drop recipients who withdrew consent for this channel (or marketing).
+        $suppression = ContactConsent::suppression(
+            $campaign->company_id,
+            $campaign->type === 'sms' ? ['sms', 'marketing'] : ['email', 'marketing'],
+        );
+        $beforeSuppress = $rows->count();
+        $rows = $rows->reject(function ($r) use ($field, $suppression) {
+            if ($field === 'email') return isset($suppression['emails'][strtolower(trim((string) $r['email']))]);
+            $digits = preg_replace('/[^0-9]+/', '', (string) ($r['phone'] ?? ''));
+            return $digits !== '' && isset($suppression['phones'][$digits]);
+        });
+        $suppressed = $beforeSuppress - $rows->count();
+
+        if ($rows->isEmpty()) throw new RuntimeException('All recipients in this audience have opted out.');
+
+        $isEmail = $campaign->type === 'email';
+        // Email is delivered asynchronously via the queue; SMS stays record-only for now.
+        [$result, $messageIds] = DB::transaction(function () use ($campaign, $rows, $field, $suppressed, $isEmail) {
             $campaign->recipients()->delete();
             $campaign->messages()->delete();
 
-            $sent = 0;
+            $count = 0; $messageIds = [];
             foreach ($rows as $r) {
                 $recipient = $campaign->recipients()->create([
                     'company_id' => $campaign->company_id,
                     'recipient_type' => $r['type'], 'recipient_id' => $r['id'],
                     'name' => $r['name'], 'email' => $r['email'] ?? null, 'phone' => $r['phone'] ?? null,
-                    'status' => 'sent', 'sent_at' => now(),
+                    'status' => $isEmail ? 'queued' : 'sent', 'sent_at' => $isEmail ? null : now(),
                 ]);
-                CampaignMessage::create([
+                $message = CampaignMessage::create([
                     'company_id' => $campaign->company_id, 'campaign_id' => $campaign->id,
                     'campaign_recipient_id' => $recipient->id, 'channel' => $campaign->type,
                     'to_address' => $r[$field], 'subject' => $campaign->subject, 'body' => $campaign->body,
-                    'status' => 'sent', 'message_id' => sprintf('<%s@krama.local>', bin2hex(random_bytes(8))), 'sent_at' => now(),
+                    'status' => $isEmail ? 'queued' : 'sent',
+                    'message_id' => $isEmail ? null : sprintf('<%s@krama.local>', bin2hex(random_bytes(8))),
+                    'sent_at' => $isEmail ? null : now(),
                 ]);
-                $sent++;
+                if ($isEmail) $messageIds[] = $message->id;
+                $count++;
             }
 
             $campaign->forceFill([
-                'status' => 'sent', 'sent_at' => now(),
-                'recipients_count' => $sent, 'sent_count' => $sent, 'failed_count' => 0,
+                'status' => $isEmail ? 'running' : 'sent',
+                'sent_at' => $isEmail ? null : now(),
+                'recipients_count' => $count,
+                'sent_count' => $isEmail ? 0 : $count,
+                'failed_count' => 0, 'suppressed_count' => $suppressed,
             ])->save();
-            return $this->find($campaign->id);
+            return [$this->find($campaign->id), $messageIds];
         });
+
+        foreach ($messageIds as $id) {
+            SendCampaignMessage::dispatch($id)->onQueue('emails');
+        }
+        return $result;
     }
 
     public function recipients(Campaign $campaign, int $limit = 100): Collection

@@ -153,6 +153,29 @@ class SmtpMailer
         }
     }
 
+    /** Send an ad-hoc HTML email through a specific account's SMTP (used by campaign delivery). */
+    public function sendRaw(EmailAccount $account, string $to, string $subject, string $html, array $headers = []): void
+    {
+        if (!$this->isConfigured($account->config)) {
+            throw new RuntimeException('The "'.$account->name.'" account has no SMTP host/port configured.');
+        }
+        if (empty($to)) throw new RuntimeException('No recipient address.');
+
+        $mailable = (new Mailable())
+            ->from($account->email_address, $account->from_name ?: $account->name)
+            ->to($to)->subject($subject ?: '(no subject)')->html($html);
+        if ($headers) {
+            $mailable->withSymfonyMessage(function ($message) use ($headers) {
+                foreach ($headers as $name => $value) $message->getHeaders()->addTextHeader($name, $value);
+            });
+        }
+        try {
+            $this->mailerFor($account)->send($mailable);
+        } catch (TransportExceptionInterface $e) {
+            throw new RuntimeException($this->cleanMessage($e->getMessage()), 0, $e);
+        }
+    }
+
     private function mailerFor(EmailAccount $account): \Illuminate\Mail\Mailer
     {
         $config = $account->config ?? [];
