@@ -579,7 +579,8 @@
       "opt_in": "Opt in",
       "history": "History",
       "hide": "Hide"
-    }
+    },
+    "call": "Click to call"
   },
   "duplicates": {
     "title": "Possible duplicate found",

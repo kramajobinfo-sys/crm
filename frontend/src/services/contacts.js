@@ -12,4 +12,6 @@ export default {
 
   consents:   (id)          => http.get(`${base}/${id}/consents`),
   setConsent: (id, payload) => http.post(`${base}/${id}/consents`, payload),
+
+  clickToCall: (payload) => http.post('/activities/calls/dial', payload),
 };

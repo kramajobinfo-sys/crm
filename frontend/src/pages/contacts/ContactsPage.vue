@@ -85,6 +85,7 @@
             <div class="text-sm font-medium text-ink dark:text-ink-dark truncate">{{ selected.name }}</div>
             <div class="text-[11px] text-ink-subtle truncate">{{ selected.title || selected.account?.name }}</div>
           </div>
+          <button v-if="can('activities.create') && (selected.mobile || selected.phone)" class="p-1 text-ink-subtle hover:text-primary-600" :title="$t('contacts.call')" @click="callContact"><Phone :size="13" /></button>
           <button v-if="can('contacts.update')" class="p-1 text-ink-subtle hover:text-primary-600" @click="openEdit(selected)"><Pencil :size="13" /></button>
           <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button v-if="can('contacts.delete')" class="p-1 text-ink-subtle hover:text-red-600" @click="removeSelected"><Trash2 :size="13" /></button>
@@ -199,7 +200,7 @@ import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
-import { Pencil, Plus, RefreshCw, Star, Trash2, UserRound, X } from 'lucide-vue-next';
+import { Pencil, Phone, Plus, RefreshCw, Star, Trash2, UserRound, X } from 'lucide-vue-next';
 
 const { t } = useI18n();
 const toast = useToast();
@@ -272,6 +273,15 @@ async function loadMeta() {
 
 async function openDetail(id) {
   try { const { data } = await api.show(id); selected.value = data.data; await loadConsents(id); } catch { /* noop */ }
+}
+
+async function callContact() {
+  const to = selected.value.mobile || selected.value.phone;
+  if (!to) return;
+  try {
+    const { data } = await api.clickToCall({ to, subject: `Call ${selected.value.name}`, related_type: 'App\\Models\\Contact', related_id: selected.value.id });
+    toast.success(data.message);
+  } catch (e) { toast.error(e.response?.data?.message || 'Call failed'); }
 }
 
 async function loadConsents(id) {

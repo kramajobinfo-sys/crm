@@ -84,6 +84,9 @@ Route::prefix('v1')->group(function () {
     // Public inbound webhook receiver (verified by HMAC signature — see WebhookController).
     Route::post('webhooks/{slug}', [WebhookController::class, 'receive'])->middleware('throttle:120,1')->name('webhooks.receive');
 
+    // Public TwiML callback for click-to-call (Twilio fetches it, no auth).
+    Route::match(['get', 'post'], 'calls/twiml/{token}', [\App\Http\Controllers\Api\V1\Activities\ActivityController::class, 'twiml'])->name('calls.twiml');
+
     // Website visitor tracking — the app's ONLY public write endpoint (docs/VISITS_SCOPE.md).
     // The beacon answers 204 for every outcome, including an unknown site key, so it is never
     // a tenant-enumeration oracle. Throttled per IP well above real page-view rates but far
@@ -262,6 +265,7 @@ Route::prefix('v1')->group(function () {
 
             Route::get   ('tasks',              [ActivityController::class, 'tasks'])->middleware('permission:activities.view');
             Route::post  ('tasks',              [ActivityController::class, 'storeTask'])->middleware('permission:activities.create');
+            Route::post  ('calls/dial',         [ActivityController::class, 'clickToCall'])->middleware('permission:activities.create');
             Route::put   ('tasks/{id}',         [ActivityController::class, 'updateTask'])->middleware('permission:activities.update')->whereNumber('id');
             Route::post  ('tasks/{id}/complete',[ActivityController::class, 'completeTask'])->middleware('permission:activities.update')->whereNumber('id');
             Route::delete('tasks/{id}',         [ActivityController::class, 'destroyTask'])->middleware('permission:activities.delete')->whereNumber('id');

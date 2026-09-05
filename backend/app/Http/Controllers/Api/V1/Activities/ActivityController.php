@@ -14,6 +14,8 @@ use App\Http\Resources\MeetingResource;
 use App\Http\Resources\ReminderResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Call;
+use App\Services\TelephonyService;
+use Illuminate\Support\Facades\Crypt;
 use App\Models\Meeting;
 use App\Models\Reminder;
 use App\Models\Task;
@@ -24,6 +26,75 @@ use Illuminate\Http\Request;
 class ActivityController extends Controller
 {
     public function __construct(private readonly ActivityService $activities) {}
+
+    /** Click-to-call: ring the agent's phone, then bridge to the customer. */
+    public function clickToCall(Request $request, TelephonyService $tel): JsonResponse
+    {
+        $data = $request->validate([
+            'to' => 'required|string|max:32',
+            'subject' => 'nullable|string|max:191',
+            'related_type' => 'nullable|string|max:191',
+            'related_id' => 'nullable|integer',
+        ]);
+        $companyId = auth()->user()->company_id;
+        $agent = trim((string) (auth()->user()->phone ?? ''));
+        if ($agent === '') {
+            return response()->json(['success' => false, 'message' => 'Your profile has no phone number to call from.'], 422);
+        }
+        if (!$tel->isConfigured($companyId)) {
+            return response()->json(['success' => false, 'message' => 'Telephony is not configured — add a Twilio provider with a voice-capable from number in Settings.'], 422);
+        }
+        $provider = $tel->provider($companyId);
+
+        $call = Call::create([
+            'company_id' => $companyId, 'subject' => $data['subject'] ?? 'Outbound call',
+            'direction' => 'outbound', 'status' => 'scheduled', 'phone' => $data['to'],
+            'duration_seconds' => 0, 'user_id' => auth()->id(), 'occurred_at' => now(),
+            'related_type' => $data['related_type'] ?? null, 'related_id' => $data['related_id'] ?? null,
+        ]);
+        $token = $this->voiceToken($companyId, $data['to'], $tel->voiceFrom($provider), $call->id);
+        $twimlUrl = route('calls.twiml', ['token' => $token]);
+        try {
+            $sid = $tel->dial($provider, $agent, $twimlUrl);
+            $call->forceFill(['notes' => trim(($call->notes ?? '') . "\nprovider_sid: {$sid}")])->save();
+            return $this->success(['call_id' => $call->id, 'agent_phone' => $agent],
+                'Calling your phone now — you will be connected to ' . $data['to'] . ' when you answer.');
+        } catch (\Throwable $e) {
+            $call->forceFill(['status' => 'cancelled'])->save();
+            return response()->json(['success' => false, 'message' => substr($e->getMessage(), 0, 200)], 502);
+        }
+    }
+
+    /** Public TwiML Twilio fetches when the agent answers — dials the customer. */
+    public function twiml(string $token)
+    {
+        $d = $this->voiceDecode($token);
+        if (!$d) {
+            return response('<Response><Say>Invalid call token.</Say></Response>', 400)->header('Content-Type', 'text/xml');
+        }
+        $to = htmlspecialchars((string) $d['to'], ENT_XML1);
+        $from = htmlspecialchars((string) ($d['from'] ?? ''), ENT_XML1);
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<Response><Say>Connecting your call now.</Say>'
+            . '<Dial callerId="' . $from . '">' . $to . '</Dial></Response>';
+        return response($xml, 200)->header('Content-Type', 'text/xml; charset=UTF-8');
+    }
+
+    private function voiceToken(int $companyId, string $to, ?string $from, int $callId): string
+    {
+        $json = json_encode(['c' => $companyId, 'to' => $to, 'from' => $from, 'k' => $callId]);
+        return rtrim(strtr(base64_encode(Crypt::encryptString($json)), '+/', '-_'), '=');
+    }
+
+    private function voiceDecode(string $token): ?array
+    {
+        try {
+            $b64 = strtr($token, '-_', '+/');
+            $b64 .= str_repeat('=', (4 - strlen($b64) % 4) % 4);
+            $d = json_decode(Crypt::decryptString(base64_decode($b64)), true);
+            return (is_array($d) && isset($d['to'])) ? $d : null;
+        } catch (\Throwable) { return null; }
+    }
 
     // ---- overview --------------------------------------------------------
 
