@@ -64,6 +64,9 @@ class LeadService
             $data['status_id'] ??= LeadStatus::where('is_default', true)->value('id');
             $products = $data['products'] ?? null;
             unset($data['products']);
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('lead', (array) $data['custom_fields']);
+            }
 
             $lead = Lead::create($data);
             if ($products !== null) $this->syncProducts($lead, $products);
@@ -87,6 +90,11 @@ class LeadService
 
             $products = $data['products'] ?? null;
             unset($data['products']);
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($lead->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('lead', (array) $data['custom_fields']));
+            }
             $lead->update($data);
             if ($products !== null) $this->syncProducts($lead, $products);
 

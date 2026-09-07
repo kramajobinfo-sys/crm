@@ -21,11 +21,12 @@ class Lead extends Model
         'company_id','lead_no','name','company_name','account_id','title','email','phone','mobile','website',
         'source_id','campaign_id','status_id','lost_reason_id','score','rating','priority','owner_id','branch_id','territory',
         'estimated_value','currency','expected_close_date','last_contacted_at','follow_up_at','next_action',
-        'converted_to_customer_id','converted_at','notes',
+        'converted_to_customer_id','converted_at','notes','custom_fields',
     ];
     protected function casts(): array
     {
         return [
+            'custom_fields' => 'array',
             'score' => 'integer',
             'estimated_value' => 'decimal:2',
             'expected_close_date' => 'date',

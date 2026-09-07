@@ -26,11 +26,12 @@ class Deal extends Model
     protected $fillable = [
         'company_id','deal_no','title','pipeline_id','stage_id','customer_id','lead_id',
         'owner_id','branch_id','amount','currency','probability','forecast_category','status',
-        'expected_close_date','won_at','lost_at','lost_reason_id','source','competitor','notes',
+        'expected_close_date','won_at','lost_at','lost_reason_id','source','competitor','notes','custom_fields',
     ];
     protected function casts(): array
     {
         return [
+            'custom_fields' => 'array',
             'amount' => 'decimal:2',
             'probability' => 'integer',
             'expected_close_date' => 'date',

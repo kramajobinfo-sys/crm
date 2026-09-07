@@ -21,13 +21,14 @@ class Contact extends Authenticatable implements JWTSubject
     use HasFactory, SoftDeletes, BelongsToCompany;
 
     protected $fillable = [
-        'company_id','customer_id','name','title','department','email','phone','mobile','is_primary','notes',
+        'company_id','customer_id','name','title','department','email','phone','mobile','is_primary','notes','custom_fields',
     ];
     protected $hidden = ['password'];
 
     protected function casts(): array
     {
         return [
+            'custom_fields'  => 'array',
             'is_primary'     => 'boolean',
             'portal_enabled' => 'boolean',
             'password'       => 'hashed',

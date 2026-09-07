@@ -30,6 +30,7 @@ class StoreLeadRequest extends FormRequest
             'products.*.product_id' => ['required','integer', Rule::exists('products','id')->where('company_id',$companyId)],
             'products.*.quantity' => ['nullable','numeric','min:0'],
             'products.*.note' => ['nullable','string','max:255'],
+            'custom_fields' => ['nullable','array'],
             'priority' => ['nullable', Rule::in(['low','medium','high','urgent'])],
             'owner_id'  => ['nullable','integer', Rule::exists('users','id')->where('company_id',$companyId)],
             'branch_id' => ['nullable','integer', Rule::exists('branches','id')->where('company_id',$companyId)],

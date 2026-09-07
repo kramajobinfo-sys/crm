@@ -566,6 +566,11 @@ Route::prefix('v1')->group(function () {
             Route::get('company',        [OrganizationController::class, 'company'])->middleware('permission:settings.view');
             Route::put('company',        [OrganizationController::class, 'updateCompany'])->middleware('permission:settings.update');
             Route::put('company/appearance', [OrganizationController::class, 'updateAppearance'])->middleware('permission:settings.update');
+            // Custom-field definitions (admin). Field values are handled by each entity.
+            Route::get   ('custom-fields',      [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'index'])->middleware('permission:settings.view');
+            Route::post  ('custom-fields',      [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'store'])->middleware('permission:settings.update');
+            Route::put   ('custom-fields/{id}', [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'update'])->middleware('permission:settings.update')->whereNumber('id');
+            Route::delete('custom-fields/{id}', [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'destroy'])->middleware('permission:settings.update')->whereNumber('id');
             Route::get('branches',       [OrganizationController::class, 'branches'])->middleware('permission:settings.view');
             Route::post('branches',      [OrganizationController::class, 'storeBranch'])->middleware('permission:settings.update');
             Route::put('branches/{id}',  [OrganizationController::class, 'updateBranch'])->middleware('permission:settings.update')->whereNumber('id');

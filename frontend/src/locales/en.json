@@ -1499,7 +1499,8 @@
       "routing": "Ticket Routing",
       "sms": "SMS Providers",
       "appearance": "Appearance",
-      "billing": "Subscription"
+      "billing": "Subscription",
+      "custom_fields": "Custom Fields"
     },
     "c": {
       "name": "Company name",

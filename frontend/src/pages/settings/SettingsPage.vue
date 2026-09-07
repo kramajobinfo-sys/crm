@@ -39,6 +39,9 @@
     <!-- ===== SUBSCRIPTION / BILLING ===== -->
     <BillingPanel v-else-if="tab === 'billing'" />
 
+    <!-- ===== CUSTOM FIELDS ===== -->
+    <CustomFieldsPanel v-else-if="tab === 'custom_fields'" />
+
     <!-- ===== USERS ===== -->
     <!-- ===== APPEARANCE ===== -->
     <div v-else-if="tab === 'appearance'" class="card p-4 max-w-2xl space-y-5">
@@ -735,6 +738,7 @@ import { useUiStore } from '@/stores/ui';
 import api from '@/services/settings';
 import http from '@/services/http';
 import BillingPanel from './BillingPanel.vue';
+import CustomFieldsPanel from './CustomFieldsPanel.vue';
 import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check, Pipette, Loader2 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -792,8 +796,8 @@ async function saveCompanyAppearance() {
   }
 }
 
-const tabPerm = { company: 'settings.view', billing: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
-const allTabs = ['company', 'billing', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', billing: 'settings.view', appearance: 'settings.view', custom_fields: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
+const allTabs = ['company', 'billing', 'appearance', 'custom_fields', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 

@@ -223,6 +223,21 @@
             </div>
           </div>
 
+          <!-- Custom fields (admin-defined) -->
+          <div v-if="detailCustomFields.length">
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Custom fields</div>
+            <dl class="grid grid-cols-3 gap-x-2 gap-y-0.5">
+              <template v-for="cf in detailCustomFields" :key="cf.key">
+                <dt class="text-ink-subtle">{{ cf.label }}</dt>
+                <dd class="col-span-2 text-ink dark:text-ink-dark break-words">
+                  <span v-if="cf.type === 'checkbox'">{{ cf.value ? 'Yes' : 'No' }}</span>
+                  <a v-else-if="cf.type === 'url'" :href="cf.value" target="_blank" rel="noopener" class="text-primary-600 hover:underline">{{ cf.value }}</a>
+                  <span v-else>{{ cf.value }}</span>
+                </dd>
+              </template>
+            </dl>
+          </div>
+
           <!-- Opportunities (deals originating from this lead) -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Opportunities</div>
@@ -475,6 +490,25 @@
           <p v-if="!(form.data.products || []).length" class="text-[11px] text-ink-subtle">None yet — what does this lead want to buy?</p>
         </div>
 
+        <!-- Custom fields (admin-defined) -->
+        <div v-if="(meta.custom_fields || []).length" class="mt-3 pt-3 border-t border-line dark:border-line-dark grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div v-for="cf in meta.custom_fields" :key="cf.key" :class="cf.type === 'textarea' ? 'sm:col-span-2' : ''">
+            <label class="label">{{ cf.label }}<span v-if="cf.required" class="text-rose-500"> *</span></label>
+            <textarea v-if="cf.type === 'textarea'" v-model="form.data.custom_fields[cf.key]" rows="2" class="input text-sm"></textarea>
+            <select v-else-if="cf.type === 'select'" v-model="form.data.custom_fields[cf.key]" class="input text-sm">
+              <option value="">—</option>
+              <option v-for="o in (cf.options || [])" :key="o" :value="o">{{ o }}</option>
+            </select>
+            <label v-else-if="cf.type === 'checkbox'" class="flex items-center gap-2 text-sm h-8">
+              <input type="checkbox" v-model="form.data.custom_fields[cf.key]" /> {{ cf.help || 'Yes' }}
+            </label>
+            <input v-else v-model="form.data.custom_fields[cf.key]"
+                   :type="cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : cf.type === 'email' ? 'email' : cf.type === 'url' ? 'url' : 'text'"
+                   class="input text-sm" />
+            <p v-if="cf.help && cf.type !== 'checkbox'" class="text-[11px] text-ink-subtle mt-0.5">{{ cf.help }}</p>
+          </div>
+        </div>
+
         <p class="text-[11px] text-ink-subtle mt-2">{{ $t('leads.assign_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('leads.cancel') }}</button>
@@ -525,7 +559,7 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [] });
+const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [], custom_fields: [] });
 const productOptions = ref([]);
 const customerOptions = ref([]);
 function addLeadProduct() { (form.data.products ||= []).push({ product_id: null, quantity: null }); }
@@ -633,11 +667,22 @@ function resetFilters() {
   page.value = 1; load();
 }
 
+// Seed a custom_fields object from the definitions, overlaying any existing stored values.
+function seedCustomFields(existing = {}) {
+  const out = {};
+  for (const cf of (meta.custom_fields || [])) {
+    const v = existing?.[cf.key];
+    out[cf.key] = v !== undefined && v !== null ? v : (cf.type === 'checkbox' ? false : '');
+  }
+  return out;
+}
+
 function openCreate() {
   form.id = null; form.errors = {};
   form.data = { name: '', company_name: '', title: '', email: '', phone: '',
                 source_id: null, campaign_id: null, account_id: null, territory: '', status_id: null, estimated_value: 0,
-                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null, products: [] };
+                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null, products: [],
+                custom_fields: seedCustomFields() };
   form.open = true;
 }
 function openEdit(l) {
@@ -651,9 +696,18 @@ function openEdit(l) {
     priority: l.priority ?? 'medium', follow_up_at: l.follow_up_at ? l.follow_up_at.slice(0, 10) : '',
     next_action: l.next_action ?? '', lost_reason_id: l.lost_reason_id ?? null,
     products: (l.products || []).map((p) => ({ product_id: p.product_id, quantity: p.quantity })),
+    custom_fields: seedCustomFields(l.custom_fields),
   };
   form.open = true;
 }
+
+// Populated custom fields for the detail drawer: definition label/type + the stored value.
+const detailCustomFields = computed(() => {
+  const stored = selected.value?.custom_fields || {};
+  return (meta.custom_fields || [])
+    .map((cf) => ({ ...cf, value: stored[cf.key] }))
+    .filter((cf) => cf.value !== undefined && cf.value !== null && cf.value !== '');
+});
 
 // The loss-reason picker only makes sense when the chosen status is a "lost" one.
 const isLostStatus = computed(() => {
@@ -668,6 +722,10 @@ async function submitForm(force = false) {
     ['company_name','title','email','phone','follow_up_at','next_action'].forEach((k) => { if (!payload[k]) delete payload[k]; });
     if (!isLostStatus.value) payload.lost_reason_id = null; // clear a stale reason when not lost
     payload.products = (payload.products || []).filter((p) => p.product_id); // drop empty rows
+    if (payload.custom_fields) { // drop blank optionals so the server doesn't coerce '' → 0 etc.
+      payload.custom_fields = Object.fromEntries(
+        Object.entries(payload.custom_fields).filter(([, v]) => v !== '' && v !== null && v !== undefined));
+    }
     if (!force) {
       const clear = await duplicateGuard.check('lead', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }

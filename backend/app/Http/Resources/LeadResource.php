@@ -47,6 +47,7 @@ class LeadResource extends JsonResource
                 ? ['id' => $this->account->id, 'name' => $this->account->name, 'customer_no' => $this->account->customer_no] : null),
             'account_id' => $this->account_id,
             'territory' => $this->territory,
+            'custom_fields' => $this->custom_fields ?? new \stdClass(),
             'products' => $this->whenLoaded('products', fn () => $this->products->map(fn ($p) => [
                 'product_id' => $p->id, 'name' => $p->name, 'sku' => $p->sku,
                 'quantity' => $p->pivot->quantity !== null ? (float) $p->pivot->quantity : null,

@@ -19,12 +19,13 @@ class Customer extends Model
     protected $fillable = [
         'company_id','customer_no','type','group_id','owner_id','branch_id','territory','tags','name','legal_name',
         'email','phone','mobile','website','tax_id','currency','price_book_id','credit_limit',
-        'payment_terms_days','status','notes','converted_from_lead_id',
+        'payment_terms_days','status','notes','converted_from_lead_id','custom_fields',
     ];
     protected function casts(): array
     {
         return [
             'tags' => 'array',
+            'custom_fields' => 'array',
             'credit_limit' => 'decimal:2',
             'payment_terms_days' => 'integer',
         ];

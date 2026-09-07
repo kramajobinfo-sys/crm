@@ -74,7 +74,12 @@
     "all": "الكل",
     "empty": "لا توجد مهام معلقة",
     "open_project": "فتح المشروع",
-    "stats": { "open": "مفتوح", "overdue": "متأخر", "today": "مستحق اليوم", "completed": "مكتمل" }
+    "stats": {
+      "open": "مفتوح",
+      "overdue": "متأخر",
+      "today": "مستحق اليوم",
+      "completed": "مكتمل"
+    }
   },
   "projects": {
     "title": "المشاريع",
@@ -158,10 +163,22 @@
     "no_files": "لا توجد ملفات مرفقة",
     "no_activity": "لم يتم تسجيل نشاط",
     "system": "النظام",
-    "task_tabs": { "details": "التفاصيل", "dependencies": "التبعيات", "comments": "التعليقات", "files": "الملفات", "activity": "النشاط" },
+    "task_tabs": {
+      "details": "التفاصيل",
+      "dependencies": "التبعيات",
+      "comments": "التعليقات",
+      "files": "الملفات",
+      "activity": "النشاط"
+    },
     "complete": "إكمال",
     "reopen": "إعادة فتح",
-    "tabs": { "overview": "نظرة عامة", "tasks": "المهام", "milestones": "المراحل", "team": "الفريق", "time": "الوقت والتكلفة" },
+    "tabs": {
+      "overview": "نظرة عامة",
+      "tasks": "المهام",
+      "milestones": "المراحل",
+      "team": "الفريق",
+      "time": "الوقت والتكلفة"
+    },
     "templates": "القوالب",
     "project_templates": "قوالب المشاريع",
     "templates_help": "إعادة استخدام المراحل والمهام والتواريخ النسبية والتقديرات وإعدادات التكرار.",
@@ -216,7 +233,13 @@
     "budget_variance": "الميزانية المتبقية",
     "project_health": "صحة المشروع",
     "status_breakdown": "توزيع الحالات",
-    "stats": { "active": "نشط", "planned": "مخطط", "overdue": "متأخر", "completed": "مكتمل", "my_tasks": "مهامي المفتوحة" }
+    "stats": {
+      "active": "نشط",
+      "planned": "مخطط",
+      "overdue": "متأخر",
+      "completed": "مكتمل",
+      "my_tasks": "مهامي المفتوحة"
+    }
   },
   "auth": {
     "welcome_back": "مرحبًا بعودتك",
@@ -402,7 +425,11 @@
       "converted": "محوّل",
       "pipeline": "قيمة الفرص"
     },
-    "rating": { "hot": "ساخن", "warm": "دافئ", "cold": "بارد" },
+    "rating": {
+      "hot": "ساخن",
+      "warm": "دافئ",
+      "cold": "بارد"
+    },
     "sb": {
       "email": "بريد مسجّل",
       "phone": "هاتف مسجّل",
@@ -414,8 +441,12 @@
       "stage": "مرحلة الفرصة"
     },
     "tl": {
-      "note": "ملاحظة", "call": "مكالمة", "email": "بريد",
-      "meeting": "اجتماع", "status_change": "حالة", "system": "النظام"
+      "note": "ملاحظة",
+      "call": "مكالمة",
+      "email": "بريد",
+      "meeting": "اجتماع",
+      "status_change": "حالة",
+      "system": "النظام"
     }
   },
   "customers": {
@@ -468,12 +499,28 @@
       "blocked": "محظور",
       "new_this_month": "جديد هذا الشهر"
     },
-    "type": { "company": "شركة", "individual": "فرد" },
-    "status": { "active": "نشط", "on_hold": "معلّق", "blocked": "محظور", "archived": "مؤرشف" },
-    "addr": { "billing": "الفواتير", "shipping": "التسليم", "other": "أخرى" },
+    "type": {
+      "company": "شركة",
+      "individual": "فرد"
+    },
+    "status": {
+      "active": "نشط",
+      "on_hold": "معلّق",
+      "blocked": "محظور",
+      "archived": "مؤرشف"
+    },
+    "addr": {
+      "billing": "الفواتير",
+      "shipping": "التسليم",
+      "other": "أخرى"
+    },
     "tl": {
-      "note": "ملاحظة", "call": "مكالمة", "email": "بريد",
-      "meeting": "اجتماع", "status_change": "حالة", "system": "النظام"
+      "note": "ملاحظة",
+      "call": "مكالمة",
+      "email": "بريد",
+      "meeting": "اجتماع",
+      "status_change": "حالة",
+      "system": "النظام"
     }
   },
   "contacts": {
@@ -575,8 +622,12 @@
     "select_account_first": "اختر حسابًا قبل إضافة جهات اتصال الصفقة.",
     "account_has_no_contacts": "لا توجد جهات اتصال لهذا الحساب بعد.",
     "contact_role": {
-      "decision_maker": "صانع القرار", "champion": "الداعم", "influencer": "المؤثر",
-      "evaluator": "المقيّم", "billing": "الفوترة", "other": "أخرى"
+      "decision_maker": "صانع القرار",
+      "champion": "الداعم",
+      "influencer": "المؤثر",
+      "evaluator": "المقيّم",
+      "billing": "الفوترة",
+      "other": "أخرى"
     },
     "line_items": "البنود",
     "no_items": "لا توجد بنود",
@@ -602,20 +653,36 @@
     "new_title": "صفقة جديدة",
     "edit_title": "تعديل الصفقة",
     "stat": {
-      "open": "مفتوحة", "won": "مربوحة (هذا الشهر)", "lost": "خاسرة",
-      "open_value": "قيمة مفتوحة", "weighted": "مرجّح", "win_rate": "معدل الفوز"
+      "open": "مفتوحة",
+      "won": "مربوحة (هذا الشهر)",
+      "lost": "خاسرة",
+      "open_value": "قيمة مفتوحة",
+      "weighted": "مرجّح",
+      "win_rate": "معدل الفوز"
     },
-    "status": { "open": "مفتوحة", "won": "مربوحة", "lost": "خاسرة" },
+    "status": {
+      "open": "مفتوحة",
+      "won": "مربوحة",
+      "lost": "خاسرة"
+    },
     "col": {
-      "title": "العنوان", "stage": "المرحلة", "amount": "المبلغ",
-      "customer": "الحساب", "owner": "المالك"
+      "title": "العنوان",
+      "stage": "المرحلة",
+      "amount": "المبلغ",
+      "customer": "الحساب",
+      "owner": "المالك"
     },
     "tl": {
-      "note": "ملاحظة", "call": "مكالمة", "email": "بريد",
-      "meeting": "اجتماع", "status_change": "المرحلة", "system": "النظام"
+      "note": "ملاحظة",
+      "call": "مكالمة",
+      "email": "بريد",
+      "meeting": "اجتماع",
+      "status_change": "المرحلة",
+      "system": "النظام"
     },
     "bp": {
-      "edit": "مخطط سير العمل", "title": "مخطط المرحلة",
+      "edit": "مخطط سير العمل",
+      "title": "مخطط المرحلة",
       "required": "مطلوب قبل الدخول لهذه المرحلة",
       "allowed_next": "المراحل التالية المسموح بها",
       "allowed_next_hint": "وضع علامة \"خاسر\" مسموح دائمًا، بغض النظر عن هذه القائمة.",
@@ -623,8 +690,12 @@
       "saved": "تم حفظ المخطط",
       "blocked": "مخطط سير العمل: لا يمكن الانتقال من \"{from}\" مباشرة إلى \"{to}\".",
       "field": {
-        "amount": "المبلغ", "customer_id": "العميل", "owner_id": "المالك",
-        "expected_close_date": "تاريخ الإغلاق المتوقع", "probability": "الاحتمالية", "lost_reason_id": "سبب الخسارة"
+        "amount": "المبلغ",
+        "customer_id": "العميل",
+        "owner_id": "المالك",
+        "expected_close_date": "تاريخ الإغلاق المتوقع",
+        "probability": "الاحتمالية",
+        "lost_reason_id": "سبب الخسارة"
       }
     }
   },
@@ -668,18 +739,59 @@
     "cancel": "إلغاء",
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
-    "tab": { "feed": "الموجز", "tasks": "المهام", "meetings": "الاجتماعات", "calls": "المكالمات" },
-    "stat": {
-      "open_tasks": "مهامي المفتوحة", "overdue": "متأخرة", "today": "مستحقة اليوم",
-      "meetings": "اجتماعات قادمة", "calls": "مكالمات (هذا الشهر)", "completed": "منجزة هذا الأسبوع"
+    "tab": {
+      "feed": "الموجز",
+      "tasks": "المهام",
+      "meetings": "الاجتماعات",
+      "calls": "المكالمات"
     },
-    "f": { "open": "مفتوحة", "overdue": "متأخرة", "today": "اليوم", "upcoming": "قادمة", "past": "سابقة" },
-    "st": { "in_progress": "قيد التنفيذ", "done": "منجزة" },
-    "pr": { "low": "منخفضة", "medium": "متوسطة", "high": "عالية", "urgent": "عاجلة" },
-    "ms": { "scheduled": "مجدول", "completed": "مكتمل", "cancelled": "ملغى" },
-    "cs": { "scheduled": "مجدولة", "completed": "مكتملة", "missed": "فائتة", "cancelled": "ملغاة" },
-    "dir": { "inbound": "واردة", "outbound": "صادرة" },
-    "rt": { "deal": "صفقة", "lead": "عميل محتمل", "customer": "حساب", "contact": "جهة اتصال", "quotation": "عرض سعر" }
+    "stat": {
+      "open_tasks": "مهامي المفتوحة",
+      "overdue": "متأخرة",
+      "today": "مستحقة اليوم",
+      "meetings": "اجتماعات قادمة",
+      "calls": "مكالمات (هذا الشهر)",
+      "completed": "منجزة هذا الأسبوع"
+    },
+    "f": {
+      "open": "مفتوحة",
+      "overdue": "متأخرة",
+      "today": "اليوم",
+      "upcoming": "قادمة",
+      "past": "سابقة"
+    },
+    "st": {
+      "in_progress": "قيد التنفيذ",
+      "done": "منجزة"
+    },
+    "pr": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "ms": {
+      "scheduled": "مجدول",
+      "completed": "مكتمل",
+      "cancelled": "ملغى"
+    },
+    "cs": {
+      "scheduled": "مجدولة",
+      "completed": "مكتملة",
+      "missed": "فائتة",
+      "cancelled": "ملغاة"
+    },
+    "dir": {
+      "inbound": "واردة",
+      "outbound": "صادرة"
+    },
+    "rt": {
+      "deal": "صفقة",
+      "lead": "عميل محتمل",
+      "customer": "حساب",
+      "contact": "جهة اتصال",
+      "quotation": "عرض سعر"
+    }
   },
   "notifications": {
     "title": "الإشعارات",
@@ -731,14 +843,13 @@
     "sku": "رمز المنتج",
     "unit": "الوحدة",
     "product_type": "النوع",
-    "discount": "الخصم %",
+    "discount": "الخصم",
     "line_total": "إجمالي البند",
     "item_name": "الصنف",
     "qty": "الكمية",
     "price": "السعر",
     "need_line": "أضف بندًا واحدًا على الأقل.",
     "subtotal": "المجموع الفرعي",
-    "discount": "الخصم",
     "tax": "الضريبة",
     "grand_total": "الإجمالي",
     "paid": "المدفوع",
@@ -747,22 +858,74 @@
     "valid_until": "صالح حتى",
     "due_date": "تاريخ الاستحقاق",
     "expected_date": "التاريخ المتوقع",
-    "tab": { "products": "المنتجات", "quotations": "عروض الأسعار", "orders": "الطلبات", "invoices": "الفواتير", "payments": "المدفوعات" },
+    "tab": {
+      "products": "المنتجات",
+      "quotations": "عروض الأسعار",
+      "orders": "الطلبات",
+      "invoices": "الفواتير",
+      "payments": "المدفوعات"
+    },
     "stat": {
-      "revenue": "الإيرادات (هذا الشهر)", "collected": "المحصّل (هذا الشهر)", "outstanding": "المستحق",
-      "unpaid": "فواتير غير مدفوعة", "quotations": "عروض مفتوحة", "orders": "طلبات مفتوحة"
+      "revenue": "الإيرادات (هذا الشهر)",
+      "collected": "المحصّل (هذا الشهر)",
+      "outstanding": "المستحق",
+      "unpaid": "فواتير غير مدفوعة",
+      "quotations": "عروض مفتوحة",
+      "orders": "طلبات مفتوحة"
     },
     "st": {
-      "draft": "مسودة", "sent": "مُرسل", "accepted": "مقبول", "rejected": "مرفوض",
-      "expired": "منتهٍ", "converted": "محوّل", "confirmed": "مؤكد",
-      "processing": "قيد المعالجة", "fulfilled": "منفّذ", "cancelled": "ملغى",
-      "issued": "صادرة", "partially_paid": "مدفوعة جزئيًا", "paid": "مدفوعة", "void": "لاغية"
+      "draft": "مسودة",
+      "sent": "مُرسل",
+      "accepted": "مقبول",
+      "rejected": "مرفوض",
+      "expired": "منتهٍ",
+      "converted": "محوّل",
+      "confirmed": "مؤكد",
+      "processing": "قيد المعالجة",
+      "fulfilled": "منفّذ",
+      "cancelled": "ملغى",
+      "issued": "صادرة",
+      "partially_paid": "مدفوعة جزئيًا",
+      "paid": "مدفوعة",
+      "void": "لاغية"
     },
-    "type": { "goods": "سلع", "service": "خدمة" },
-    "method": { "cash": "نقدًا", "card": "بطاقة", "bank_transfer": "تحويل بنكي", "cheque": "شيك", "online": "إلكتروني" },
-    "p": { "sku": "الرمز", "name": "الاسم", "category": "الفئة", "price": "السعر", "cost": "التكلفة", "type": "النوع", "tax": "معدل الضريبة", "unit": "الوحدة" },
-    "d": { "number": "الرقم", "customer": "العميل", "status": "الحالة", "total": "الإجمالي", "balance": "المتبقي" },
-    "pay": { "no": "الرقم", "customer": "العميل", "invoice": "الفاتورة", "method": "الطريقة", "amount": "المبلغ", "date": "التاريخ", "reference": "المرجع" }
+    "type": {
+      "goods": "سلع",
+      "service": "خدمة"
+    },
+    "method": {
+      "cash": "نقدًا",
+      "card": "بطاقة",
+      "bank_transfer": "تحويل بنكي",
+      "cheque": "شيك",
+      "online": "إلكتروني"
+    },
+    "p": {
+      "sku": "الرمز",
+      "name": "الاسم",
+      "category": "الفئة",
+      "price": "السعر",
+      "cost": "التكلفة",
+      "type": "النوع",
+      "tax": "معدل الضريبة",
+      "unit": "الوحدة"
+    },
+    "d": {
+      "number": "الرقم",
+      "customer": "العميل",
+      "status": "الحالة",
+      "total": "الإجمالي",
+      "balance": "المتبقي"
+    },
+    "pay": {
+      "no": "الرقم",
+      "customer": "العميل",
+      "invoice": "الفاتورة",
+      "method": "الطريقة",
+      "amount": "المبلغ",
+      "date": "التاريخ",
+      "reference": "المرجع"
+    }
   },
   "invproducts": {
     "search": "بحث عن المنتجات…",
@@ -818,7 +981,10 @@
     "subtitle": "قوائم المواد وعمليات التجميع",
     "refresh": "تحديث",
     "define_bom": "تعريف قائمة مواد",
-    "tab": { "boms": "قوائم المواد", "builds": "عمليات التجميع" },
+    "tab": {
+      "boms": "قوائم المواد",
+      "builds": "عمليات التجميع"
+    },
     "empty_boms": "لا توجد قوائم مواد بعد",
     "empty_builds": "لا توجد عمليات تجميع بعد",
     "finished_good": "المنتج النهائي",
@@ -895,14 +1061,61 @@
     "saving": "جارٍ الحفظ…",
     "confirm": "تأكيد",
     "showing": "عرض {from}–{to} من {total}",
-    "tab": { "products": "المنتجات", "stock": "المخزون", "warehouses": "المستودعات", "transfers": "التحويلات", "movements": "الحركات" },
-    "stat": { "warehouses": "المستودعات", "skus": "أصناف متتبَّعة", "low": "مخزون منخفض", "out": "نفد المخزون", "value": "قيمة المخزون" },
-    "s": { "product": "المنتج", "warehouse": "المستودع", "on_hand": "المتوفر", "available": "المتاح" },
-    "w": { "name": "الاسم", "code": "الرمز", "address": "العنوان", "skus": "الأصناف" },
-    "t": { "number": "الرقم", "route": "المسار", "status": "الحالة", "items": "الأصناف" },
-    "ts": { "draft": "مسودة", "in_transit": "قيد النقل", "received": "مستلم", "cancelled": "ملغى" },
-    "m": { "type": "النوع", "qty": "الكمية", "balance": "الرصيد", "when": "الوقت" },
-    "mt": { "receipt": "استلام", "issue": "صرف", "adjustment": "تسوية", "transfer_in": "تحويل وارد", "transfer_out": "تحويل صادر", "sale": "بيع", "purchase": "شراء", "consume": "استهلاك", "produce": "إنتاج" }
+    "tab": {
+      "products": "المنتجات",
+      "stock": "المخزون",
+      "warehouses": "المستودعات",
+      "transfers": "التحويلات",
+      "movements": "الحركات"
+    },
+    "stat": {
+      "warehouses": "المستودعات",
+      "skus": "أصناف متتبَّعة",
+      "low": "مخزون منخفض",
+      "out": "نفد المخزون",
+      "value": "قيمة المخزون"
+    },
+    "s": {
+      "product": "المنتج",
+      "warehouse": "المستودع",
+      "on_hand": "المتوفر",
+      "available": "المتاح"
+    },
+    "w": {
+      "name": "الاسم",
+      "code": "الرمز",
+      "address": "العنوان",
+      "skus": "الأصناف"
+    },
+    "t": {
+      "number": "الرقم",
+      "route": "المسار",
+      "status": "الحالة",
+      "items": "الأصناف"
+    },
+    "ts": {
+      "draft": "مسودة",
+      "in_transit": "قيد النقل",
+      "received": "مستلم",
+      "cancelled": "ملغى"
+    },
+    "m": {
+      "type": "النوع",
+      "qty": "الكمية",
+      "balance": "الرصيد",
+      "when": "الوقت"
+    },
+    "mt": {
+      "receipt": "استلام",
+      "issue": "صرف",
+      "adjustment": "تسوية",
+      "transfer_in": "تحويل وارد",
+      "transfer_out": "تحويل صادر",
+      "sale": "بيع",
+      "purchase": "شراء",
+      "consume": "استهلاك",
+      "produce": "إنتاج"
+    }
   },
   "purchase": {
     "title": "المشتريات",
@@ -957,19 +1170,51 @@
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
     "showing": "عرض {from}–{to} من {total}",
-    "tab": { "orders": "الطلبات", "requests": "طلبات الشراء", "vendors": "الموردون", "approvals": "موافقاتي" },
+    "tab": {
+      "orders": "الطلبات",
+      "requests": "طلبات الشراء",
+      "vendors": "الموردون",
+      "approvals": "موافقاتي"
+    },
     "stat": {
-      "open_orders": "أوامر مفتوحة", "awaiting": "بانتظار الاستلام", "pending": "طلبات معلّقة",
-      "approvals": "موافقاتي", "vendors": "الموردون", "spend": "الإنفاق (هذا الشهر)"
+      "open_orders": "أوامر مفتوحة",
+      "awaiting": "بانتظار الاستلام",
+      "pending": "طلبات معلّقة",
+      "approvals": "موافقاتي",
+      "vendors": "الموردون",
+      "spend": "الإنفاق (هذا الشهر)"
     },
     "st": {
-      "draft": "مسودة", "submitted": "مُرسل", "approved": "موافق عليه", "rejected": "مرفوض",
-      "converted": "محوّل", "confirmed": "مؤكد", "received": "مستلم",
-      "closed": "مغلق", "cancelled": "ملغى"
+      "draft": "مسودة",
+      "submitted": "مُرسل",
+      "approved": "موافق عليه",
+      "rejected": "مرفوض",
+      "converted": "محوّل",
+      "confirmed": "مؤكد",
+      "received": "مستلم",
+      "closed": "مغلق",
+      "cancelled": "ملغى"
     },
-    "ap": { "pending": "معلّق", "approved": "موافق عليه", "rejected": "مرفوض" },
-    "v": { "no": "الرقم", "name": "الاسم", "email": "البريد", "phone": "الهاتف", "terms": "المدة (أيام)", "tax_id": "الرقم الضريبي" },
-    "d": { "number": "الرقم", "vendor": "المورّد", "requester": "الطالب", "status": "الحالة", "total": "الإجمالي" }
+    "ap": {
+      "pending": "معلّق",
+      "approved": "موافق عليه",
+      "rejected": "مرفوض"
+    },
+    "v": {
+      "no": "الرقم",
+      "name": "الاسم",
+      "email": "البريد",
+      "phone": "الهاتف",
+      "terms": "المدة (أيام)",
+      "tax_id": "الرقم الضريبي"
+    },
+    "d": {
+      "number": "الرقم",
+      "vendor": "المورّد",
+      "requester": "الطالب",
+      "status": "الحالة",
+      "total": "الإجمالي"
+    }
   },
   "helpdesk": {
     "title": "مكتب الدعم",
@@ -1007,12 +1252,46 @@
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
     "showing": "عرض {from}–{to} من {total}",
-    "stat": { "open": "مفتوحة", "unassigned": "غير مُسندة", "mine": "المُسندة إليّ", "breaching": "تجاوزت الـ SLA", "urgent": "عاجلة", "resolved": "محلولة اليوم" },
-    "col": { "subject": "الموضوع", "status": "الحالة", "assignee": "المُسنَد إليه", "due": "الاستحقاق", "priority": "الأولوية" },
-    "st": { "new": "جديدة", "open": "مفتوحة", "pending": "معلّقة", "resolved": "محلولة", "closed": "مغلقة" },
-    "pr": { "low": "منخفضة", "medium": "متوسطة", "high": "عالية", "urgent": "عاجلة" },
-    "ch": { "email": "بريد", "phone": "هاتف", "web": "الويب", "chat": "دردشة", "manual": "يدوي" },
-    "author": { "agent": "موظف", "customer": "عميل", "system": "النظام" }
+    "stat": {
+      "open": "مفتوحة",
+      "unassigned": "غير مُسندة",
+      "mine": "المُسندة إليّ",
+      "breaching": "تجاوزت الـ SLA",
+      "urgent": "عاجلة",
+      "resolved": "محلولة اليوم"
+    },
+    "col": {
+      "subject": "الموضوع",
+      "status": "الحالة",
+      "assignee": "المُسنَد إليه",
+      "due": "الاستحقاق",
+      "priority": "الأولوية"
+    },
+    "st": {
+      "new": "جديدة",
+      "open": "مفتوحة",
+      "pending": "معلّقة",
+      "resolved": "محلولة",
+      "closed": "مغلقة"
+    },
+    "pr": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية",
+      "urgent": "عاجلة"
+    },
+    "ch": {
+      "email": "بريد",
+      "phone": "هاتف",
+      "web": "الويب",
+      "chat": "دردشة",
+      "manual": "يدوي"
+    },
+    "author": {
+      "agent": "موظف",
+      "customer": "عميل",
+      "system": "النظام"
+    }
   },
   "email": {
     "title": "البريد",
@@ -1040,18 +1319,52 @@
     "accounts_btn": "حسابات البريد",
     "new_account": "حساب جديد",
     "showing": "عرض {from}–{to} من {total}",
-    "folder": { "inbox": "الوارد", "sent": "المُرسل", "drafts": "المسودات" },
-    "stat": { "sent": "مُرسل (هذا الشهر)", "drafts": "المسودات", "inbound": "الوارد", "templates": "القوالب", "open_rate": "معدل الفتح" },
-    "st": { "draft": "مسودة", "queued": "في الطابور", "sent": "مُرسل", "failed": "فشل", "received": "مستلم" },
-    "rt": { "deal": "صفقة", "lead": "عميل محتمل", "customer": "عميل" },
+    "folder": {
+      "inbox": "الوارد",
+      "sent": "المُرسل",
+      "drafts": "المسودات"
+    },
+    "stat": {
+      "sent": "مُرسل (هذا الشهر)",
+      "drafts": "المسودات",
+      "inbound": "الوارد",
+      "templates": "القوالب",
+      "open_rate": "معدل الفتح"
+    },
+    "st": {
+      "draft": "مسودة",
+      "queued": "في الطابور",
+      "sent": "مُرسل",
+      "failed": "فشل",
+      "received": "مستلم"
+    },
+    "rt": {
+      "deal": "صفقة",
+      "lead": "عميل محتمل",
+      "customer": "عميل"
+    },
     "acc": {
-      "name": "اسم الحساب", "email": "عنوان المرسل", "from_name": "اسم العرض",
-      "default": "افتراضي", "active": "نشط", "smtp": "اتصال SMTP",
-      "host": "المضيف", "port": "المنفذ", "encryption": "التشفير", "none": "بدون",
-      "username": "اسم المستخدم", "password": "كلمة المرور", "password_set": "(محفوظة — اتركها فارغة للاحتفاظ بها)",
-      "imap": "IMAP (الوارد)", "imap_hint": "جلب البريد المستلَم إلى النظام (صندوق المبيعات).",
-      "imap_host": "مضيف IMAP", "imap_port": "منفذ IMAP",
-      "test": "اختبار الاتصال", "testing": "جارٍ الاختبار…", "fetch": "جلب الوارد", "fetching": "جارٍ الجلب…"
+      "name": "اسم الحساب",
+      "email": "عنوان المرسل",
+      "from_name": "اسم العرض",
+      "default": "افتراضي",
+      "active": "نشط",
+      "smtp": "اتصال SMTP",
+      "host": "المضيف",
+      "port": "المنفذ",
+      "encryption": "التشفير",
+      "none": "بدون",
+      "username": "اسم المستخدم",
+      "password": "كلمة المرور",
+      "password_set": "(محفوظة — اتركها فارغة للاحتفاظ بها)",
+      "imap": "IMAP (الوارد)",
+      "imap_hint": "جلب البريد المستلَم إلى النظام (صندوق المبيعات).",
+      "imap_host": "مضيف IMAP",
+      "imap_port": "منفذ IMAP",
+      "test": "اختبار الاتصال",
+      "testing": "جارٍ الاختبار…",
+      "fetch": "جلب الوارد",
+      "fetching": "جارٍ الجلب…"
     }
   },
   "marketing": {
@@ -1087,10 +1400,32 @@
     "save": "حفظ",
     "saving": "جارٍ الحفظ…",
     "showing": "عرض {from}–{to} من {total}",
-    "stat": { "total": "الحملات", "draft": "المسودات", "scheduled": "المجدولة", "sent": "المُرسلة", "reached": "تم الوصول", "open_rate": "متوسط الفتح" },
-    "st": { "draft": "مسودة", "scheduled": "مجدولة", "running": "قيد التشغيل", "sent": "مُرسلة", "paused": "متوقفة", "cancelled": "ملغاة" },
-    "src": { "customers": "العملاء", "leads": "العملاء المحتملون" },
-    "col": { "name": "الاسم", "status": "الحالة", "recipients": "المستلمون", "open_rate": "معدل الفتح" }
+    "stat": {
+      "total": "الحملات",
+      "draft": "المسودات",
+      "scheduled": "المجدولة",
+      "sent": "المُرسلة",
+      "reached": "تم الوصول",
+      "open_rate": "متوسط الفتح"
+    },
+    "st": {
+      "draft": "مسودة",
+      "scheduled": "مجدولة",
+      "running": "قيد التشغيل",
+      "sent": "مُرسلة",
+      "paused": "متوقفة",
+      "cancelled": "ملغاة"
+    },
+    "src": {
+      "customers": "العملاء",
+      "leads": "العملاء المحتملون"
+    },
+    "col": {
+      "name": "الاسم",
+      "status": "الحالة",
+      "recipients": "المستلمون",
+      "open_rate": "معدل الفتح"
+    }
   },
   "platform": {
     "title": "لوحة تحكم المنصة",
@@ -1105,7 +1440,12 @@
     "expired": "منتهية",
     "revoke": "إلغاء",
     "granted": "تم تسجيل صلاحية الدعم",
-    "c": { "name": "الشركة", "plan": "الخطة", "users": "المستخدمون", "status": "الحالة" }
+    "c": {
+      "name": "الشركة",
+      "plan": "الخطة",
+      "users": "المستخدمون",
+      "status": "الحالة"
+    }
   },
   "settings": {
     "title": "الإعدادات",
@@ -1133,18 +1473,62 @@
     "branch": "فرع",
     "department": "قسم",
     "check_fields": "يرجى التحقق من الحقول.",
-    "tab": { "company": "الشركة", "users": "المستخدمون", "roles": "الأدوار", "api_keys": "مفاتيح API", "branches": "الفروع", "departments": "الأقسام" },
-    "c": { "name": "اسم الشركة", "legal_name": "الاسم القانوني", "tax_id": "الرقم الضريبي", "currency": "العملة الأساسية", "language": "اللغة الافتراضية", "phone": "الهاتف", "email": "البريد", "address": "العنوان", "city": "المدينة", "country": "الدولة" },
-    "u": { "name": "الاسم", "email": "البريد", "password": "كلمة المرور", "new_password": "كلمة مرور جديدة (اتركها فارغة للإبقاء)", "phone": "الهاتف", "branch": "الفرع", "department": "القسم", "roles": "الأدوار", "status": "الحالة" },
-    "o": { "name": "الاسم", "code": "الرمز", "manager": "المدير", "head": "الرئيس", "users": "المستخدمون" },
+    "tab": {
+      "company": "الشركة",
+      "users": "المستخدمون",
+      "roles": "الأدوار",
+      "api_keys": "مفاتيح API",
+      "branches": "الفروع",
+      "departments": "الأقسام",
+      "custom_fields": "Custom Fields"
+    },
+    "c": {
+      "name": "اسم الشركة",
+      "legal_name": "الاسم القانوني",
+      "tax_id": "الرقم الضريبي",
+      "currency": "العملة الأساسية",
+      "language": "اللغة الافتراضية",
+      "phone": "الهاتف",
+      "email": "البريد",
+      "address": "العنوان",
+      "city": "المدينة",
+      "country": "الدولة"
+    },
+    "u": {
+      "name": "الاسم",
+      "email": "البريد",
+      "password": "كلمة المرور",
+      "new_password": "كلمة مرور جديدة (اتركها فارغة للإبقاء)",
+      "phone": "الهاتف",
+      "branch": "الفرع",
+      "department": "القسم",
+      "roles": "الأدوار",
+      "status": "الحالة"
+    },
+    "o": {
+      "name": "الاسم",
+      "code": "الرمز",
+      "manager": "المدير",
+      "head": "الرئيس",
+      "users": "المستخدمون"
+    },
     "ak": {
-      "new": "مفتاح API جديد", "name": "الاسم", "name_ph": "مثال: تكامل Zapier",
-      "acts_as": "يعمل باسم", "acts_as_hint": "يرث المفتاح أدوار وصلاحيات هذا المستخدم.",
-      "prefix": "المفتاح", "last_used": "آخر استخدام", "never": "أبدًا", "status": "الحالة",
-      "revoke": "إلغاء", "revoked": "ملغى", "expired": "منتهي الصلاحية",
+      "new": "مفتاح API جديد",
+      "name": "الاسم",
+      "name_ph": "مثال: تكامل Zapier",
+      "acts_as": "يعمل باسم",
+      "acts_as_hint": "يرث المفتاح أدوار وصلاحيات هذا المستخدم.",
+      "prefix": "المفتاح",
+      "last_used": "آخر استخدام",
+      "never": "أبدًا",
+      "status": "الحالة",
+      "revoke": "إلغاء",
+      "revoked": "ملغى",
+      "expired": "منتهي الصلاحية",
       "empty": "لا توجد مفاتيح API بعد",
       "reveal_title": "انسخ هذا المفتاح الآن — لن يُعرض مرة أخرى.",
-      "copy": "نسخ", "copied": "تم النسخ إلى الحافظة"
+      "copy": "نسخ",
+      "copied": "تم النسخ إلى الحافظة"
     }
   },
   "reports": {
@@ -1173,7 +1557,12 @@
     "check_fields": "يرجى التحقق من الحقول.",
     "tab_builder": "المُنشئ",
     "tab_dashboards": "لوحات المعلومات",
-    "ct": { "table": "جدول", "bar": "رسم بياني عمودي", "line": "رسم بياني خطي", "pie": "رسم بياني دائري" },
+    "ct": {
+      "table": "جدول",
+      "bar": "رسم بياني عمودي",
+      "line": "رسم بياني خطي",
+      "pie": "رسم بياني دائري"
+    },
     "dashboards": {
       "title": "لوحات المعلومات",
       "none": "لا توجد لوحات معلومات بعد",
@@ -1242,11 +1631,39 @@
     "saving": "جارٍ الحفظ…",
     "select_event": "اختر حدثًا…",
     "cron_hint": "تعبير cron قياسي من 5 حقول، يُفحص كل دقيقة (مثال: */15 * * * * = كل 15 دقيقة).",
-    "stat": { "total": "سير العمل", "active": "نشط", "runs": "إجمالي التشغيل", "today": "تشغيل اليوم" },
-    "col": { "name": "الاسم", "entity": "الكيان", "trigger": "المُطلِق", "runs": "التشغيل", "trigger_event": "الحدث", "schedule_cron": "جدول Cron" },
-    "tt": { "manual": "يدوي", "event": "عند حدث", "schedule": "مجدول" },
-    "at": { "create_task": "إنشاء مهمة", "update_field": "تحديث حقل", "send_email": "إرسال بريد", "notify": "إشعار", "webhook": "ويب هوك", "log": "سجل" },
-    "rs": { "success": "نجاح", "partial": "جزئي", "failed": "فشل", "skipped": "متخطّى" }
+    "stat": {
+      "total": "سير العمل",
+      "active": "نشط",
+      "runs": "إجمالي التشغيل",
+      "today": "تشغيل اليوم"
+    },
+    "col": {
+      "name": "الاسم",
+      "entity": "الكيان",
+      "trigger": "المُطلِق",
+      "runs": "التشغيل",
+      "trigger_event": "الحدث",
+      "schedule_cron": "جدول Cron"
+    },
+    "tt": {
+      "manual": "يدوي",
+      "event": "عند حدث",
+      "schedule": "مجدول"
+    },
+    "at": {
+      "create_task": "إنشاء مهمة",
+      "update_field": "تحديث حقل",
+      "send_email": "إرسال بريد",
+      "notify": "إشعار",
+      "webhook": "ويب هوك",
+      "log": "سجل"
+    },
+    "rs": {
+      "success": "نجاح",
+      "partial": "جزئي",
+      "failed": "فشل",
+      "skipped": "متخطّى"
+    }
   },
   "ai": {
     "title": "مساعد الذكاء الاصطناعي",
@@ -1289,15 +1706,72 @@
     "no_attendance": "لا حضور مسجّل",
     "no_leave": "لا طلبات إجازة",
     "leave_balances": "أرصدة الإجازات",
-    "tab": { "employees": "الموظفون", "attendance": "الحضور", "leave": "الإجازات" },
-    "stat": { "headcount": "عدد الموظفين", "present": "الحاضرون اليوم", "on_leave": "في إجازة", "pending": "إجازات معلّقة", "new": "جدد هذا الشهر" },
-    "st": { "active": "نشط", "on_leave": "في إجازة", "terminated": "منتهية خدمته" },
-    "et": { "full_time": "دوام كامل", "part_time": "دوام جزئي", "contract": "عقد", "intern": "متدرب" },
-    "as": { "present": "حاضر", "absent": "غائب", "late": "متأخر", "half_day": "نصف يوم", "leave": "إجازة", "holiday": "عطلة", "weekend": "نهاية أسبوع" },
-    "ls": { "pending": "معلّق", "approved": "موافق عليه", "rejected": "مرفوض", "cancelled": "ملغى" },
-    "e": { "name": "الاسم", "first_name": "الاسم الأول", "last_name": "اسم العائلة", "email": "البريد", "phone": "الهاتف", "department": "القسم", "title": "المسمى الوظيفي", "type": "نوع التوظيف", "status": "الحالة", "hire_date": "تاريخ التعيين", "salary": "الراتب" },
-    "a": { "check_in": "الدخول", "check_out": "الخروج", "hours": "الساعات", "status": "الحالة" },
-    "l": { "type": "النوع", "dates": "التواريخ", "days": "الأيام", "status": "الحالة", "start": "البداية", "end": "النهاية", "reason": "السبب" }
+    "tab": {
+      "employees": "الموظفون",
+      "attendance": "الحضور",
+      "leave": "الإجازات"
+    },
+    "stat": {
+      "headcount": "عدد الموظفين",
+      "present": "الحاضرون اليوم",
+      "on_leave": "في إجازة",
+      "pending": "إجازات معلّقة",
+      "new": "جدد هذا الشهر"
+    },
+    "st": {
+      "active": "نشط",
+      "on_leave": "في إجازة",
+      "terminated": "منتهية خدمته"
+    },
+    "et": {
+      "full_time": "دوام كامل",
+      "part_time": "دوام جزئي",
+      "contract": "عقد",
+      "intern": "متدرب"
+    },
+    "as": {
+      "present": "حاضر",
+      "absent": "غائب",
+      "late": "متأخر",
+      "half_day": "نصف يوم",
+      "leave": "إجازة",
+      "holiday": "عطلة",
+      "weekend": "نهاية أسبوع"
+    },
+    "ls": {
+      "pending": "معلّق",
+      "approved": "موافق عليه",
+      "rejected": "مرفوض",
+      "cancelled": "ملغى"
+    },
+    "e": {
+      "name": "الاسم",
+      "first_name": "الاسم الأول",
+      "last_name": "اسم العائلة",
+      "email": "البريد",
+      "phone": "الهاتف",
+      "department": "القسم",
+      "title": "المسمى الوظيفي",
+      "type": "نوع التوظيف",
+      "status": "الحالة",
+      "hire_date": "تاريخ التعيين",
+      "salary": "الراتب"
+    },
+    "a": {
+      "check_in": "الدخول",
+      "check_out": "الخروج",
+      "hours": "الساعات",
+      "status": "الحالة"
+    },
+    "l": {
+      "type": "النوع",
+      "dates": "التواريخ",
+      "days": "الأيام",
+      "status": "الحالة",
+      "start": "البداية",
+      "end": "النهاية",
+      "reason": "السبب"
+    }
   },
   "dynamics": {
     "title": "دايناميكس 365 بيزنس سنترال",
@@ -1393,7 +1867,11 @@
     "unlinked_success": "تم إلغاء ارتباط الهوية الاجتماعية",
     "unlink_confirm": "هل تريد إلغاء ربط هذه الهوية الاجتماعية بسجل إدارة العملاء؟",
     "lead_created": "تم إنشاء العميل المحتمل وربطه",
-    "crm_type": { "lead": "عميل محتمل", "contact": "جهة اتصال", "account": "حساب" },
+    "crm_type": {
+      "lead": "عميل محتمل",
+      "contact": "جهة اتصال",
+      "account": "حساب"
+    },
     "channel": {
       "whatsapp": "واتساب",
       "messenger": "ماسنجر",

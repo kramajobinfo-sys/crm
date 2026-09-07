@@ -115,6 +115,7 @@ class LeadController extends Controller
             'ratings'  => Lead::RATINGS,
             'priorities' => Lead::PRIORITIES,
             'lost_reasons' => \App\Models\LostReason::where('is_active', true)->orderBy('sort_order')->get(['id','name','code']),
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('lead'),
             'next_lead_no' => $this->leads->nextLeadNo(),
         ]);
     }
