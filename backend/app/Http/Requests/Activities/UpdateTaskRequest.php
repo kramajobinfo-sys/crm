@@ -19,6 +19,8 @@ class UpdateTaskRequest extends FormRequest
             'priority'     => ['nullable', Rule::in(Task::PRIORITIES)],
             'assigned_to'  => ['nullable','integer', Rule::exists('users','id')->where('company_id',$companyId)],
             'due_at'       => ['nullable','date'],
+            'recurrence'       => ['nullable', Rule::in(Task::RECURRENCES)],
+            'recurrence_until' => ['nullable','date'],
         ], $this->relatedRules());
     }
 }

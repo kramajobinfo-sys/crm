@@ -244,6 +244,16 @@
             <label class="label">{{ $t('pipeline.close_date') }}</label>
             <input v-model="form.data.expected_close_date" type="date" class="input text-sm" />
           </div>
+          <div>
+            <label class="label">Forecast category</label>
+            <select v-model="form.data.forecast_category" class="input text-sm capitalize">
+              <option v-for="c in (meta.forecast_categories || [])" :key="c" :value="c">{{ c.replace('_', ' ') }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Competitor</label>
+            <input v-model="form.data.competitor" class="input text-sm" placeholder="Who we're up against" />
+          </div>
         </div>
 
         <!-- Deal contacts editor -->
@@ -361,7 +371,7 @@ const statTiles = [
 
 const board      = reactive({ pipeline: null, columns: [] });
 const stats      = reactive({});
-const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [] });
+const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [] });
 const customers  = ref([]);
 const contactOptions = ref([]);
 const selected   = ref(null);
@@ -518,13 +528,14 @@ async function refreshStats() {
 function openCreate() {
   form.id = null; form.errors = {};
   contactOptions.value = [];
-  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', contacts: [], products: [] };
+  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', forecast_category: 'pipeline', competitor: '', contacts: [], products: [] };
   form.open = true;
 }
 async function openEdit(d) {
   form.id = d.id; form.errors = {};
   form.data = {
     title: d.title, customer_id: d.customer?.id ?? null, probability: d.probability,
+    forecast_category: d.forecast_category ?? 'pipeline', competitor: d.competitor ?? '',
     expected_close_date: d.expected_close_date ?? '', currency: d.currency ?? 'AED',
     contacts: (d.contacts || []).map((contact) => ({
       contact_id: contact.id, role: contact.role || 'other', is_primary: !!contact.is_primary,

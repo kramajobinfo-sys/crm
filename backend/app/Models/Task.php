@@ -16,13 +16,15 @@ class Task extends Model
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
     public const OPEN_STATUSES = ['open', 'in_progress'];
 
+    public const RECURRENCES = ['daily', 'weekly', 'monthly'];
+
     protected $fillable = [
         'company_id','title','description','status','priority','assigned_to','created_by',
-        'due_at','completed_at','related_type','related_id',
+        'due_at','completed_at','related_type','related_id','recurrence','recurrence_until','recurrence_parent_id',
     ];
     protected function casts(): array
     {
-        return ['due_at' => 'datetime', 'completed_at' => 'datetime'];
+        return ['due_at' => 'datetime', 'completed_at' => 'datetime', 'recurrence_until' => 'date'];
     }
 
     public function assignee(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }

@@ -67,19 +67,47 @@ class ActivityService
     public function updateTask(Task $task, array $data): Task
     {
         $this->normaliseRelated($data);
+        $wasDone = $task->status === 'done';
         // Completing/reopening keeps completed_at honest regardless of who toggles it.
         if (array_key_exists('status', $data)) {
             $data['completed_at'] = in_array($data['status'], ['done', 'cancelled'], true) ? ($task->completed_at ?? now()) : null;
         }
         $task->update($data);
+        if (!$wasDone && $task->status === 'done') $this->spawnNextOccurrence($task);
         return $task->load(['assignee:id,name', 'related']);
     }
 
     public function completeTask(Task $task): Task
     {
+        $wasDone = $task->status === 'done';
         $task->forceFill(['status' => 'done', 'completed_at' => now()])->save();
         $this->touchTimeline($task, 'note', 'Task completed: '.$task->title);
+        if (!$wasDone) $this->spawnNextOccurrence($task);
         return $task->load(['assignee:id,name', 'related']);
+    }
+
+    /** When a recurring task is completed, create the next occurrence (bounded by recurrence_until). */
+    private function spawnNextOccurrence(Task $task): void
+    {
+        if (!in_array($task->recurrence, Task::RECURRENCES, true)) return;
+        $base = $task->due_at ?? now();
+        $next = match ($task->recurrence) {
+            'daily' => $base->copy()->addDay(),
+            'weekly' => $base->copy()->addWeek(),
+            'monthly' => $base->copy()->addMonthNoOverflow(),
+            default => null,
+        };
+        if (!$next) return;
+        if ($task->recurrence_until && $next->copy()->startOfDay()->gt($task->recurrence_until->copy()->endOfDay())) return;
+
+        Task::create([
+            'company_id' => $task->company_id, 'title' => $task->title, 'description' => $task->description,
+            'priority' => $task->priority, 'assigned_to' => $task->assigned_to, 'created_by' => $task->created_by,
+            'related_type' => $task->related_type, 'related_id' => $task->related_id,
+            'due_at' => $next, 'status' => 'open',
+            'recurrence' => $task->recurrence, 'recurrence_until' => $task->recurrence_until,
+            'recurrence_parent_id' => $task->recurrence_parent_id ?? $task->id,
+        ]);
     }
 
     // ---- Meetings --------------------------------------------------------

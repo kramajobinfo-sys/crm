@@ -94,6 +94,8 @@
         <dl class="p-3 grid grid-cols-3 gap-y-2 text-xs">
           <dt class="text-ink-subtle">{{ $t('contacts.account') }}</dt>
           <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.account?.name || '—' }}</dd>
+          <dt class="text-ink-subtle">Department</dt>
+          <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.department || '—' }}</dd>
           <dt class="text-ink-subtle">{{ $t('contacts.email') }}</dt>
           <dd class="col-span-2 text-ink dark:text-ink-dark break-all">{{ selected.email || '—' }}</dd>
           <dt class="text-ink-subtle">{{ $t('contacts.phone') }}</dt>
@@ -133,6 +135,26 @@
               <div v-for="h in selected.consents.history" :key="h.id" class="text-[11px] text-ink-subtle">
                 <span :class="h.status === 'granted' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">{{ h.status === 'granted' ? $t('contacts.consent.opt_in') : $t('contacts.consent.opt_out') }}</span>
                 · {{ channelLabel(h.channel) }}<span v-if="h.occurred_at"> · {{ new Date(h.occurred_at).toLocaleDateString() }}</span><span v-if="h.user"> · {{ h.user.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity timeline (contact + its opportunities) -->
+        <div class="border-t border-line dark:border-line-dark p-3">
+          <div class="section-label mb-2">Activity</div>
+          <div v-if="timelineLoading" class="text-xs text-ink-subtle">Loading…</div>
+          <div v-else-if="!timeline.length" class="text-xs text-ink-subtle">No activity yet.</div>
+          <div v-else class="space-y-2 max-h-72 overflow-y-auto -mx-1 px-1">
+            <div v-for="t in timeline" :key="t.id" class="text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="badge-neutral">{{ t.type }}</span>
+                <span class="text-ink dark:text-ink-dark font-medium truncate">{{ t.title }}</span>
+              </div>
+              <div v-if="t.body" class="text-ink-subtle mt-0.5 whitespace-pre-wrap">{{ t.body }}</div>
+              <div class="text-[11px] text-ink-subtle mt-0.5">
+                <span v-if="t.source?.type && t.source.type !== 'Contact'">{{ t.source.type }} · </span>
+                {{ t.occurred_human }}<span v-if="t.user"> · {{ t.user.name }}</span>
               </div>
             </div>
           </div>
@@ -196,6 +218,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from 'vue-toastification';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/contacts';
+import http from '@/services/http';
 import DuplicateWarningModal from '@/components/crm/DuplicateWarningModal.vue';
 import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
@@ -215,6 +238,14 @@ function addFollowUp(contact) {
 
 const rows = ref([]);
 const selected = ref(null);
+const timeline = ref([]);
+const timelineLoading = ref(false);
+async function loadTimeline(id) {
+  timelineLoading.value = true; timeline.value = [];
+  try { const { data } = await http.get(`/contacts/${id}/timeline`); timeline.value = data.data || []; }
+  catch { timeline.value = []; }
+  finally { timelineLoading.value = false; }
+}
 const loading = ref(false);
 const consentBusy = ref(false);
 const showConsentHistory = ref(false);
@@ -273,7 +304,10 @@ async function loadMeta() {
 }
 
 async function openDetail(id) {
-  try { const { data } = await api.show(id); selected.value = data.data; await loadConsents(id); } catch { /* noop */ }
+  try {
+    const { data } = await api.show(id); selected.value = data.data; await loadConsents(id);
+    loadTimeline(id);
+  } catch { /* noop */ }
 }
 
 async function callContact() {

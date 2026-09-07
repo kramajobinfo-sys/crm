@@ -47,6 +47,14 @@ class ContactController extends Controller
         return $this->success(new ContactResource($this->contacts->find($id)));
     }
 
+    /** Chronological activity/opportunity feed for one contact. */
+    public function timeline(Request $request, int $id): JsonResponse
+    {
+        $contact = \App\Models\Contact::findOrFail($id);
+        $opts = $request->validate(['type' => 'nullable|string|max:32', 'per_page' => 'nullable|integer|min:1|max:100']);
+        return $this->paginated($this->contacts->timeline($contact, $opts));
+    }
+
     /** Current per-channel consent state + full opt-in/opt-out history. */
     public function consents(int $id): JsonResponse
     {

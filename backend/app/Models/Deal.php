@@ -21,10 +21,12 @@ class Deal extends Model
     /** Fields a pipeline stage's Blueprint may require before a deal can enter it. */
     public const BLUEPRINT_FIELDS = ['amount', 'customer_id', 'owner_id', 'expected_close_date', 'probability', 'lost_reason_id'];
 
+    public const FORECAST_CATEGORIES = ['pipeline', 'best_case', 'commit', 'omitted'];
+
     protected $fillable = [
         'company_id','deal_no','title','pipeline_id','stage_id','customer_id','lead_id',
-        'owner_id','branch_id','amount','currency','probability','status','expected_close_date',
-        'won_at','lost_at','lost_reason_id','source','notes',
+        'owner_id','branch_id','amount','currency','probability','forecast_category','status',
+        'expected_close_date','won_at','lost_at','lost_reason_id','source','competitor','notes',
     ];
     protected function casts(): array
     {

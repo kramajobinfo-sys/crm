@@ -235,6 +235,14 @@
               <option v-for="s in meta.statuses" :key="s" :value="s">{{ $t(`customers.status.${s}`) }}</option>
             </select>
           </div>
+          <div>
+            <label class="label">Territory</label>
+            <input v-model="form.data.territory" class="input text-sm" placeholder="e.g. North, GCC" />
+          </div>
+          <div>
+            <label class="label">Tags</label>
+            <input v-model="tagsInput" class="input text-sm" placeholder="comma-separated" />
+          </div>
           <div class="col-span-2">
             <label class="label">{{ $t('customers.notes') }}</label>
             <textarea v-model="form.data.notes" rows="2" class="input text-sm resize-none" />
@@ -263,7 +271,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
@@ -375,7 +383,7 @@ function openCreate() {
   form.id = null; form.errors = {};
   form.data = {
     name: '', type: 'company', group_id: null, price_book_id: null, email: '', phone: '',
-    credit_limit: 0, status: 'active', notes: '',
+    credit_limit: 0, status: 'active', territory: '', tags: [], notes: '',
   };
   form.open = true;
 }
@@ -383,10 +391,17 @@ function openEdit(c) {
   form.id = c.id; form.errors = {};
   form.data = {
     name: c.name, type: c.type, group_id: c.group?.id ?? null, price_book_id: c.price_book_id ?? null, email: c.email ?? '',
-    phone: c.phone ?? '', credit_limit: c.credit_limit ?? 0, status: c.status, notes: c.notes ?? '',
+    phone: c.phone ?? '', credit_limit: c.credit_limit ?? 0, status: c.status,
+    territory: c.territory ?? '', tags: Array.isArray(c.tags) ? [...c.tags] : [], notes: c.notes ?? '',
   };
   form.open = true;
 }
+
+// Tags edited as a comma-separated string, stored as an array.
+const tagsInput = computed({
+  get: () => (form.data.tags || []).join(', '),
+  set: (v) => { form.data.tags = String(v).split(',').map((t) => t.trim()).filter(Boolean); },
+});
 
 async function submitForm(force = false) {
   form.saving = true; form.errors = {};

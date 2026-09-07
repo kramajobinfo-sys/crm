@@ -195,6 +195,17 @@
               </select>
             </div>
             <div><label class="label">{{ $t('activities.due') }}</label><input v-model="form.data.due_at" type="datetime-local" class="input text-sm" /></div>
+            <div><label class="label">Repeat</label>
+              <select v-model="form.data.recurrence" class="input text-sm capitalize">
+                <option :value="null">Does not repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div v-if="form.data.recurrence"><label class="label">Repeat until</label>
+              <input v-model="form.data.recurrence_until" type="date" class="input text-sm" />
+            </div>
           </template>
 
           <!-- Meeting fields -->
@@ -370,6 +381,7 @@ function openCreate(type, relatedType = null, relatedId = null) {
   form.data = {
     title: '', priority: 'medium', direction: 'outbound',
     due_at: '', start_at: '', end_at: '', location: '', remind_at: '', channel: 'in_app',
+    recurrence: null, recurrence_until: '',
     related_type: relatedType, related_id: relatedId ? Number(relatedId) : null,
   };
   form.open = true;
@@ -382,7 +394,8 @@ async function submitForm() {
     let payload = { related_type: d.related_type || undefined, related_id: d.related_id || undefined };
     let fn;
     if (form.type === 'task') {
-      payload = { ...payload, title: d.title, priority: d.priority, due_at: toIso(d.due_at) };
+      payload = { ...payload, title: d.title, priority: d.priority, due_at: toIso(d.due_at),
+        recurrence: d.recurrence || undefined, recurrence_until: d.recurrence_until || undefined };
       fn = api.createTask;
     } else if (form.type === 'meeting') {
       payload = { ...payload, title: d.title, start_at: toIso(d.start_at), end_at: toIso(d.end_at), location: d.location || undefined };

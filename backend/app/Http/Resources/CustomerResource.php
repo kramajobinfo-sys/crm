@@ -19,6 +19,8 @@ class CustomerResource extends JsonResource
             'mobile' => $this->mobile,
             'website' => $this->website,
             'tax_id' => $this->tax_id,
+            'territory' => $this->territory,
+            'tags' => $this->tags ?? [],
             'currency' => $this->currency,
             'price_book_id' => $this->price_book_id,
             'price_book' => $this->whenLoaded('priceBook', fn () => $this->priceBook
