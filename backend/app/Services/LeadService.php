@@ -17,6 +17,7 @@ class LeadService
         private readonly CustomerService $customers,
         private readonly DealService $deals,
         private readonly WorkflowService $workflows,
+        private readonly DuplicateDetectionService $duplicates,
     ) {}
 
     public function paginate(array $filters = [], int $perPage = 25): LengthAwarePaginator
@@ -117,8 +118,16 @@ class LeadService
 
         return DB::transaction(function () use ($lead, $options) {
             $accountMode = $options['account_mode'] ?? 'new';
+            $accountReused = false;
             if ($accountMode === 'existing') {
                 $customer = Customer::findOrFail((int) $options['account_id']);
+            } elseif (!($options['force_new_account'] ?? false)
+                && ($match = $this->matchingAccountId($lead)) !== null) {
+                // Dedup guard: a high-confidence existing Account (same email/tax_id, or ≥2 signals)
+                // is reused instead of silently creating a second customer for the same company.
+                // Pass force_new_account=true (or account_mode=existing) to override.
+                $customer = Customer::findOrFail($match);
+                $accountReused = true;
             } else {
                 $legacyOverrides = array_filter([
                     'name' => $options['name'] ?? null,
@@ -141,8 +150,9 @@ class LeadService
                 ], $legacyOverrides, $options['account'] ?? []));
             }
 
-            // Carry the lead's addresses over rather than losing them.
-            foreach ($accountMode === 'new' ? $lead->addresses : [] as $addr) {
+            // Carry the lead's addresses over rather than losing them — only for a freshly created
+            // account (reusing/existing accounts keep their own addresses).
+            foreach ((!$accountReused && $accountMode === 'new') ? $lead->addresses : [] as $addr) {
                 $customer->addresses()->create([
                     'company_id' => $customer->company_id,
                     'type' => $addr->type, 'label' => $addr->label,
@@ -154,16 +164,26 @@ class LeadService
             }
 
             $contact = null;
+            $contactReused = false;
             if ($options['create_contact'] ?? true) {
                 // The converted person is always represented as a Contact, including B2C/individual
                 // Accounts. That keeps activities and Deal roles attached to a real person.
+                // Dedup guard: if this account already has a contact matching the lead's email/phone,
+                // reuse it (and make it primary) rather than inserting the same person twice.
+                $existingContact = $this->matchingContact($customer, $lead);
                 $customer->contacts()->update(['is_primary' => false]);
-                $contact = $customer->contacts()->create(array_merge([
-                    'company_id' => $customer->company_id,
-                    'name' => $lead->name, 'title' => $lead->title,
-                    'email' => $lead->email, 'phone' => $lead->phone, 'mobile' => $lead->mobile,
-                    'is_primary' => true,
-                ], $options['contact'] ?? [], ['is_primary' => true]));
+                if ($existingContact && !($options['force_new_contact'] ?? false)) {
+                    $existingContact->forceFill(['is_primary' => true])->save();
+                    $contact = $existingContact;
+                    $contactReused = true;
+                } else {
+                    $contact = $customer->contacts()->create(array_merge([
+                        'company_id' => $customer->company_id,
+                        'name' => $lead->name, 'title' => $lead->title,
+                        'email' => $lead->email, 'phone' => $lead->phone, 'mobile' => $lead->mobile,
+                        'is_primary' => true,
+                    ], $options['contact'] ?? [], ['is_primary' => true]));
+                }
             }
 
             $deal = null;
@@ -207,8 +227,45 @@ class LeadService
                 'customer' => $customer->refresh(),
                 'contact' => $contact?->refresh(),
                 'deal' => $deal,
+                'account_reused' => $accountReused,
+                'contact_reused' => $contactReused,
             ];
         });
+    }
+
+    /** Highest-confidence existing Account for this lead, or null. Used to avoid duplicate customers
+     *  on conversion. Reuses DuplicateDetectionService so the match logic stays in one place. */
+    private function matchingAccountId(Lead $lead): ?int
+    {
+        $matches = $this->duplicates->check('account', [
+            'name' => $lead->company_name ?: $lead->name,
+            'company_name' => $lead->company_name,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'mobile' => $lead->mobile,
+            'tax_id' => $lead->tax_id ?? null,
+        ]);
+        // Only auto-reuse on a HIGH-confidence match (email/tax_id, or ≥2 signals) — a lone
+        // name/phone coincidence is too weak to merge two companies automatically.
+        foreach ($matches as $m) {
+            if (($m['confidence'] ?? null) === 'high') return (int) $m['id'];
+        }
+        return null;
+    }
+
+    /** An existing contact on this account matching the lead's email or phone, or null. */
+    private function matchingContact(Customer $customer, Lead $lead): ?\App\Models\Contact
+    {
+        $email = trim((string) $lead->email);
+        $phone = trim((string) ($lead->phone ?: $lead->mobile));
+        if ($email === '' && $phone === '') return null;
+
+        return $customer->contacts()
+            ->where(function ($q) use ($email, $phone) {
+                if ($email !== '') $q->orWhereRaw('LOWER(email) = ?', [mb_strtolower($email)]);
+                if ($phone !== '') $q->orWhere('phone', $phone)->orWhere('mobile', $phone);
+            })
+            ->first();
     }
 
     /** First matching active rule by priority wins. */

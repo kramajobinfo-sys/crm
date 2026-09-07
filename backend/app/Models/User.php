@@ -13,9 +13,12 @@ class User extends Authenticatable implements JWTSubject
     use HasFactory, Notifiable, SoftDeletes, HasRoles;
     protected $guard_name = 'api';
 
+    // NOTE: is_platform_admin, two_factor_enabled and two_factor_secret are deliberately NOT
+    // mass-assignable — they are privilege/security fields. Set them explicitly via forceFill()
+    // (see TwoFactorController and UserSeeder) so a stray $request->all() can never escalate a user.
     protected $fillable = [
         'company_id','branch_id','department_id','name','email','password','phone','avatar_path',
-        'language','timezone','is_active','is_platform_admin','two_factor_enabled','two_factor_secret','last_login_at',
+        'language','timezone','is_active','last_login_at',
     ];
     protected $hidden = ['password','remember_token','two_factor_secret'];
 
