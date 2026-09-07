@@ -39,6 +39,7 @@ class ContactController extends Controller
         return $this->success([
             'accounts' => Customer::where('status', '!=', 'archived')
                 ->orderBy('name')->limit(500)->get(['id', 'customer_no', 'name', 'type', 'status']),
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('contact'),
         ]);
     }
 

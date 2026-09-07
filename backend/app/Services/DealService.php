@@ -120,6 +120,10 @@ class DealService
             $data['probability'] ??= $stage->probability;
             $this->stampTerminal($data, $stage);
 
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('deal', (array) $data['custom_fields']);
+            }
+
             $deal = Deal::create($data);
 
             if (is_array($products)) $this->syncProducts($deal, $products);
@@ -152,6 +156,12 @@ class DealService
                 $data['pipeline_id'] = $stage->pipeline_id;
                 $data['status'] = $stage->impliedStatus();
                 $this->stampTerminal($data, $stage);
+            }
+
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($deal->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('deal', (array) $data['custom_fields']));
             }
 
             $deal->update($data);

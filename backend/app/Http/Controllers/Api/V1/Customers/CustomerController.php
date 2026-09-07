@@ -47,6 +47,7 @@ class CustomerController extends Controller
             'price_books' => \App\Models\PriceBook::active()->orderBy('name')->get(['id','name','currency']),
             'types' => Customer::TYPES,
             'statuses' => Customer::STATUSES,
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('customer'),
             'next_customer_no' => $this->customers->nextCustomerNo(),
         ]);
     }

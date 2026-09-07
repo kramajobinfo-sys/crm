@@ -35,6 +35,7 @@ class UpdateCustomerRequest extends FormRequest
             'credit_limit'       => ['nullable','numeric','min:0','max:9999999999999'],
             'payment_terms_days' => ['nullable','integer','min:0','max:365'],
             'notes' => ['nullable','string','max:5000'],
+            'custom_fields' => ['nullable', 'array'],
 
             // Present => replace the whole set. Absent => leave addresses untouched.
             'addresses'               => ['nullable','array','max:10'],

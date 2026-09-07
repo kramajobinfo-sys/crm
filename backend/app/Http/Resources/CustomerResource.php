@@ -29,6 +29,7 @@ class CustomerResource extends JsonResource
             'payment_terms_days' => $this->payment_terms_days,
             'effective_payment_terms' => $this->effectivePaymentTerms(),
             'notes' => $this->notes,
+            'custom_fields' => $this->custom_fields ?? new \stdClass(),
             'created_at' => $this->created_at?->toIso8601String(),
             'created_human' => $this->created_at?->diffForHumans(),
             'contacts_count' => $this->whenCounted('contacts'),

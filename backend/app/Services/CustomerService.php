@@ -119,6 +119,10 @@ class CustomerService
             $data['customer_no'] ??= $this->nextCustomerNo();
             $data['owner_id'] ??= auth()->id();
 
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('customer', (array) $data['custom_fields']);
+            }
+
             $customer = Customer::create($data);
             $this->syncAddresses($customer, $addresses);
 
@@ -136,6 +140,13 @@ class CustomerService
             unset($data['addresses']);
 
             $before = $customer->status;
+
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($customer->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('customer', (array) $data['custom_fields']));
+            }
+
             $customer->update($data);
 
             if ($addresses !== null) $this->syncAddresses($customer, $addresses, replace: true);

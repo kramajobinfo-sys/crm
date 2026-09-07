@@ -27,6 +27,7 @@ class ContactResource extends JsonResource
             'mobile' => $this->mobile,
             'is_primary' => (bool) $this->is_primary,
             'notes' => $this->notes,
+            'custom_fields' => $this->custom_fields ?? new \stdClass(),
             'portal_enabled' => (bool) $this->portal_enabled,
             'created_at' => $this->created_at?->toIso8601String(),
             'created_human' => $this->created_at?->diffForHumans(),

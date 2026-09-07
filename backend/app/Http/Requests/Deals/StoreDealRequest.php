@@ -28,6 +28,7 @@ class StoreDealRequest extends FormRequest
             'source'      => ['nullable','string','max:96'],
             'competitor'  => ['nullable','string','max:191'],
             'notes'       => ['nullable','string','max:5000'],
+            'custom_fields' => ['nullable', 'array'],
             'products'                 => ['nullable','array'],
             'products.*.product_id'    => ['nullable','integer'],
             'products.*.name'          => ['required_with:products','string','max:191'],

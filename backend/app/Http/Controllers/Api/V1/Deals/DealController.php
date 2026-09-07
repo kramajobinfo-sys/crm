@@ -65,6 +65,7 @@ class DealController extends Controller
             'lost_reasons' => LostReason::where('is_active', true)->orderBy('sort_order')->get(['id','name','code']),
             'statuses'     => Deal::STATUSES,
             'forecast_categories' => Deal::FORECAST_CATEGORIES,
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('deal'),
             'next_deal_no' => $this->deals->nextDealNo(),
         ]);
     }

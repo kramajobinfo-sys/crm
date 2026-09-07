@@ -162,6 +162,8 @@
             </div>
           </div>
 
+          <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
+
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.timeline') }}</div>
             <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
@@ -248,6 +250,7 @@
             <textarea v-model="form.data.notes" rows="2" class="input text-sm resize-none" />
           </div>
         </div>
+        <CustomFieldsInput v-model="form.data.custom_fields" :fields="meta.custom_fields" />
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('customers.cancel') }}</button>
           <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">
@@ -280,6 +283,9 @@ import api from '@/services/customers';
 import DuplicateWarningModal from '@/components/crm/DuplicateWarningModal.vue';
 import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
+import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
+import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
 import { RefreshCw, Plus, X, Send } from 'lucide-vue-next';
@@ -304,7 +310,7 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ groups: [], types: [], statuses: [], price_books: [] });
+const meta       = reactive({ groups: [], types: [], statuses: [], price_books: [], custom_fields: [] });
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
 const loading    = ref(false);
@@ -384,6 +390,7 @@ function openCreate() {
   form.data = {
     name: '', type: 'company', group_id: null, price_book_id: null, email: '', phone: '',
     credit_limit: 0, status: 'active', territory: '', tags: [], notes: '',
+    custom_fields: seedCustomFields(meta.custom_fields),
   };
   form.open = true;
 }
@@ -393,6 +400,7 @@ function openEdit(c) {
     name: c.name, type: c.type, group_id: c.group?.id ?? null, price_book_id: c.price_book_id ?? null, email: c.email ?? '',
     phone: c.phone ?? '', credit_limit: c.credit_limit ?? 0, status: c.status,
     territory: c.territory ?? '', tags: Array.isArray(c.tags) ? [...c.tags] : [], notes: c.notes ?? '',
+    custom_fields: seedCustomFields(meta.custom_fields, c.custom_fields),
   };
   form.open = true;
 }
@@ -409,6 +417,7 @@ async function submitForm(force = false) {
     const payload = { ...form.data };
     if (!payload.email) delete payload.email;      // '' would fail the email rule
     if (!payload.phone) delete payload.phone;
+    if (payload.custom_fields) payload.custom_fields = stripBlankCustomFields(payload.custom_fields);
     if (!force) {
       const clear = await duplicateGuard.check('account', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }

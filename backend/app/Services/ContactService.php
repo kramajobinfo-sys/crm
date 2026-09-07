@@ -72,6 +72,9 @@ class ContactService
     public function create(array $data): Contact
     {
         return DB::transaction(function () use ($data) {
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('contact', (array) $data['custom_fields']);
+            }
             $contact = Contact::create($data);
             if ($contact->is_primary) $this->demoteOtherPrimaries($contact);
             return $this->find($contact->id);
@@ -81,6 +84,11 @@ class ContactService
     public function update(Contact $contact, array $data): Contact
     {
         return DB::transaction(function () use ($contact, $data) {
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($contact->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('contact', (array) $data['custom_fields']));
+            }
             $contact->update($data);
             if ($contact->is_primary) $this->demoteOtherPrimaries($contact);
             return $this->find($contact->id);

@@ -113,6 +113,8 @@
           <dd class="col-span-2 text-ink dark:text-ink-dark whitespace-pre-wrap">{{ selected.notes || '—' }}</dd>
         </dl>
 
+        <CustomFieldsDisplay class="px-3 pb-2" :fields="meta.custom_fields" :values="selected.custom_fields" />
+
         <!-- Communication consent -->
         <div class="border-t border-line dark:border-line-dark p-3">
           <div class="section-label mb-2">{{ $t('contacts.consent.title') }}</div>
@@ -188,6 +190,7 @@
             <input v-model="form.data.is_primary" type="checkbox" class="rounded border-slate-300" /> {{ $t('contacts.primary_for_account') }}
           </label>
           <div class="md:col-span-2"><label class="label">{{ $t('contacts.notes') }}</label><textarea v-model="form.data.notes" rows="3" class="input text-sm w-full"></textarea></div>
+          <div class="md:col-span-2"><CustomFieldsInput v-model="form.data.custom_fields" :fields="meta.custom_fields" /></div>
         </div>
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('contacts.cancel') }}</button>
@@ -222,6 +225,9 @@ import http from '@/services/http';
 import DuplicateWarningModal from '@/components/crm/DuplicateWarningModal.vue';
 import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
+import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
+import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
 import { Pencil, Phone, Plus, RefreshCw, Star, Trash2, UserRound, X } from 'lucide-vue-next';
@@ -249,7 +255,7 @@ async function loadTimeline(id) {
 const loading = ref(false);
 const consentBusy = ref(false);
 const showConsentHistory = ref(false);
-const meta = reactive({ accounts: [] });
+const meta = reactive({ accounts: [], custom_fields: [] });
 const filters = reactive({ q: '', customer_id: '', primaryOnly: false, page: 1 });
 const pagination = reactive({ current_page: 1, last_page: 1, from: 0, to: 0, total: 0 });
 const form = reactive({ open: false, saving: false, id: null, data: {}, errors: {} });
@@ -280,7 +286,7 @@ function portalUpdated(contact) {
   toast.success(t('contacts.portal_updated'));
 }
 
-const blank = () => ({ customer_id: null, name: '', title: '', department: '', email: '', phone: '', mobile: '', is_primary: false, notes: '' });
+const blank = () => ({ customer_id: null, name: '', title: '', department: '', email: '', phone: '', mobile: '', is_primary: false, notes: '', custom_fields: seedCustomFields(meta.custom_fields) });
 
 async function load() {
   loading.value = true;
@@ -361,6 +367,7 @@ function openEdit(contact) {
     mobile: contact.mobile || '',
     is_primary: !!contact.is_primary,
     notes: contact.notes || '',
+    custom_fields: seedCustomFields(meta.custom_fields, contact.custom_fields),
   };
   form.errors = {};
   form.open = true;
@@ -370,11 +377,13 @@ async function submitForm(force = false) {
   form.saving = true;
   form.errors = {};
   try {
+    const payload = { ...form.data };
+    if (payload.custom_fields) payload.custom_fields = stripBlankCustomFields(payload.custom_fields);
     if (!force) {
-      const clear = await duplicateGuard.check('contact', form.data, form.id, () => submitForm(true));
+      const clear = await duplicateGuard.check('contact', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }
     }
-    const { data } = form.id ? await api.update(form.id, form.data) : await api.create(form.data);
+    const { data } = form.id ? await api.update(form.id, payload) : await api.create(payload);
     toast.success(form.id ? t('contacts.updated') : t('contacts.created'));
     form.open = false;
     await load();

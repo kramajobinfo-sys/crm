@@ -168,6 +168,8 @@
             </table>
           </div>
 
+          <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
+
           <!-- Timeline -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.timeline') }}</div>
@@ -300,6 +302,8 @@
           <p v-else class="text-[11px] text-ink-subtle">{{ $t('pipeline.no_items_hint') }}</p>
         </div>
 
+        <CustomFieldsInput v-model="form.data.custom_fields" :fields="meta.custom_fields" />
+
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('pipeline.cancel') }}</button>
           <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">{{ form.saving ? $t('pipeline.saving') : $t('pipeline.save') }}</button>
@@ -349,6 +353,9 @@ import projectApi from '@/services/projects';
 import customerApi from '@/services/customers';
 import contactApi from '@/services/contacts';
 import { RefreshCw, Plus, X, Send, Building2, Settings2 } from 'lucide-vue-next';
+import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
+import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -371,7 +378,7 @@ const statTiles = [
 
 const board      = reactive({ pipeline: null, columns: [] });
 const stats      = reactive({});
-const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [] });
+const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [], custom_fields: [] });
 const customers  = ref([]);
 const contactOptions = ref([]);
 const selected   = ref(null);
@@ -528,7 +535,7 @@ async function refreshStats() {
 function openCreate() {
   form.id = null; form.errors = {};
   contactOptions.value = [];
-  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', forecast_category: 'pipeline', competitor: '', contacts: [], products: [] };
+  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', forecast_category: 'pipeline', competitor: '', contacts: [], products: [], custom_fields: seedCustomFields(meta.custom_fields) };
   form.open = true;
 }
 async function openEdit(d) {
@@ -543,6 +550,7 @@ async function openEdit(d) {
     products: (d.products || []).map((p) => ({
       name: p.name, quantity: p.quantity, unit_price: p.unit_price, discount_pct: p.discount_pct,
     })),
+    custom_fields: seedCustomFields(meta.custom_fields, d.custom_fields),
   };
   await loadContactOptions(form.data.customer_id);
   form.open = true;
@@ -588,6 +596,7 @@ async function submitForm() {
     if (payload.stage_id == null) delete payload.stage_id;
     payload.contacts = (payload.contacts || []).filter((row) => row.contact_id);
     if (!payload.products.length) delete payload.products;
+    if (payload.custom_fields) payload.custom_fields = stripBlankCustomFields(payload.custom_fields);
     const { data } = form.id ? await api.update(form.id, payload) : await api.create(payload);
     toast.success(form.id ? t('pipeline.updated') : t('pipeline.created'));
     form.open = false;

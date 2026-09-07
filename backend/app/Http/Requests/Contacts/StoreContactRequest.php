@@ -22,6 +22,7 @@ class StoreContactRequest extends FormRequest
             'mobile' => ['nullable', 'string', 'max:32'],
             'is_primary' => ['nullable', 'boolean'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'custom_fields' => ['nullable', 'array'],
         ];
     }
 }
