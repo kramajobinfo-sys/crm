@@ -40,6 +40,14 @@ class LeadResource extends JsonResource
             'created_human' => $this->created_at?->diffForHumans(),
             'source' => $this->whenLoaded('source', fn () => $this->source
                 ? ['id' => $this->source->id, 'name' => $this->source->name, 'code' => $this->source->code] : null),
+            'campaign' => $this->whenLoaded('campaign', fn () => $this->campaign
+                ? ['id' => $this->campaign->id, 'name' => $this->campaign->name] : null),
+            'campaign_id' => $this->campaign_id,
+            'products' => $this->whenLoaded('products', fn () => $this->products->map(fn ($p) => [
+                'product_id' => $p->id, 'name' => $p->name, 'sku' => $p->sku,
+                'quantity' => $p->pivot->quantity !== null ? (float) $p->pivot->quantity : null,
+                'note' => $p->pivot->note,
+            ])),
             'status' => $this->whenLoaded('status', fn () => $this->status ? [
                 'id' => $this->status->id, 'name' => $this->status->name, 'code' => $this->status->code,
                 'color' => $this->status->color, 'is_won' => (bool) $this->status->is_won,

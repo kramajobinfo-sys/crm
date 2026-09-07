@@ -59,6 +59,7 @@ class LeadController extends Controller
     {
         return $this->success([
             'sources'  => LeadSource::where('is_active', true)->orderBy('name')->get(['id','name','code']),
+            'campaigns' => \App\Models\Campaign::orderByDesc('id')->limit(100)->get(['id','name']),
             'statuses' => LeadStatus::orderBy('sort_order')->get(['id','name','code','color','is_won','is_lost','is_default']),
             'ratings'  => Lead::RATINGS,
             'priorities' => Lead::PRIORITIES,
@@ -133,7 +134,7 @@ class LeadController extends Controller
      */
     public function convert(Request $request, int $id): JsonResponse
     {
-        $lead = Lead::with('addresses')->findOrFail($id);
+        $lead = Lead::with(['addresses', 'products'])->findOrFail($id);
         $companyId = $request->user()->company_id;
         $options = $request->validate([
             'account_mode' => 'nullable|string|in:new,existing',

@@ -47,8 +47,10 @@ class LeadService
     public function find(int $id): Lead
     {
         return Lead::with([
-            'source', 'status', 'lostReason:id,name', 'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
+            'source', 'status', 'lostReason:id,name', 'campaign:id,name', 'owner:id,name', 'branch:id,name',
+            'customer:id,name,customer_no',
             'deals' => fn ($q) => $q->with('stage:id,name,is_won,is_lost')->orderByDesc('id'),
+            'products:id,name,sku',
             'addresses',
             'attachments' => fn ($q) => $q->with('uploader:id,name')->latest(),
             'timeline' => fn ($q) => $q->with('user:id,name')->orderByDesc('occurred_at')->limit(50),
@@ -60,8 +62,11 @@ class LeadService
         return DB::transaction(function () use ($data) {
             $data['lead_no'] ??= $this->nextLeadNo();
             $data['status_id'] ??= LeadStatus::where('is_default', true)->value('id');
+            $products = $data['products'] ?? null;
+            unset($data['products']);
 
             $lead = Lead::create($data);
+            if ($products !== null) $this->syncProducts($lead, $products);
 
             // Explicit owner wins; otherwise let the rules decide.
             if (!$lead->owner_id) $this->autoAssign($lead);
@@ -80,7 +85,10 @@ class LeadService
             $beforeStatus = $lead->status_id;
             $beforeOwner  = $lead->owner_id;
 
+            $products = $data['products'] ?? null;
+            unset($data['products']);
             $lead->update($data);
+            if ($products !== null) $this->syncProducts($lead, $products);
 
             if (array_key_exists('status_id', $data) && $data['status_id'] !== $beforeStatus) {
                 $from = LeadStatus::find($beforeStatus)?->name ?? '—';
@@ -195,6 +203,14 @@ class LeadService
             $deal = null;
             if ($options['create_deal'] ?? false) {
                 $dealInput = $options['deal'] ?? [];
+                // Pre-fill the opportunity with the lead's products of interest (unless the caller
+                // supplied their own lines) — carries the trading intent straight into the quote.
+                if (!isset($dealInput['products']) && $lead->products->isNotEmpty()) {
+                    $dealInput['products'] = $lead->products->map(fn ($p) => [
+                        'product_id' => $p->id, 'name' => $p->name,
+                        'quantity' => $p->pivot->quantity ?? 1, 'unit_price' => (float) ($p->sale_price ?? 0),
+                    ])->all();
+                }
                 $deal = $this->deals->create(array_merge([
                     'title' => ($lead->company_name ?: $lead->name).' Opportunity',
                     'customer_id' => $customer->id,
@@ -237,6 +253,21 @@ class LeadService
                 'contact_reused' => $contactReused,
             ];
         });
+    }
+
+    /** Replace a lead's products-of-interest from a [{product_id, quantity?, note?}] list. */
+    private function syncProducts(Lead $lead, array $products): void
+    {
+        $sync = [];
+        foreach ($products as $p) {
+            if (empty($p['product_id'])) continue;
+            $sync[(int) $p['product_id']] = [
+                'company_id' => $lead->company_id,
+                'quantity' => $p['quantity'] ?? null,
+                'note' => $p['note'] ?? null,
+            ];
+        }
+        $lead->products()->sync($sync);
     }
 
     /** Highest-confidence existing Account for this lead, or null. Used to avoid duplicate customers

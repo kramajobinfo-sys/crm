@@ -214,6 +214,15 @@
             </a>
           </div>
 
+          <!-- Products of interest -->
+          <div v-if="selected.products?.length">
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Products of interest</div>
+            <div v-for="p in selected.products" :key="p.product_id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ p.name }}</span>
+              <span v-if="p.quantity" class="text-ink-subtle shrink-0">×{{ p.quantity }}</span>
+            </div>
+          </div>
+
           <!-- Opportunities (deals originating from this lead) -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Opportunities</div>
@@ -384,6 +393,13 @@
             </select>
           </div>
           <div>
+            <label class="label">Campaign</label>
+            <select v-model="form.data.campaign_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="c in (meta.campaigns || [])" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div>
             <label class="label">{{ $t('leads.col.status') }}</label>
             <select v-model="form.data.status_id" class="input text-sm">
               <option :value="null">—</option>
@@ -416,6 +432,24 @@
             </select>
           </div>
         </div>
+
+        <!-- Products of interest -->
+        <div class="mt-3">
+          <div class="flex items-center mb-1">
+            <span class="text-[10px] tracking-wider text-ink-subtle">Products of interest</span>
+            <button type="button" class="text-[11px] text-primary-600 hover:underline ml-auto" @click="addLeadProduct">+ Add product</button>
+          </div>
+          <div v-for="(row, i) in (form.data.products || [])" :key="i" class="flex items-center gap-1.5 mb-1">
+            <select v-model.number="row.product_id" class="input input-sm flex-1">
+              <option :value="null">Select product…</option>
+              <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <input v-model.number="row.quantity" type="number" min="0" placeholder="Qty" class="input input-sm w-20" />
+            <button type="button" class="btn-ghost btn-xs" @click="form.data.products.splice(i, 1)"><X :size="12" /></button>
+          </div>
+          <p v-if="!(form.data.products || []).length" class="text-[11px] text-ink-subtle">None yet — what does this lead want to buy?</p>
+        </div>
+
         <p class="text-[11px] text-ink-subtle mt-2">{{ $t('leads.assign_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('leads.cancel') }}</button>
@@ -466,7 +500,9 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [] });
+const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [] });
+const productOptions = ref([]);
+function addLeadProduct() { (form.data.products ||= []).push({ product_id: null, quantity: null }); }
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
 const loading    = ref(false);
@@ -516,6 +552,9 @@ async function loadAux() {
     Object.assign(stats, s.data.data || {});
     Object.assign(meta, m.data.data || {});
   } catch { /* non-critical */ }
+  // Products for the "products of interest" picker — optional (needs products.view).
+  try { const { data } = await http.get('/products', { params: { per_page: 200 } }); productOptions.value = data.data || []; }
+  catch { productOptions.value = []; }
 }
 
 const leadActivities = ref([]);
@@ -549,8 +588,8 @@ function resetFilters() {
 function openCreate() {
   form.id = null; form.errors = {};
   form.data = { name: '', company_name: '', title: '', email: '', phone: '',
-                source_id: null, status_id: null, estimated_value: 0,
-                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null };
+                source_id: null, campaign_id: null, status_id: null, estimated_value: 0,
+                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null, products: [] };
   form.open = true;
 }
 function openEdit(l) {
@@ -558,10 +597,11 @@ function openEdit(l) {
   form.data = {
     name: l.name, company_name: l.company_name ?? '', title: l.title ?? '',
     email: l.email ?? '', phone: l.phone ?? '',
-    source_id: l.source?.id ?? null, status_id: l.status?.id ?? null,
+    source_id: l.source?.id ?? null, campaign_id: l.campaign_id ?? null, status_id: l.status?.id ?? null,
     estimated_value: l.estimated_value ?? 0,
     priority: l.priority ?? 'medium', follow_up_at: l.follow_up_at ? l.follow_up_at.slice(0, 10) : '',
     next_action: l.next_action ?? '', lost_reason_id: l.lost_reason_id ?? null,
+    products: (l.products || []).map((p) => ({ product_id: p.product_id, quantity: p.quantity })),
   };
   form.open = true;
 }
@@ -578,6 +618,7 @@ async function submitForm(force = false) {
     const payload = { ...form.data };
     ['company_name','title','email','phone','follow_up_at','next_action'].forEach((k) => { if (!payload[k]) delete payload[k]; });
     if (!isLostStatus.value) payload.lost_reason_id = null; // clear a stale reason when not lost
+    payload.products = (payload.products || []).filter((p) => p.product_id); // drop empty rows
     if (!force) {
       const clear = await duplicateGuard.check('lead', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }
