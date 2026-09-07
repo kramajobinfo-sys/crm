@@ -23,9 +23,11 @@
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useUiStore } from '@/stores/ui';
+import { useAuthStore } from '@/stores/auth';
 import { RefreshCw } from 'lucide-vue-next';
 
 const ui = useUiStore();
+const auth = useAuthStore();
 
 // ---- Build auto-updater -----------------------------------------------------
 // __BUILD_ID__ is stamped in at build time (vite.config.js) and emitted as
@@ -51,7 +53,7 @@ function reloadNow() { window.location.reload(); }
 function onVisible() { if (document.visibilityState === 'visible') checkVersion(); }
 
 onMounted(() => {
-  ui.applyTheme(); ui.applyAccent(); ui.applyChrome();
+  ui.setCompanyAppearance(auth.company?.appearance || null); // applies effective look
   versionTimer = setInterval(checkVersion, 180000); // every 3 min
   document.addEventListener('visibilitychange', onVisible);
 });
@@ -60,9 +62,10 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', onVisible);
 });
 
-watch(() => ui.theme, () => ui.applyTheme());
-watch(() => ui.accent, () => ui.applyAccent());
-watch(() => ui.chrome, () => ui.applyChrome(), { deep: true });
+// Company appearance arrives / changes with the authenticated user.
+watch(() => auth.company?.appearance, (a) => ui.setCompanyAppearance(a || null), { deep: true });
+// Re-apply whenever the effective look changes (personal edit, company change, enforce toggle).
+watch(() => ui.effective, () => ui.applyAll(), { deep: true });
 </script>
 
 <style scoped>

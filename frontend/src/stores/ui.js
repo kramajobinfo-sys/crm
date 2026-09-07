@@ -62,61 +62,94 @@ function applySidebar(root, hex) {
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
-    theme: 'light', // 'light' | 'dark'
-    accent: 'blue', // 'blue' | 'indigo' | 'emerald' | 'violet' | 'rose'
-    // Per-surface background overrides (hex string, or null = use theme default).
+    theme: 'light', // 'light' | 'dark'   (personal)
+    accent: 'blue', // 'blue' | 'indigo' | 'emerald' | 'violet' | 'rose'   (personal)
+    // Per-surface personal background overrides (hex string, or null = use theme default).
     chrome: { topbar: null, sidebar: null },
+    // Set true once the user personalizes anything — lets a company default apply only until then.
+    userCustomized: false,
+    // Company-wide appearance from the server: { theme, accent, chrome:{sidebar,topbar}, enforced }.
+    // Not persisted — reloaded from /auth/me each session.
+    company: null,
+    // True while a company appearance is enforced (personal controls are then inert).
+    managed: false,
     sidebarCollapsed: false,
     sidebarMobileOpen: false,
     locale: 'en',
   }),
 
-  actions: {
-    toggleTheme() {
-      this.theme = this.theme === 'light' ? 'dark' : 'light';
-      this.applyTheme();
+  getters: {
+    // The appearance actually shown, after company vs personal precedence.
+    effective(state) {
+      const def = { theme: 'light', accent: 'blue', chrome: { topbar: null, sidebar: null } };
+      const c = state.company;
+      if (c && c.enforced) {
+        return { theme: c.theme || def.theme, accent: c.accent || def.accent, chrome: c.chrome || def.chrome, managed: true };
+      }
+      if (c && !state.userCustomized) {
+        return { theme: c.theme || def.theme, accent: c.accent || def.accent, chrome: c.chrome || def.chrome, managed: false };
+      }
+      return { theme: state.theme, accent: state.accent, chrome: state.chrome || def.chrome, managed: false };
     },
+  },
+
+  actions: {
+    // ---- Apply the effective appearance to the DOM -------------------------
+    applyAll() {
+      const e = this.effective;
+      this.managed = e.managed;
+      const root = document.documentElement;
+      root.classList.toggle('dark', e.theme === 'dark');
+      root.setAttribute('data-accent', e.accent || 'blue');
+      applyTopbar(root, e.chrome?.topbar);
+      applySidebar(root, e.chrome?.sidebar);
+    },
+    // Back-compat aliases — everything routes through applyAll now.
+    applyTheme() { this.applyAll(); },
+    applyAccent() { this.applyAll(); },
+    applyChrome() { this.applyAll(); },
+
+    // Company appearance arrives with the authenticated user (auth store -> /auth/me).
+    setCompanyAppearance(appearance) {
+      this.company = appearance || null;
+      this.applyAll();
+    },
+
+    toggleTheme() { this.setTheme(this.theme === 'light' ? 'dark' : 'light'); },
 
     setTheme(theme) {
       this.theme = theme;
-      this.applyTheme();
-    },
-
-    applyTheme() {
-      const root = document.documentElement;
-      if (this.theme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
+      this.userCustomized = true;
+      this.applyAll();
     },
 
     setAccent(accent) {
       this.accent = accent;
-      this.applyAccent();
-    },
-
-    applyAccent() {
-      document.documentElement.setAttribute('data-accent', this.accent || 'blue');
+      this.userCustomized = true;
+      this.applyAll();
     },
 
     // ---- Customizable chrome (topbar / sidebar backgrounds) ----------------
     setChrome(surface, hex) {
       this.chrome = { ...this.chrome, [surface]: hex || null };
-      this.applyChrome();
+      this.userCustomized = true;
+      this.applyAll();
     },
 
     resetChrome(surface) {
       if (surface) this.chrome = { ...this.chrome, [surface]: null };
       else this.chrome = { topbar: null, sidebar: null };
-      this.applyChrome();
+      this.userCustomized = true;
+      this.applyAll();
     },
 
-    applyChrome() {
-      const root = document.documentElement;
-      const c = this.chrome || {};
-      applyTopbar(root, c.topbar);
-      applySidebar(root, c.sidebar);
+    // Discard personal customization and fall back to the company default (or app default).
+    resetToCompany() {
+      this.userCustomized = false;
+      this.theme = 'light';
+      this.accent = 'blue';
+      this.chrome = { topbar: null, sidebar: null };
+      this.applyAll();
     },
 
     toggleSidebar() {
@@ -140,6 +173,6 @@ export const useUiStore = defineStore('ui', {
   },
 
   persist: {
-    paths: ['theme', 'accent', 'chrome', 'sidebarCollapsed', 'locale'],
+    paths: ['theme', 'accent', 'chrome', 'userCustomized', 'sidebarCollapsed', 'locale'],
   },
 });

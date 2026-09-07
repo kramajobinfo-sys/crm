@@ -21,6 +21,7 @@ class UserResource extends JsonResource
                 'id' => $this->company->id, 'name' => $this->company->name, 'code' => $this->company->code,
                 'logo_url' => $this->company->logo_path ? Storage::disk('public')->url($this->company->logo_path) : null,
                 'primary_color' => $this->company->primary_color, 'base_currency' => $this->company->base_currency,
+                'appearance' => $this->company->appearance,
                 'plan' => $this->company->plan ? [
                     'code' => $this->company->plan->code,
                     'name' => $this->company->plan->name,

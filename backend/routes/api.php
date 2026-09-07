@@ -553,6 +553,7 @@ Route::prefix('v1')->group(function () {
         Route::prefix('settings')->middleware('feature:settings')->group(function () {
             Route::get('company',        [OrganizationController::class, 'company'])->middleware('permission:settings.view');
             Route::put('company',        [OrganizationController::class, 'updateCompany'])->middleware('permission:settings.update');
+            Route::put('company/appearance', [OrganizationController::class, 'updateAppearance'])->middleware('permission:settings.update');
             Route::get('branches',       [OrganizationController::class, 'branches'])->middleware('permission:settings.view');
             Route::post('branches',      [OrganizationController::class, 'storeBranch'])->middleware('permission:settings.update');
             Route::put('branches/{id}',  [OrganizationController::class, 'updateBranch'])->middleware('permission:settings.update')->whereNumber('id');
