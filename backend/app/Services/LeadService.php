@@ -30,6 +30,11 @@ class LeadService
             ->when(!empty($filters['status_id']), fn ($q) => $q->where('status_id', $filters['status_id']))
             ->when(!empty($filters['source_id']), fn ($q) => $q->where('source_id', $filters['source_id']))
             ->when(!empty($filters['rating']), fn ($q) => $q->where('rating', $filters['rating']))
+            ->when(!empty($filters['priority']), fn ($q) => $q->where('priority', $filters['priority']))
+            ->when(($filters['follow_up'] ?? null) === 'overdue',
+                fn ($q) => $q->open()->whereNotNull('follow_up_at')->where('follow_up_at', '<', now()))
+            ->when(($filters['follow_up'] ?? null) === 'today',
+                fn ($q) => $q->open()->whereBetween('follow_up_at', [now()->startOfDay(), now()->endOfDay()]))
             ->when(!empty($filters['owner_id']), function ($q) use ($filters) {
                 if ($filters['owner_id'] === 'me') return $q->where('owner_id', auth()->id());
                 if ($filters['owner_id'] === 'unassigned') return $q->whereNull('owner_id');
@@ -42,7 +47,7 @@ class LeadService
     public function find(int $id): Lead
     {
         return Lead::with([
-            'source', 'status', 'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
+            'source', 'status', 'lostReason:id,name', 'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
             'addresses',
             'attachments' => fn ($q) => $q->with('uploader:id,name')->latest(),
             'timeline' => fn ($q) => $q->with('user:id,name')->orderByDesc('occurred_at')->limit(50),

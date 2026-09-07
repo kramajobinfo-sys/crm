@@ -13,11 +13,13 @@ class Lead extends Model
     use HasFactory, SoftDeletes, BelongsToCompany;
 
     public const RATINGS = ['hot', 'warm', 'cold'];
+    public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
     protected $fillable = [
         'company_id','lead_no','name','company_name','title','email','phone','mobile','website',
-        'source_id','status_id','score','rating','owner_id','branch_id','estimated_value','currency',
-        'expected_close_date','last_contacted_at','converted_to_customer_id','converted_at','notes',
+        'source_id','status_id','lost_reason_id','score','rating','priority','owner_id','branch_id',
+        'estimated_value','currency','expected_close_date','last_contacted_at','follow_up_at','next_action',
+        'converted_to_customer_id','converted_at','notes',
     ];
     protected function casts(): array
     {
@@ -26,12 +28,14 @@ class Lead extends Model
             'estimated_value' => 'decimal:2',
             'expected_close_date' => 'date',
             'last_contacted_at' => 'datetime',
+            'follow_up_at' => 'datetime',
             'converted_at' => 'datetime',
         ];
     }
 
     public function source(): BelongsTo   { return $this->belongsTo(LeadSource::class, 'source_id'); }
     public function status(): BelongsTo   { return $this->belongsTo(LeadStatus::class, 'status_id'); }
+    public function lostReason(): BelongsTo { return $this->belongsTo(LostReason::class, 'lost_reason_id'); }
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }
     public function branch(): BelongsTo   { return $this->belongsTo(Branch::class); }
     public function customer(): BelongsTo { return $this->belongsTo(Customer::class, 'converted_to_customer_id'); }

@@ -158,6 +158,7 @@
             <p v-if="form.errors.name" class="text-[11px] text-red-600 mt-1">{{ form.errors.name[0] }}</p>
           </div>
           <div><label class="label">{{ $t('contacts.title_field') }}</label><input v-model="form.data.title" class="input text-sm w-full" /></div>
+          <div><label class="label">Department</label><input v-model="form.data.department" class="input text-sm w-full" /></div>
           <div><label class="label">{{ $t('contacts.email') }}</label><input v-model="form.data.email" type="email" class="input text-sm w-full" /></div>
           <div><label class="label">{{ $t('contacts.phone') }}</label><input v-model="form.data.phone" class="input text-sm w-full" /></div>
           <div><label class="label">{{ $t('contacts.mobile') }}</label><input v-model="form.data.mobile" class="input text-sm w-full" /></div>
@@ -248,7 +249,7 @@ function portalUpdated(contact) {
   toast.success(t('contacts.portal_updated'));
 }
 
-const blank = () => ({ customer_id: null, name: '', title: '', email: '', phone: '', mobile: '', is_primary: false, notes: '' });
+const blank = () => ({ customer_id: null, name: '', title: '', department: '', email: '', phone: '', mobile: '', is_primary: false, notes: '' });
 
 async function load() {
   loading.value = true;
@@ -320,6 +321,7 @@ function openEdit(contact) {
     customer_id: contact.customer_id,
     name: contact.name,
     title: contact.title || '',
+    department: contact.department || '',
     email: contact.email || '',
     phone: contact.phone || '',
     mobile: contact.mobile || '',

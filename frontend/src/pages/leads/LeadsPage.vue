@@ -51,6 +51,15 @@
           <option value="">{{ $t('leads.all_ratings') }}</option>
           <option v-for="r in meta.ratings" :key="r" :value="r">{{ $t(`leads.rating.${r}`) }}</option>
         </select>
+        <select v-model="filters.priority" class="input input-sm w-auto" @change="load">
+          <option value="">All priorities</option>
+          <option v-for="p in (meta.priorities || [])" :key="p" :value="p" class="capitalize">{{ p }}</option>
+        </select>
+        <select v-model="filters.follow_up" class="input input-sm w-auto" @change="load">
+          <option value="">All follow-ups</option>
+          <option value="overdue">Follow-up overdue</option>
+          <option value="today">Follow-up today</option>
+        </select>
         <label class="chip cursor-pointer" :class="filters.owner_id === 'me' && '!bg-primary-50 !text-primary-700 dark:!bg-primary-900/25 dark:!text-primary-300'">
           <input type="checkbox" class="rounded border-line-strong w-3.5 h-3.5" :checked="filters.owner_id === 'me'"
                  @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
@@ -361,6 +370,27 @@
             <label class="label">{{ $t('leads.col.value') }}</label>
             <input v-model="form.data.estimated_value" type="number" min="0" class="input text-sm" />
           </div>
+          <div>
+            <label class="label">Priority</label>
+            <select v-model="form.data.priority" class="input text-sm">
+              <option v-for="p in (meta.priorities || [])" :key="p" :value="p" class="capitalize">{{ p }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Follow-up date</label>
+            <input v-model="form.data.follow_up_at" type="date" class="input text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Next action</label>
+            <input v-model="form.data.next_action" class="input text-sm" placeholder="e.g. Call back, send proposal" />
+          </div>
+          <div v-if="isLostStatus" class="sm:col-span-2">
+            <label class="label">Loss reason</label>
+            <select v-model="form.data.lost_reason_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="lr in (meta.lost_reasons || [])" :key="lr.id" :value="lr.id">{{ lr.name }}</option>
+            </select>
+          </div>
         </div>
         <p class="text-[11px] text-ink-subtle mt-2">{{ $t('leads.assign_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
@@ -411,7 +441,7 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ sources: [], statuses: [], ratings: [] });
+const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [] });
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
 const loading    = ref(false);
@@ -421,7 +451,7 @@ const noteDraft  = ref('');
 const noteType   = ref('note');
 const savingNote = ref(false);
 const fileInput  = ref(null);
-const filters    = reactive({ q: '', converted: 'open', status_id: '', source_id: '', rating: '', owner_id: '' });
+const filters    = reactive({ q: '', converted: 'open', status_id: '', source_id: '', rating: '', priority: '', follow_up: '', owner_id: '' });
 const form = reactive({ open: false, id: null, saving: false, data: {}, errors: {} });
 const duplicateGuard = useDuplicateGuard();
 const mergeGuard = useRecordMerge(async () => {
@@ -477,14 +507,15 @@ function applyTile(s) {
   load();
 }
 function resetFilters() {
-  Object.assign(filters, { q: '', converted: 'open', status_id: '', source_id: '', rating: '', owner_id: '' });
+  Object.assign(filters, { q: '', converted: 'open', status_id: '', source_id: '', rating: '', priority: '', follow_up: '', owner_id: '' });
   page.value = 1; load();
 }
 
 function openCreate() {
   form.id = null; form.errors = {};
   form.data = { name: '', company_name: '', title: '', email: '', phone: '',
-                source_id: null, status_id: null, estimated_value: 0 };
+                source_id: null, status_id: null, estimated_value: 0,
+                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null };
   form.open = true;
 }
 function openEdit(l) {
@@ -494,15 +525,24 @@ function openEdit(l) {
     email: l.email ?? '', phone: l.phone ?? '',
     source_id: l.source?.id ?? null, status_id: l.status?.id ?? null,
     estimated_value: l.estimated_value ?? 0,
+    priority: l.priority ?? 'medium', follow_up_at: l.follow_up_at ? l.follow_up_at.slice(0, 10) : '',
+    next_action: l.next_action ?? '', lost_reason_id: l.lost_reason_id ?? null,
   };
   form.open = true;
 }
+
+// The loss-reason picker only makes sense when the chosen status is a "lost" one.
+const isLostStatus = computed(() => {
+  const s = meta.statuses.find((x) => x.id === form.data.status_id);
+  return !!s?.is_lost;
+});
 
 async function submitForm(force = false) {
   form.saving = true; form.errors = {};
   try {
     const payload = { ...form.data };
-    ['company_name','title','email','phone'].forEach((k) => { if (!payload[k]) delete payload[k]; });
+    ['company_name','title','email','phone','follow_up_at','next_action'].forEach((k) => { if (!payload[k]) delete payload[k]; });
+    if (!isLostStatus.value) payload.lost_reason_id = null; // clear a stale reason when not lost
     if (!force) {
       const clear = await duplicateGuard.check('lead', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }

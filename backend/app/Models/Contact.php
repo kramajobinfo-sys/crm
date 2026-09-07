@@ -21,7 +21,7 @@ class Contact extends Authenticatable implements JWTSubject
     use HasFactory, SoftDeletes, BelongsToCompany;
 
     protected $fillable = [
-        'company_id','customer_id','name','title','email','phone','mobile','is_primary','notes',
+        'company_id','customer_id','name','title','department','email','phone','mobile','is_primary','notes',
     ];
     protected $hidden = ['password'];
 

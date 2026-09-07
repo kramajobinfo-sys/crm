@@ -32,6 +32,8 @@ class LeadController extends Controller
             'status_id' => 'nullable|integer',
             'source_id' => 'nullable|integer',
             'rating'    => 'nullable|string|in:hot,warm,cold',
+            'priority'  => 'nullable|string|in:low,medium,high,urgent',
+            'follow_up' => 'nullable|string|in:overdue,today',
             'owner_id'  => 'nullable|string',
             'per_page'  => 'nullable|integer|min:1|max:100',
         ]);
@@ -52,6 +54,8 @@ class LeadController extends Controller
             'sources'  => LeadSource::where('is_active', true)->orderBy('name')->get(['id','name','code']),
             'statuses' => LeadStatus::orderBy('sort_order')->get(['id','name','code','color','is_won','is_lost','is_default']),
             'ratings'  => Lead::RATINGS,
+            'priorities' => Lead::PRIORITIES,
+            'lost_reasons' => \App\Models\LostReason::where('is_active', true)->orderBy('sort_order')->get(['id','name','code']),
             'next_lead_no' => $this->leads->nextLeadNo(),
         ]);
     }

@@ -21,6 +21,7 @@ class ContactResource extends JsonResource
             ] : null),
             'name' => $this->name,
             'title' => $this->title,
+            'department' => $this->department,
             'email' => $this->email,
             'phone' => $this->phone,
             'mobile' => $this->mobile,
