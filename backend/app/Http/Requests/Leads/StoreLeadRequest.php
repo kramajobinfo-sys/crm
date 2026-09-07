@@ -22,6 +22,8 @@ class StoreLeadRequest extends FormRequest
             'website'=> ['nullable','url','max:191'],
             'source_id' => ['nullable','integer', Rule::exists('lead_sources','id')->where('company_id',$companyId)],
             'campaign_id' => ['nullable','integer', Rule::exists('campaigns','id')->where('company_id',$companyId)],
+            'account_id' => ['nullable','integer', Rule::exists('customers','id')->where('company_id',$companyId)],
+            'territory' => ['nullable','string','max:96'],
             'status_id' => ['nullable','integer', Rule::exists('lead_statuses','id')->where('company_id',$companyId)],
             'lost_reason_id' => ['nullable','integer', Rule::exists('lost_reasons','id')->where('company_id',$companyId)],
             'products' => ['nullable','array'],

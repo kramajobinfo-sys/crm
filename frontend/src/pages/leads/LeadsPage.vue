@@ -414,6 +414,17 @@
             </select>
           </div>
           <div>
+            <label class="label">Account (existing)</label>
+            <select v-model="form.data.account_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="a in customerOptions" :key="a.id" :value="a.id">{{ a.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Territory</label>
+            <input v-model="form.data.territory" class="input text-sm" placeholder="e.g. North" />
+          </div>
+          <div>
             <label class="label">{{ $t('leads.col.status') }}</label>
             <select v-model="form.data.status_id" class="input text-sm">
               <option :value="null">—</option>
@@ -516,6 +527,7 @@ const rows       = ref([]);
 const stats      = reactive({});
 const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [] });
 const productOptions = ref([]);
+const customerOptions = ref([]);
 function addLeadProduct() { (form.data.products ||= []).push({ product_id: null, quantity: null }); }
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
@@ -569,6 +581,9 @@ async function loadAux() {
   // Products for the "products of interest" picker — optional (needs products.view).
   try { const { data } = await http.get('/products', { params: { per_page: 200 } }); productOptions.value = data.data || []; }
   catch { productOptions.value = []; }
+  // Customers for the "existing account" picker — optional (needs customers.view).
+  try { const { data } = await http.get('/customers', { params: { per_page: 200 } }); customerOptions.value = data.data || []; }
+  catch { customerOptions.value = []; }
 }
 
 const leadActivities = ref([]);
@@ -621,7 +636,7 @@ function resetFilters() {
 function openCreate() {
   form.id = null; form.errors = {};
   form.data = { name: '', company_name: '', title: '', email: '', phone: '',
-                source_id: null, campaign_id: null, status_id: null, estimated_value: 0,
+                source_id: null, campaign_id: null, account_id: null, territory: '', status_id: null, estimated_value: 0,
                 priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null, products: [] };
   form.open = true;
 }
@@ -630,7 +645,8 @@ function openEdit(l) {
   form.data = {
     name: l.name, company_name: l.company_name ?? '', title: l.title ?? '',
     email: l.email ?? '', phone: l.phone ?? '',
-    source_id: l.source?.id ?? null, campaign_id: l.campaign_id ?? null, status_id: l.status?.id ?? null,
+    source_id: l.source?.id ?? null, campaign_id: l.campaign_id ?? null, account_id: l.account_id ?? null,
+    territory: l.territory ?? '', status_id: l.status?.id ?? null,
     estimated_value: l.estimated_value ?? 0,
     priority: l.priority ?? 'medium', follow_up_at: l.follow_up_at ? l.follow_up_at.slice(0, 10) : '',
     next_action: l.next_action ?? '', lost_reason_id: l.lost_reason_id ?? null,

@@ -18,8 +18,8 @@ class Lead extends Model
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
     protected $fillable = [
-        'company_id','lead_no','name','company_name','title','email','phone','mobile','website',
-        'source_id','campaign_id','status_id','lost_reason_id','score','rating','priority','owner_id','branch_id',
+        'company_id','lead_no','name','company_name','account_id','title','email','phone','mobile','website',
+        'source_id','campaign_id','status_id','lost_reason_id','score','rating','priority','owner_id','branch_id','territory',
         'estimated_value','currency','expected_close_date','last_contacted_at','follow_up_at','next_action',
         'converted_to_customer_id','converted_at','notes',
     ];
@@ -42,6 +42,7 @@ class Lead extends Model
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }
     public function branch(): BelongsTo   { return $this->belongsTo(Branch::class); }
     public function customer(): BelongsTo { return $this->belongsTo(Customer::class, 'converted_to_customer_id'); }
+    public function account(): BelongsTo  { return $this->belongsTo(Customer::class, 'account_id'); }
     public function deals(): HasMany      { return $this->hasMany(Deal::class); }
     public function products(): BelongsToMany
     {

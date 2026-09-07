@@ -47,8 +47,8 @@ class LeadService
     public function find(int $id): Lead
     {
         return Lead::with([
-            'source', 'status', 'lostReason:id,name', 'campaign:id,name', 'owner:id,name', 'branch:id,name',
-            'customer:id,name,customer_no',
+            'source', 'status', 'lostReason:id,name', 'campaign:id,name', 'account:id,name,customer_no',
+            'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
             'deals' => fn ($q) => $q->with('stage:id,name,is_won,is_lost')->orderByDesc('id'),
             'products:id,name,sku',
             'addresses',
@@ -135,6 +135,11 @@ class LeadService
             $accountReused = false;
             if ($accountMode === 'existing') {
                 $customer = Customer::findOrFail((int) $options['account_id']);
+            } elseif (!array_key_exists('account_mode', $options)
+                && $lead->account_id && !($options['force_new_account'] ?? false)) {
+                // The lead is already linked to an existing Account — convert into it.
+                $customer = Customer::findOrFail($lead->account_id);
+                $accountReused = true;
             } elseif (!($options['force_new_account'] ?? false)
                 && ($match = $this->matchingAccountId($lead)) !== null) {
                 // Dedup guard: a high-confidence existing Account (same email/tax_id, or ≥2 signals)

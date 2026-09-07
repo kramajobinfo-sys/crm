@@ -74,8 +74,12 @@ class ActivityService
             'kind' => 'meeting', 'id' => $m->id, 'title' => $m->title, 'status' => $m->status,
             'location' => $m->location, 'when' => $m->start_at ?? $m->created_at,
         ]);
+        $emails = \App\Models\Email::where($scope)->get()->map(fn ($e) => [
+            'kind' => 'email', 'id' => $e->id, 'title' => $e->subject, 'status' => $e->status,
+            'direction' => $e->direction, 'when' => $e->sent_at ?? $e->received_at ?? $e->created_at,
+        ]);
 
-        return $tasks->concat($calls)->concat($meetings)
+        return $tasks->concat($calls)->concat($meetings)->concat($emails)
             ->sortByDesc(fn ($a) => optional($a['when'])->timestamp ?? 0)
             ->map(function ($a) {
                 $when = $a['when'];

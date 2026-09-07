@@ -43,6 +43,10 @@ class LeadResource extends JsonResource
             'campaign' => $this->whenLoaded('campaign', fn () => $this->campaign
                 ? ['id' => $this->campaign->id, 'name' => $this->campaign->name] : null),
             'campaign_id' => $this->campaign_id,
+            'account' => $this->whenLoaded('account', fn () => $this->account
+                ? ['id' => $this->account->id, 'name' => $this->account->name, 'customer_no' => $this->account->customer_no] : null),
+            'account_id' => $this->account_id,
+            'territory' => $this->territory,
             'products' => $this->whenLoaded('products', fn () => $this->products->map(fn ($p) => [
                 'product_id' => $p->id, 'name' => $p->name, 'sku' => $p->sku,
                 'quantity' => $p->pivot->quantity !== null ? (float) $p->pivot->quantity : null,
