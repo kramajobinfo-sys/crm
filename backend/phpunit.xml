@@ -17,6 +17,7 @@
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_KEY" value="base64:AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyA=" force="true"/>
+        <env name="JWT_SECRET" value="testing-jwt-secret-not-for-production-use-only" force="true"/>
         <env name="APP_DEBUG" value="true" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="CACHE_DRIVER" value="array" force="true"/>
