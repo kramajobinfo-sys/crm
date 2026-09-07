@@ -7,7 +7,7 @@ class Quotation extends SalesDocument
 {
     protected $table = 'quotations';
 
-    public const STATUSES = ['draft','sent','accepted','rejected','expired','converted'];
+    public const STATUSES = ['draft','pending_approval','sent','accepted','rejected','expired','converted'];
 
     public function __construct(array $attributes = [])
     {

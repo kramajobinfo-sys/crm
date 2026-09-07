@@ -70,6 +70,7 @@ class ApprovalService
 
             if ($action === 'reject') {
                 $request->forceFill(['status' => 'rejected'])->save();
+                $this->syncQuotation($request);
                 return $request;
             }
 
@@ -77,11 +78,27 @@ class ApprovalService
             $isLast = $request->current_step >= $request->workflow->steps() - 1;
             if ($isLast) {
                 $request->forceFill(['status' => 'approved'])->save();
+                $this->syncQuotation($request);
             } else {
                 $request->forceFill(['current_step' => $request->current_step + 1])->save();
             }
             return $request;
         });
+    }
+
+    /**
+     * When a quotation's approval resolves, return it to draft (now sendable) or leave it revisable
+     * on rejection, and log the outcome. PO/PR resolution stays in PurchaseService::applyApproval;
+     * this only handles the Quotation document type the sales flow added.
+     */
+    private function syncQuotation(ApprovalRequest $request): void
+    {
+        if (!in_array($request->status, ['approved', 'rejected'], true)) return;
+        $doc = $request->approvable()->first();
+        if (!($doc instanceof \App\Models\Quotation)) return;
+        $doc->forceFill(['status' => 'draft'])->save();
+        \App\Models\TimelineActivity::record($doc, 'system',
+            $request->status === 'approved' ? 'Quotation approved' : 'Quotation approval rejected — revise and resubmit');
     }
 
     /** Approvals currently waiting on a given user. */

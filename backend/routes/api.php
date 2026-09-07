@@ -324,10 +324,12 @@ Route::prefix('v1')->group(function () {
             Route::get   ('/',    [QuotationController::class, 'index'])->middleware('permission:quotations.view');
             Route::post  ('/',    [QuotationController::class, 'store'])->middleware('permission:quotations.create');
             Route::get   ('{id}', [QuotationController::class, 'show'])->middleware('permission:quotations.view')->whereNumber('id');
+            Route::get   ('{id}/pdf', [QuotationController::class, 'pdf'])->middleware('permission:quotations.view')->whereNumber('id');
             Route::put   ('{id}', [QuotationController::class, 'update'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::delete('{id}', [QuotationController::class, 'destroy'])->middleware('permission:quotations.delete')->whereNumber('id');
             Route::post  ('{id}/status',  [QuotationController::class, 'setStatus'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::post  ('{id}/send',    [QuotationController::class, 'send'])->middleware('permission:quotations.send')->whereNumber('id');
+            Route::post  ('{id}/submit-approval', [QuotationController::class, 'submitForApproval'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::post  ('{id}/convert', [QuotationController::class, 'convert'])->middleware('permission:orders.create')->whereNumber('id');
         });
 
@@ -447,10 +449,15 @@ Route::prefix('v1')->group(function () {
             Route::post  ('{id}/cancel',  [PurchaseOrderController::class, 'cancel'])->middleware('permission:purchase_orders.update')->whereNumber('id');
         });
 
-        // Module 8 — Purchase: approvals
-        Route::prefix('approvals')->middleware('feature:purchase_orders')->group(function () {
+        // Personal approval inbox — generic across document types (purchase orders, quotations, …),
+        // so an approver reaches it without needing the purchase feature.
+        Route::prefix('approvals')->group(function () {
             Route::get ('mine',       [ApprovalController::class, 'mine']);
             Route::post('{id}/act',   [ApprovalController::class, 'act'])->whereNumber('id');
+        });
+
+        // Module 8 — Purchase: approval-workflow configuration
+        Route::prefix('approvals')->middleware('feature:purchase_orders')->group(function () {
             Route::get   ('workflows',      [ApprovalController::class, 'workflows'])->middleware('permission:purchase_orders.approve');
             Route::post  ('workflows',      [ApprovalController::class, 'storeWorkflow'])->middleware('permission:purchase_orders.approve');
             Route::put   ('workflows/{id}', [ApprovalController::class, 'updateWorkflow'])->middleware('permission:purchase_orders.approve')->whereNumber('id');

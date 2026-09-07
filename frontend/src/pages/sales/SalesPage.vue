@@ -133,6 +133,11 @@
         <!-- Actions -->
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0 flex flex-wrap gap-1.5">
           <button v-if="can(`${permBase}.update`)" class="btn-secondary btn-xs" @click="openEditDoc(selected)">{{ $t('sales.edit') }}</button>
+          <button v-if="tab === 'quotations' && can('quotations.view')" class="btn-secondary btn-xs" :disabled="pdfBusy" @click="downloadQuotePdf">
+            <Download :size="12" /> PDF
+          </button>
+          <button v-if="tab === 'quotations' && selected.status === 'draft' && can('quotations.update')" class="btn-secondary btn-xs" :disabled="approvalBusy" @click="submitForApproval">Submit for approval</button>
+          <span v-if="tab === 'quotations' && selected.status === 'pending_approval'" class="badge-warning self-center">Awaiting approval</span>
           <button v-if="tab === 'quotations' && selected.status === 'draft' && can('quotations.send')" class="btn-primary btn-xs" @click="sendQuotation">{{ $t('sales.send_quote') }}</button>
           <button v-if="tab === 'quotations' && !selected.converted_order_id && can('orders.create')" class="btn-primary btn-xs" @click="convertDoc">{{ $t('sales.to_order') }}</button>
           <button v-if="tab === 'orders' && !selected.converted_invoice_id && can('invoices.create')" class="btn-primary btn-xs" @click="convertDoc">{{ $t('sales.to_invoice') }}</button>
@@ -325,7 +330,8 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/services/sales';
 import customerApi from '@/services/customers';
 import creditsApi from '@/services/credits';
-import { RefreshCw, Plus, X } from 'lucide-vue-next';
+import http from '@/services/http';
+import { RefreshCw, Plus, X, Download } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -513,6 +519,30 @@ async function sendQuotation() {
     toast[data.data.emailed ? 'success' : 'warning'](data.message);
     await Promise.all([openDetail(selected.value.id), load(), loadAux()]);
   } catch (e) { if (e.response?.status === 422) toast.error(e.response.data?.message); }
+}
+
+const approvalBusy = ref(false);
+async function submitForApproval() {
+  approvalBusy.value = true;
+  try {
+    const { data } = await http.post(`/quotations/${selected.value.id}/submit-approval`);
+    toast.success(data.message || 'Submitted for approval');
+    await Promise.all([openDetail(selected.value.id), load()]);
+  } catch (e) { toast.error(e.response?.data?.message || 'Could not submit for approval'); }
+  finally { approvalBusy.value = false; }
+}
+
+const pdfBusy = ref(false);
+async function downloadQuotePdf() {
+  pdfBusy.value = true;
+  try {
+    const res = await http.get(`/quotations/${selected.value.id}/pdf`, { responseType: 'blob' });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url; a.download = `quote-${docNo(selected.value)}.pdf`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  } catch { toast.error('Could not generate the PDF'); }
+  finally { pdfBusy.value = false; }
 }
 
 function openPay() { payForm.open = true; payForm.data = { amount: selected.value.balance, method: 'bank_transfer', reference: '' }; }
