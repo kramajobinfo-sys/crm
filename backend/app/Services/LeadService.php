@@ -107,6 +107,7 @@ class LeadService
             }
             if (array_key_exists('owner_id', $data) && $data['owner_id'] !== $beforeOwner) {
                 TimelineActivity::record($lead, 'system', 'Owner reassigned');
+                app(CrmNotifier::class)->leadAssigned($lead);
             }
 
             $this->scoring->apply($lead);
@@ -341,10 +342,38 @@ class LeadService
             if ($userId) {
                 $lead->forceFill(['owner_id' => $userId])->save();
                 TimelineActivity::record($lead, 'system', "Auto-assigned by rule “{$rule->name}”");
+                app(CrmNotifier::class)->leadAssigned($lead);
                 return $userId;
             }
         }
         return null;
+    }
+
+    /**
+     * Notify owners of open leads whose follow-up date has arrived. Idempotent: each scheduled
+     * follow-up fires once (guarded by follow_up_notified_at), and re-fires only if the owner
+     * later pushes follow_up_at to a new date. Runs from the scheduler in a console context, so
+     * it steps outside the company global scope and stamps quietly (no audit/observer noise).
+     */
+    public function sweepFollowUpsDue(): int
+    {
+        $due = Lead::withoutGlobalScopes()
+            ->whereNull('converted_to_customer_id')
+            ->whereNotNull('owner_id')
+            ->whereNotNull('follow_up_at')
+            ->where('follow_up_at', '<=', now())
+            ->where(function ($q) {
+                $q->whereNull('follow_up_notified_at')
+                  ->orWhereColumn('follow_up_notified_at', '<', 'follow_up_at');
+            })
+            ->get();
+
+        $notifier = app(CrmNotifier::class);
+        foreach ($due as $lead) {
+            $notifier->leadFollowUpDue($lead);
+            $lead->forceFill(['follow_up_notified_at' => now()])->saveQuietly();
+        }
+        return $due->count();
     }
 
     /** Sequential per-company lead number, e.g. LEAD-00042. */

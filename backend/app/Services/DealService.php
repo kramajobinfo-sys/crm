@@ -172,8 +172,8 @@ class DealService
                 TimelineActivity::record($deal, 'status_change', "Stage moved from {$from} to {$to}",
                     null, ['from' => $beforeStage, 'to' => (int) $data['stage_id']]);
                 $this->workflows->fireEvent('deals', 'deal.stage_changed', $deal);
-                if ($stage->is_won) $this->workflows->fireEvent('deals', 'deal.won', $deal);
-                if ($stage->is_lost) $this->workflows->fireEvent('deals', 'deal.lost', $deal);
+                if ($stage->is_won) { $this->workflows->fireEvent('deals', 'deal.won', $deal); app(CrmNotifier::class)->dealClosed($deal, 'won'); }
+                if ($stage->is_lost) { $this->workflows->fireEvent('deals', 'deal.lost', $deal); app(CrmNotifier::class)->dealClosed($deal, 'lost'); }
             }
 
             if (is_array($products)) $this->syncProducts($deal, $products);

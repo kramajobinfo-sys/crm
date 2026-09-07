@@ -118,6 +118,7 @@ class HelpdeskService
         $patch = ['assigned_to' => $userId];
         if ($userId && $ticket->status === 'new') $patch['status'] = 'open';
         $ticket->forceFill($patch)->save();
+        app(CrmNotifier::class)->ticketAssigned($ticket);
         return $this->find($ticket->id);
     }
 
@@ -135,6 +136,7 @@ class HelpdeskService
                 if ($ticket->status === 'new') $patch['status'] = 'open';
                 $ticket->forceFill($patch)->save();
                 \App\Models\TimelineActivity::record($ticket, 'system', "Auto-routed by rule \u{201C}{$rule->name}\u{201D}");
+                app(CrmNotifier::class)->ticketAssigned($ticket);
                 return $userId;
             }
         }
