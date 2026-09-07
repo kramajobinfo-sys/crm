@@ -1497,7 +1497,8 @@
       "webhooks": "Webhooks",
       "routing": "Ticket Routing",
       "sms": "SMS Providers",
-      "appearance": "Appearance"
+      "appearance": "Appearance",
+      "billing": "Subscription"
     },
     "c": {
       "name": "Company name",

@@ -36,6 +36,9 @@
       </div>
     </div>
 
+    <!-- ===== SUBSCRIPTION / BILLING ===== -->
+    <BillingPanel v-else-if="tab === 'billing'" />
+
     <!-- ===== USERS ===== -->
     <!-- ===== APPEARANCE ===== -->
     <div v-else-if="tab === 'appearance'" class="card p-4 max-w-2xl space-y-5">
@@ -679,6 +682,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import api from '@/services/settings';
+import BillingPanel from './BillingPanel.vue';
 import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check, Pipette } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -707,8 +711,8 @@ const setChrome = (surface, hex) => ui.setChrome(surface, hex);
 const resetChrome = (surface) => ui.resetChrome(surface);
 const sameColor = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
-const tabPerm = { company: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
-const allTabs = ['company', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
+const tabPerm = { company: 'settings.view', billing: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
+const allTabs = ['company', 'billing', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 

@@ -19,4 +19,14 @@ class Company extends Model
     public function users(): HasMany { return $this->hasMany(User::class); }
     public function departments(): HasMany { return $this->hasMany(Department::class); }
     public function plan(): BelongsTo { return $this->belongsTo(Plan::class); }
+    public function subscriptions(): HasMany { return $this->hasMany(Subscription::class); }
+
+    /** The current (active, in-period) subscription, if any. */
+    public function activeSubscription(): ?Subscription
+    {
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->where(fn ($q) => $q->whereNull('current_period_end')->orWhereDate('current_period_end', '>=', now()->toDateString()))
+            ->latest('id')->first();
+    }
 }

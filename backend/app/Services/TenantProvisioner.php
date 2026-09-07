@@ -4,6 +4,7 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\Plan;
 use App\Models\PlanFeature;
+use App\Models\PlanPrice;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -165,10 +166,15 @@ class TenantProvisioner
         ]);
         $enterpriseModules = array_keys(self::MODULES); // everything
 
+        // Default list prices (USD / KHR, monthly / yearly). Seeded once via firstOrCreate, so the
+        // platform admin can freely edit them afterwards without a reseed clobbering the changes.
         return [
-            'starter' => ['name' => 'Starter', 'sort_order' => 1, 'modules' => $starterModules],
-            'professional' => ['name' => 'Professional', 'sort_order' => 2, 'modules' => $professionalModules],
-            'enterprise' => ['name' => 'Enterprise', 'sort_order' => 3, 'modules' => $enterpriseModules],
+            'starter' => ['name' => 'Starter', 'sort_order' => 1, 'modules' => $starterModules,
+                'prices' => ['monthly' => ['USD' => 15, 'KHR' => 60000], 'yearly' => ['USD' => 150, 'KHR' => 600000]]],
+            'professional' => ['name' => 'Professional', 'sort_order' => 2, 'modules' => $professionalModules,
+                'prices' => ['monthly' => ['USD' => 39, 'KHR' => 159000], 'yearly' => ['USD' => 390, 'KHR' => 1590000]]],
+            'enterprise' => ['name' => 'Enterprise', 'sort_order' => 3, 'modules' => $enterpriseModules,
+                'prices' => ['monthly' => ['USD' => 99, 'KHR' => 399000], 'yearly' => ['USD' => 990, 'KHR' => 3990000]]],
         ];
     }
 
@@ -184,6 +190,16 @@ class TenantProvisioner
             }
             // Drop features no longer in the definition, so edits above take effect on reseed.
             PlanFeature::where('plan_id', $plan->id)->whereNotIn('module', $def['modules'])->delete();
+
+            // Seed default prices once (never overwrite admin-edited amounts).
+            foreach (($def['prices'] ?? []) as $interval => $byCurrency) {
+                foreach ($byCurrency as $currency => $amount) {
+                    PlanPrice::firstOrCreate(
+                        ['plan_id' => $plan->id, 'interval' => $interval, 'currency' => $currency],
+                        ['amount' => $amount, 'is_active' => true],
+                    );
+                }
+            }
         }
     }
 

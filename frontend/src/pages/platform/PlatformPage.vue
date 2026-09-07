@@ -7,7 +7,18 @@
       </div>
     </div>
 
-    <div class="flex gap-3 items-start">
+    <!-- Tabs -->
+    <div class="flex items-center gap-1 mb-4 border-b border-slate-200 dark:border-slate-700 overflow-x-auto">
+      <button v-for="tb in ['companies','billing']" :key="tb" class="px-3 py-1.5 text-xs -mb-px border-b-2 whitespace-nowrap"
+              :class="ptab === tb ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-muted dark:text-ink-dark-muted'"
+              @click="ptab = tb">
+        {{ tb === 'companies' ? 'Companies' : 'Billing' }}
+      </button>
+    </div>
+
+    <PlatformBillingPanel v-if="ptab === 'billing'" />
+
+    <div v-else class="flex gap-3 items-start">
       <div class="panel flex-1 min-w-0">
         <div class="toolbar border-b border-line dark:border-line-dark">
           <input v-model="q" class="input input-sm w-56" :placeholder="$t('platform.search')" @keyup.enter="loadCompanies" />
@@ -105,11 +116,13 @@ import { ref, reactive } from 'vue';
 import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import api from '@/services/platform';
+import PlatformBillingPanel from './PlatformBillingPanel.vue';
 import { X } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
 
+const ptab = ref('companies');
 const q = ref('');
 const companies = ref([]);
 const selected = ref(null);

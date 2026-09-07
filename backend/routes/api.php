@@ -56,6 +56,8 @@ use App\Http\Controllers\Api\V1\System\GlobalSearchController;
 use App\Http\Controllers\Api\V1\System\DuplicateController;
 use App\Http\Controllers\Api\V1\System\AuditLogController;
 use App\Http\Controllers\Api\V1\Platform\PlatformController;
+use App\Http\Controllers\Api\V1\Platform\BillingSettingController;
+use App\Http\Controllers\Api\V1\Billing\BillingController;
 use App\Http\Controllers\Api\V1\System\TenantInfoController;
 use App\Http\Controllers\Api\V1\Visits\VisitController;
 use App\Http\Controllers\Api\V1\Visits\VisitIngestController;
@@ -86,6 +88,10 @@ Route::prefix('v1')->group(function () {
 
     // Public TwiML callback for click-to-call (Twilio fetches it, no auth).
     Route::match(['get', 'post'], 'calls/twiml/{token}', [\App\Http\Controllers\Api\V1\Activities\ActivityController::class, 'twiml'])->name('calls.twiml');
+
+    // Public ABA PayWay pushback for subscription payments (no auth; body is never trusted — the
+    // controller re-queries PayWay by tran_id before activating). Throttled generously.
+    Route::post('billing/aba/callback', [BillingController::class, 'abaCallback'])->middleware('throttle:120,1')->name('billing.aba.callback');
 
     // Website visitor tracking — the app's ONLY public write endpoint (docs/VISITS_SCOPE.md).
     // The beacon answers 204 for every outcome, including an unknown site key, so it is never
@@ -732,6 +738,23 @@ Route::prefix('v1')->group(function () {
             Route::post('companies/{id}/access-grants', [PlatformController::class, 'grantAccess'])->whereNumber('id');
             Route::get ('access-grants',          [PlatformController::class, 'grants']);
             Route::post('access-grants/{id}/revoke', [PlatformController::class, 'revokeGrant'])->whereNumber('id');
+
+            // SaaS billing configuration: methods, gateway credentials, plan pricing, manual confirms.
+            Route::get ('billing/settings',              [BillingSettingController::class, 'show']);
+            Route::put ('billing/settings',              [BillingSettingController::class, 'update']);
+            Route::get ('billing/plans',                 [BillingSettingController::class, 'plans']);
+            Route::put ('billing/plans/{code}/prices',   [BillingSettingController::class, 'updatePrices']);
+            Route::get ('billing/payments',              [BillingSettingController::class, 'payments']);
+            Route::post('billing/payments/{id}/confirm', [BillingSettingController::class, 'confirmPayment'])->whereNumber('id');
+        });
+
+        // Member-facing subscription billing — always available (no plan feature gate), so a company
+        // can subscribe or upgrade on any tier. Viewing needs settings.view; paying needs settings.update.
+        Route::prefix('billing')->group(function () {
+            Route::get ('catalogue',           [BillingController::class, 'catalogue'])->middleware('permission:settings.view');
+            Route::get ('subscription',        [BillingController::class, 'subscription'])->middleware('permission:settings.view');
+            Route::get ('payments/{id}',       [BillingController::class, 'payment'])->whereNumber('id')->middleware('permission:settings.view');
+            Route::post('checkout',            [BillingController::class, 'checkout'])->middleware('permission:settings.update');
         });
 
         Route::get ('notifications',                [NotificationController::class, 'index']);
