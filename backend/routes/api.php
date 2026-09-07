@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\V1\System\AuditLogController;
 use App\Http\Controllers\Api\V1\Platform\PlatformController;
 use App\Http\Controllers\Api\V1\Platform\BillingSettingController;
 use App\Http\Controllers\Api\V1\Billing\BillingController;
+use App\Http\Controllers\Api\V1\Imports\ImportController;
 use App\Http\Controllers\Api\V1\System\TenantInfoController;
 use App\Http\Controllers\Api\V1\Visits\VisitController;
 use App\Http\Controllers\Api\V1\Visits\VisitIngestController;
@@ -747,6 +748,18 @@ Route::prefix('v1')->group(function () {
             Route::put ('billing/plans/{code}/prices',   [BillingSettingController::class, 'updatePrices']);
             Route::get ('billing/payments',              [BillingSettingController::class, 'payments']);
             Route::post('billing/payments/{id}/confirm', [BillingSettingController::class, 'confirmPayment'])->whereNumber('id');
+        });
+
+        // Bulk CSV import (leads / contacts / customers). Authorization is per-entity inside the
+        // controller (target *.create permission); commit runs in the queue.
+        Route::prefix('imports')->group(function () {
+            Route::get ('meta',            [ImportController::class, 'meta']);
+            Route::get ('/',               [ImportController::class, 'index']);
+            Route::post('/',               [ImportController::class, 'store']);
+            Route::get ('{id}',            [ImportController::class, 'show'])->whereNumber('id');
+            Route::get ('{id}/errors.csv', [ImportController::class, 'errorsCsv'])->whereNumber('id');
+            Route::post('{id}/preview',    [ImportController::class, 'preview'])->whereNumber('id');
+            Route::post('{id}/commit',     [ImportController::class, 'commit'])->whereNumber('id');
         });
 
         // Member-facing subscription billing — always available (no plan feature gate), so a company
