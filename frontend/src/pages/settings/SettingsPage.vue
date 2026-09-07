@@ -38,7 +38,7 @@
 
     <!-- ===== USERS ===== -->
     <!-- ===== APPEARANCE ===== -->
-    <div v-else-if="tab === 'appearance'" class="card p-4 max-w-lg space-y-5">
+    <div v-else-if="tab === 'appearance'" class="card p-4 max-w-2xl space-y-5">
       <div>
         <div class="text-sm font-medium text-ink dark:text-ink-dark mb-0.5">{{ $t('theme.mode') }}</div>
         <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.mode_hint') }}</p>
@@ -60,6 +60,68 @@
           </button>
         </div>
       </div>
+      <div class="divider" />
+
+      <!-- ===== Sidebar background ===== -->
+      <div>
+        <div class="flex items-center justify-between mb-0.5">
+          <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ $t('settings.appearance.sidebar') }}</div>
+          <button v-if="ui.chrome.sidebar" class="btn-ghost btn-xs" @click="resetChrome('sidebar')">
+            <X :size="12" /> {{ $t('settings.appearance.reset') }}
+          </button>
+        </div>
+        <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.sidebar_hint') }}</p>
+        <div class="flex items-center flex-wrap gap-2.5">
+          <button type="button" :title="$t('settings.appearance.default')"
+                  class="w-9 h-9 rounded-lg border border-line-strong dark:border-line-dark-strong bg-white dark:bg-surface-dark-muted flex items-center justify-center transition ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted"
+                  :class="!ui.chrome.sidebar ? 'ring-primary-500' : 'ring-transparent hover:ring-slate-300'"
+                  @click="resetChrome('sidebar')">
+            <Check v-if="!ui.chrome.sidebar" :size="15" class="text-primary-600" />
+          </button>
+          <button v-for="p in CHROME_PRESETS" :key="`sb-${p.key}`" type="button" :title="p.label"
+                  class="w-9 h-9 rounded-lg flex items-center justify-center transition ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted"
+                  :class="sameColor(ui.chrome.sidebar, p.color) ? 'ring-current' : 'ring-transparent hover:ring-slate-300'"
+                  :style="{ backgroundColor: p.color, color: p.color }" @click="setChrome('sidebar', p.color)">
+            <Check v-if="sameColor(ui.chrome.sidebar, p.color)" :size="15" class="text-white" />
+          </button>
+          <label class="w-9 h-9 rounded-lg border border-dashed border-line-strong dark:border-line-dark-strong flex items-center justify-center cursor-pointer overflow-hidden relative" :title="$t('settings.appearance.custom')">
+            <Pipette :size="14" class="text-ink-subtle" />
+            <input type="color" class="absolute inset-0 opacity-0 cursor-pointer" :value="ui.chrome.sidebar || '#0F172A'" @input="setChrome('sidebar', $event.target.value)" />
+          </label>
+        </div>
+      </div>
+
+      <div class="divider" />
+
+      <!-- ===== Top bar background ===== -->
+      <div>
+        <div class="flex items-center justify-between mb-0.5">
+          <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ $t('settings.appearance.topbar') }}</div>
+          <button v-if="ui.chrome.topbar" class="btn-ghost btn-xs" @click="resetChrome('topbar')">
+            <X :size="12" /> {{ $t('settings.appearance.reset') }}
+          </button>
+        </div>
+        <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.topbar_hint') }}</p>
+        <div class="flex items-center flex-wrap gap-2.5">
+          <button type="button" :title="$t('settings.appearance.default')"
+                  class="w-9 h-9 rounded-lg border border-line-strong dark:border-line-dark-strong bg-white dark:bg-surface-dark-muted flex items-center justify-center transition ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted"
+                  :class="!ui.chrome.topbar ? 'ring-primary-500' : 'ring-transparent hover:ring-slate-300'"
+                  @click="resetChrome('topbar')">
+            <Check v-if="!ui.chrome.topbar" :size="15" class="text-primary-600" />
+          </button>
+          <button v-for="p in CHROME_PRESETS" :key="`tb-${p.key}`" type="button" :title="p.label"
+                  class="w-9 h-9 rounded-lg flex items-center justify-center transition ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted"
+                  :class="sameColor(ui.chrome.topbar, p.color) ? 'ring-current' : 'ring-transparent hover:ring-slate-300'"
+                  :style="{ backgroundColor: p.color, color: p.color }" @click="setChrome('topbar', p.color)">
+            <Check v-if="sameColor(ui.chrome.topbar, p.color)" :size="15" class="text-white" />
+          </button>
+          <label class="w-9 h-9 rounded-lg border border-dashed border-line-strong dark:border-line-dark-strong flex items-center justify-center cursor-pointer overflow-hidden relative" :title="$t('settings.appearance.custom')">
+            <Pipette :size="14" class="text-ink-subtle" />
+            <input type="color" class="absolute inset-0 opacity-0 cursor-pointer" :value="ui.chrome.topbar || '#0F172A'" @input="setChrome('topbar', $event.target.value)" />
+          </label>
+        </div>
+      </div>
+
       <p class="text-[11px] text-ink-subtle">{{ $t('settings.appearance.note') }}</p>
     </div>
 
@@ -617,7 +679,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import api from '@/services/settings';
-import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check } from 'lucide-vue-next';
+import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check, Pipette } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -631,6 +693,19 @@ const APPEARANCE_ACCENTS = [
   { key: 'violet', color: '#7C3AED', label: 'Violet' },
   { key: 'rose', color: '#E11D48', label: 'Rose' },
 ];
+// Curated, guaranteed-legible background presets for the sidebar / top bar.
+const CHROME_PRESETS = [
+  { key: 'slate',    color: '#0F172A', label: 'Slate' },
+  { key: 'navy',     color: '#10203E', label: 'Navy' },
+  { key: 'indigo',   color: '#1E1B4B', label: 'Indigo' },
+  { key: 'forest',   color: '#0B2E23', label: 'Forest' },
+  { key: 'graphite', color: '#1C1F26', label: 'Graphite' },
+  { key: 'plum',     color: '#2A1533', label: 'Plum' },
+  { key: 'sand',     color: '#F4EFE7', label: 'Sand' },
+];
+const setChrome = (surface, hex) => ui.setChrome(surface, hex);
+const resetChrome = (surface) => ui.resetChrome(surface);
+const sameColor = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 const tabPerm = { company: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
 const allTabs = ['company', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];

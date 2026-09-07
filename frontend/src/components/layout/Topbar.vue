@@ -1,13 +1,12 @@
 <template>
-  <header class="h-13 flex items-center gap-2 px-4 border-b border-line dark:border-line-dark
-                 bg-white/95 dark:bg-surface-dark-muted/95 backdrop-blur-sm shrink-0">
+  <header class="app-topbar h-13 flex items-center gap-2 px-4 border-b backdrop-blur-sm shrink-0">
     <button class="md:hidden btn-ghost btn-icon btn-sm" :aria-label="$t('nav.open_menu')" @click="ui.toggleMobileSidebar()">
       <Menu :size="18" />
     </button>
 
     <!-- Global search -->
     <div class="flex-1 max-w-lg relative">
-      <div class="flex items-center gap-2 bg-surface-muted dark:bg-surface-dark-subtle rounded-lg h-9 px-3 border border-transparent focus-within:border-primary-500 focus-within:bg-white dark:focus-within:bg-surface-dark-muted focus-within:ring-2 focus-within:ring-primary-500/25 transition-all">
+      <div class="topbar-search flex items-center gap-2 rounded-lg h-9 px-3 border border-transparent focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/25 transition-all">
         <Search :size="15" class="text-ink-subtle dark:text-ink-dark-subtle shrink-0" />
         <input
           ref="searchInput"
@@ -55,7 +54,7 @@
       </div>
     </div>
 
-    <div class="w-px h-6 bg-line dark:bg-line-dark mx-1" />
+    <div class="topbar-divider w-px h-6 mx-1" />
 
     <!-- Language -->
     <div ref="themeMenu" class="relative">

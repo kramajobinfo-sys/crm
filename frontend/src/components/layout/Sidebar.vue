@@ -1,15 +1,15 @@
 <template>
   <aside
-    class="flex-col bg-white dark:bg-surface-dark-muted border-r border-line dark:border-line-dark transition-all duration-200 shrink-0"
+    class="app-sidebar flex-col border-r transition-all duration-200 shrink-0"
     :class="mobile ? 'fixed inset-y-0 left-0 z-50 flex w-72 md:hidden' : ['hidden md:flex', ui.sidebarCollapsed ? 'w-16' : 'w-60']"
   >
-    <div class="h-13 flex items-center gap-2.5 px-3.5 border-b border-line dark:border-line-dark shrink-0">
+    <div class="h-13 flex items-center gap-2.5 px-3.5 border-b sidebar-border shrink-0">
       <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center shrink-0 shadow-sm">
         <Building2 :size="17" />
       </div>
       <div v-if="expanded" class="min-w-0 flex-1">
-        <div class="text-[13px] font-semibold text-ink dark:text-ink-dark truncate leading-tight">{{ auth.company?.name || $t('app.name') }}</div>
-        <div class="text-2xs text-ink-subtle dark:text-ink-dark-subtle truncate">{{ $t('nav.business_platform') }}</div>
+        <div class="sidebar-strong text-[13px] font-semibold truncate leading-tight">{{ auth.company?.name || $t('app.name') }}</div>
+        <div class="sidebar-subtle text-2xs truncate">{{ $t('nav.business_platform') }}</div>
       </div>
       <button v-if="mobile" class="btn-ghost p-1 md:hidden" :aria-label="$t('nav.close_menu')" @click="ui.closeMobileSidebar()">
         <X :size="16" />
@@ -17,18 +17,18 @@
     </div>
 
     <!-- The route is the source of truth, so direct links select the right workspace. -->
-    <div ref="workspaceSwitcher" class="relative p-2 border-b border-line dark:border-line-dark">
+    <div ref="workspaceSwitcher" class="relative p-2 border-b sidebar-border">
       <button
         type="button"
-        class="w-full flex items-center gap-2.5 rounded-lg px-2.5 h-10 text-left bg-surface-muted hover:bg-surface-subtle dark:bg-surface-dark-subtle dark:hover:bg-slate-700/60 border border-line dark:border-line-dark transition-colors"
+        class="sidebar-tile w-full flex items-center gap-2.5 rounded-lg px-2.5 h-10 text-left border transition-colors"
         :class="!expanded && 'justify-center'"
         :title="!expanded ? $t(currentWorkspace.label) : ''"
         :aria-expanded="workspaceOpen"
         @click="workspaceOpen = !workspaceOpen"
       >
         <component :is="currentWorkspace.icon" :size="17" class="shrink-0 text-primary-600 dark:text-primary-400" />
-        <span v-if="expanded" class="text-[13px] font-semibold text-ink dark:text-ink-dark truncate flex-1">{{ $t(currentWorkspace.label) }}</span>
-        <ChevronDown v-if="expanded" :size="15" class="text-ink-subtle transition-transform" :class="workspaceOpen && 'rotate-180'" />
+        <span v-if="expanded" class="sidebar-strong text-[13px] font-semibold truncate flex-1">{{ $t(currentWorkspace.label) }}</span>
+        <ChevronDown v-if="expanded" :size="15" class="sidebar-subtle transition-transform" :class="workspaceOpen && 'rotate-180'" />
       </button>
 
       <div
@@ -53,7 +53,7 @@
     </div>
 
     <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-      <div v-if="expanded" class="section-label px-3 pb-1.5 pt-1">
+      <div v-if="expanded" class="section-label sidebar-subtle px-3 pb-1.5 pt-1">
         {{ $t(currentWorkspace.label) }}
       </div>
       <router-link
@@ -78,7 +78,7 @@
 
     <button
       v-if="!mobile"
-      class="h-10 flex items-center justify-center gap-2 border-t border-line dark:border-line-dark text-ink-subtle dark:text-ink-dark-subtle hover:bg-surface-subtle dark:hover:bg-surface-dark-subtle hover:text-ink dark:hover:text-ink-dark transition-colors"
+      class="sidebar-foot h-10 flex items-center justify-center gap-2 border-t sidebar-border transition-colors"
       :title="ui.sidebarCollapsed ? $t('nav.expand') : $t('nav.collapse')"
       @click="ui.toggleSidebar()"
     >
