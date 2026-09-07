@@ -214,6 +214,30 @@
             </a>
           </div>
 
+          <!-- Opportunities (deals originating from this lead) -->
+          <div>
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Opportunities</div>
+            <div v-if="!selected.deals?.length" class="text-ink-subtle">{{ $t('leads.no_deals') || 'No opportunities.' }}</div>
+            <div v-for="d in selected.deals" :key="d.id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
+              <span v-if="d.stage" class="text-ink-subtle shrink-0">{{ d.stage.name }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
+            </div>
+          </div>
+
+          <!-- Activities (tasks / calls / meetings on this lead) -->
+          <div>
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Activities</div>
+            <div v-if="activitiesLoading" class="text-ink-subtle">Loading…</div>
+            <div v-else-if="!leadActivities.length" class="text-ink-subtle">No activities.</div>
+            <div v-for="a in leadActivities" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ a.kind }}</span>
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ a.title }}</span>
+              <span class="text-ink-subtle shrink-0 capitalize">{{ a.status }}</span>
+              <span class="text-ink-subtle ml-1 shrink-0">{{ a.when_human }}</span>
+            </div>
+          </div>
+
           <!-- Timeline -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('leads.timeline') }}</div>
@@ -411,6 +435,7 @@ import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/leads';
+import http from '@/services/http';
 import customerApi from '@/services/customers';
 import dealApi from '@/services/deals';
 import duplicateApi from '@/services/duplicates';
@@ -493,10 +518,20 @@ async function loadAux() {
   } catch { /* non-critical */ }
 }
 
+const leadActivities = ref([]);
+const activitiesLoading = ref(false);
+async function loadLeadActivities(id) {
+  activitiesLoading.value = true; leadActivities.value = [];
+  try { const { data } = await http.get(`/leads/${id}/activities`); leadActivities.value = data.data || []; }
+  catch { leadActivities.value = []; }
+  finally { activitiesLoading.value = false; }
+}
+
 async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    loadLeadActivities(id);
   } catch { /* interceptor surfaces the error */ }
 }
 

@@ -58,6 +58,11 @@ class LeadResource extends JsonResource
                 $this->relationLoaded('status'),
                 fn () => app(LeadScoringService::class)->evaluate($this->resource)['breakdown']
             ),
+            'deals' => $this->whenLoaded('deals', fn () => $this->deals->map(fn ($d) => [
+                'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+                'amount' => (float) $d->amount, 'currency' => $d->currency, 'status' => $d->status,
+                'stage' => $d->stage ? ['id' => $d->stage->id, 'name' => $d->stage->name] : null,
+            ])),
             'addresses' => $this->whenLoaded('addresses', fn () => $this->addresses->map(fn ($a) => [
                 'id' => $a->id, 'type' => $a->type, 'one_line' => $a->oneLine(),
             ])),

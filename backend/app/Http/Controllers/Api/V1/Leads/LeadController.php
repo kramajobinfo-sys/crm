@@ -48,6 +48,13 @@ class LeadController extends Controller
         return $this->success($this->leads->stats());
     }
 
+    /** Structured activities (tasks/calls/meetings) attached to this lead. */
+    public function activities(int $id): JsonResponse
+    {
+        Lead::findOrFail($id); // company-scoped existence + 404
+        return $this->success(app(\App\Services\ActivityService::class)->forSubject(Lead::class, $id));
+    }
+
     public function meta(): JsonResponse
     {
         return $this->success([

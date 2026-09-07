@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -39,6 +40,7 @@ class Lead extends Model
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }
     public function branch(): BelongsTo   { return $this->belongsTo(Branch::class); }
     public function customer(): BelongsTo { return $this->belongsTo(Customer::class, 'converted_to_customer_id'); }
+    public function deals(): HasMany      { return $this->hasMany(Deal::class); }
 
     public function addresses(): MorphMany   { return $this->morphMany(Address::class, 'addressable'); }
     public function timeline(): MorphMany    { return $this->morphMany(TimelineActivity::class, 'subject'); }

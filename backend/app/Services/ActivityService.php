@@ -52,6 +52,39 @@ class ActivityService
             ->paginate($perPage);
     }
 
+    /**
+     * All structured activities (tasks, calls, meetings) attached to one record, as a single
+     * chronological list. Powers the "Activities" related list on leads/deals/customers/contacts.
+     * @return array<int,array<string,mixed>>
+     */
+    public function forSubject(string $subjectType, int $subjectId): array
+    {
+        $scope = fn ($q) => $q->where('related_type', $subjectType)->where('related_id', $subjectId);
+
+        $tasks = Task::where($scope)->with('assignee:id,name')->get()->map(fn (Task $t) => [
+            'kind' => 'task', 'id' => $t->id, 'title' => $t->title, 'status' => $t->status,
+            'priority' => $t->priority, 'assignee' => $t->assignee?->name, 'when' => $t->due_at ?? $t->created_at,
+        ]);
+        $calls = Call::where($scope)->get()->map(fn (Call $c) => [
+            'kind' => 'call', 'id' => $c->id, 'title' => $c->subject, 'status' => $c->status,
+            'direction' => $c->direction, 'duration_seconds' => $c->duration_seconds,
+            'when' => $c->occurred_at ?? $c->scheduled_at ?? $c->created_at,
+        ]);
+        $meetings = Meeting::where($scope)->get()->map(fn (Meeting $m) => [
+            'kind' => 'meeting', 'id' => $m->id, 'title' => $m->title, 'status' => $m->status,
+            'location' => $m->location, 'when' => $m->start_at ?? $m->created_at,
+        ]);
+
+        return $tasks->concat($calls)->concat($meetings)
+            ->sortByDesc(fn ($a) => optional($a['when'])->timestamp ?? 0)
+            ->map(function ($a) {
+                $when = $a['when'];
+                $a['when'] = optional($when)->toIso8601String();
+                $a['when_human'] = optional($when)->diffForHumans();
+                return $a;
+            })->values()->all();
+    }
+
     public function createTask(array $data): Task
     {
         return DB::transaction(function () use ($data) {

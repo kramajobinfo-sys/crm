@@ -48,6 +48,7 @@ class LeadService
     {
         return Lead::with([
             'source', 'status', 'lostReason:id,name', 'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
+            'deals' => fn ($q) => $q->with('stage:id,name,is_won,is_lost')->orderByDesc('id'),
             'addresses',
             'attachments' => fn ($q) => $q->with('uploader:id,name')->latest(),
             'timeline' => fn ($q) => $q->with('user:id,name')->orderByDesc('occurred_at')->limit(50),
