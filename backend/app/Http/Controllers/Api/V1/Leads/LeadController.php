@@ -9,8 +9,10 @@ use App\Http\Resources\ContactResource;
 use App\Http\Resources\DealResource;
 use App\Http\Resources\LeadResource;
 use App\Models\Lead;
+use App\Models\LeadConsent;
 use App\Models\LeadSource;
 use App\Models\LeadStatus;
+use App\Models\TimelineActivity;
 use App\Services\LeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,6 +55,55 @@ class LeadController extends Controller
     {
         Lead::findOrFail($id); // company-scoped existence + 404
         return $this->success(app(\App\Services\ActivityService::class)->forSubject(Lead::class, $id));
+    }
+
+    /** Current per-channel consent state + full opt-in/opt-out history for a lead. */
+    public function consents(int $id): JsonResponse
+    {
+        return $this->success($this->consentPayload(Lead::findOrFail($id)));
+    }
+
+    /** Record a consent grant or withdrawal for one channel (append-only). */
+    public function storeConsent(Request $request, int $id): JsonResponse
+    {
+        $lead = Lead::findOrFail($id);
+        $data = $request->validate([
+            'channel' => ['required', Rule::in(LeadConsent::CHANNELS)],
+            'status'  => ['required', Rule::in(['granted', 'withdrawn'])],
+            'source'  => ['nullable', 'string', 'max:64'],
+            'note'    => ['nullable', 'string', 'max:255'],
+        ]);
+        $lead->consents()->create([
+            'lead_id' => $lead->id, 'channel' => $data['channel'], 'status' => $data['status'],
+            'source' => $data['source'] ?? 'agent', 'note' => $data['note'] ?? null,
+            'user_id' => $request->user()->id, 'occurred_at' => now(),
+        ]);
+        $lead->unsetRelation('consents');
+        $verb = $data['status'] === 'granted' ? 'opted in to' : 'opted out of';
+        TimelineActivity::record($lead, 'system', 'Lead '.$verb.' '.$data['channel'], $data['note'] ?? null,
+            ['channel' => $data['channel'], 'status' => $data['status']]);
+        return $this->success($this->consentPayload($lead), 'Consent updated');
+    }
+
+    private function consentPayload(Lead $lead): array
+    {
+        $history = $lead->consents()->with('user:id,name')->get()->map(fn (LeadConsent $c) => [
+            'id' => $c->id, 'channel' => $c->channel, 'status' => $c->status, 'source' => $c->source,
+            'note' => $c->note, 'user' => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+            'occurred_at' => optional($c->occurred_at)->toIso8601String(),
+        ])->values();
+
+        $current = collect(LeadConsent::CHANNELS)->map(function (string $ch) use ($lead) {
+            $latest = $lead->consentFor($ch);
+            return [
+                'channel' => $ch, 'status' => $latest?->status ?? 'unset',
+                'can_receive' => $lead->canReceive($ch),
+                'opt_in_only' => in_array($ch, LeadConsent::OPT_IN_CHANNELS, true),
+                'occurred_at' => optional($latest?->occurred_at)->toIso8601String(), 'source' => $latest?->source,
+            ];
+        })->values();
+
+        return ['current' => $current, 'history' => $history];
     }
 
     public function meta(): JsonResponse

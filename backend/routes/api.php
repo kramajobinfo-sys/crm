@@ -156,6 +156,8 @@ Route::prefix('v1')->group(function () {
             Route::post  ('/',      [LeadController::class, 'store'])->middleware('permission:leads.create');
             Route::get   ('{id}',   [LeadController::class, 'show'])->middleware('permission:leads.view')->whereNumber('id');
             Route::get   ('{id}/activities', [LeadController::class, 'activities'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::get   ('{id}/consents', [LeadController::class, 'consents'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::post  ('{id}/consents', [LeadController::class, 'storeConsent'])->middleware('permission:leads.update')->whereNumber('id');
             Route::put   ('{id}',   [LeadController::class, 'update'])->middleware('permission:leads.update')->whereNumber('id');
             Route::delete('{id}',   [LeadController::class, 'destroy'])->middleware('permission:leads.delete')->whereNumber('id');
             Route::get   ('{id}/score',   [LeadController::class, 'score'])->middleware('permission:leads.score')->whereNumber('id');

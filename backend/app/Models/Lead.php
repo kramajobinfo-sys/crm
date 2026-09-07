@@ -49,6 +49,23 @@ class Lead extends Model
             ->withPivot(['quantity', 'note'])->withTimestamps();
     }
 
+    public function consents(): HasMany
+    {
+        return $this->hasMany(LeadConsent::class)->orderByDesc('occurred_at')->orderByDesc('id');
+    }
+
+    public function consentFor(string $channel): ?LeadConsent
+    {
+        return $this->consents->firstWhere('channel', $channel);
+    }
+
+    public function canReceive(string $channel): bool
+    {
+        $latest = $this->consentFor($channel);
+        if ($latest) return $latest->status === 'granted';
+        return !in_array($channel, LeadConsent::OPT_IN_CHANNELS, true);
+    }
+
     public function addresses(): MorphMany   { return $this->morphMany(Address::class, 'addressable'); }
     public function timeline(): MorphMany    { return $this->morphMany(TimelineActivity::class, 'subject'); }
     public function attachments(): MorphMany { return $this->morphMany(Attachment::class, 'attachable'); }

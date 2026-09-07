@@ -247,6 +247,20 @@
             </div>
           </div>
 
+          <!-- Communication consent -->
+          <div v-if="leadConsents">
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Communication consent</div>
+            <div v-for="c in leadConsents.current" :key="c.channel" class="flex items-center gap-2 py-0.5">
+              <span class="text-ink dark:text-ink-dark flex-1">{{ channelLabel(c.channel) }}</span>
+              <span class="badge" :class="c.can_receive ? 'badge-success' : (c.status === 'withdrawn' ? 'badge-danger' : 'badge-neutral')">
+                {{ c.can_receive ? 'Reachable' : (c.status === 'withdrawn' ? 'Opted out' : 'Opt-in required') }}
+              </span>
+              <button v-if="can('leads.update')" class="btn-ghost btn-xs shrink-0" :disabled="consentBusy" @click="toggleConsent(c)">
+                {{ c.can_receive ? 'Opt out' : 'Opt in' }}
+              </button>
+            </div>
+          </div>
+
           <!-- Timeline -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('leads.timeline') }}</div>
@@ -566,11 +580,30 @@ async function loadLeadActivities(id) {
   finally { activitiesLoading.value = false; }
 }
 
+const leadConsents = ref(null);
+const consentBusy = ref(false);
+async function loadLeadConsents(id) {
+  try { const { data } = await http.get(`/leads/${id}/consents`); leadConsents.value = data.data; }
+  catch { leadConsents.value = null; }
+}
+async function toggleConsent(c) {
+  if (!can('leads.update')) return;
+  consentBusy.value = true;
+  try {
+    const status = c.can_receive ? 'withdrawn' : 'granted';
+    const { data } = await http.post(`/leads/${selected.value.id}/consents`, { channel: c.channel, status });
+    leadConsents.value = data.data;
+  } catch { /* interceptor surfaces the error */ }
+  finally { consentBusy.value = false; }
+}
+const channelLabel = (ch) => ({ email: 'Email', sms: 'SMS', phone: 'Phone', whatsapp: 'WhatsApp', marketing: 'Marketing' }[ch] || ch);
+
 async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
     loadLeadActivities(id);
+    loadLeadConsents(id);
   } catch { /* interceptor surfaces the error */ }
 }
 
