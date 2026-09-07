@@ -30,6 +30,13 @@ Plus, from the Zoho gap-closure work: Price Books ✅ · Knowledge Base ✅ · D
 Customer Portal ✅ · E-signature ✅ · **Customer Credits ✅** (overpayments and reduced
 invoices become credits applied to future invoices, instead of the excess silently vanishing)
 
+Platform & self-service: **Subscription billing ✅** — the three plan editions
+(Starter/Professional/Enterprise) are priced monthly & yearly in USD & KHR, and members
+subscribe/upgrade from **Settings ▸ Subscription** paying by **COD, KHQR (Bakong), or ABA KHQR
+(PayWay)**. Gateways are credential-gated with an admin manual-confirm fallback; configure them
+under **Platform ▸ Billing**. · **Customizable appearance ✅** — per-user light/dark, accent color,
+and sidebar / top-bar background theming.
+
 ## Quick start
 ```
 cp backend/.env.example backend/.env
