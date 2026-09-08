@@ -157,6 +157,17 @@
             </div>
           </div>
 
+          <!-- ===== OPPORTUNITIES (deals this contact is on) ===== -->
+          <div v-else-if="detailTab === 'opportunities'">
+            <div v-if="dealsLoading" class="text-xs text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!contactDeals.length" class="text-xs text-ink-subtle py-4 text-center">Not linked to any opportunity yet.</div>
+            <div v-for="d in contactDeals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
+              <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
+            </div>
+          </div>
+
           <!-- ===== CAMPAIGNS ===== -->
           <div v-else-if="detailTab === 'campaigns'">
             <div v-if="can('contacts.update')" class="flex gap-1.5 mb-2">
@@ -294,10 +305,24 @@ function newActivity(type) {
   if (!selected.value) return;
   router.push({ name: 'activities', query: { new: type, related_type: 'contact', related_id: selected.value.id } });
 }
+const money = (v, ccy) => v == null ? '—'
+  : new Intl.NumberFormat(undefined, { style: 'currency', currency: ccy || 'USD', maximumFractionDigits: 0 }).format(v);
+
+// Opportunities (deals) this contact is attached to.
+const contactDeals = ref([]);
+const dealsLoading = ref(false);
+async function loadDeals(id) {
+  dealsLoading.value = true; contactDeals.value = [];
+  try { const { data } = await http.get(`/contacts/${id}/deals`); contactDeals.value = data.data || []; }
+  catch { contactDeals.value = []; }
+  finally { dealsLoading.value = false; }
+}
+
 // Record modal tabs.
 const detailTab = ref('overview');
 const detailTabs = computed(() => [
   { key: 'overview', label: 'Overview' },
+  { key: 'opportunities', label: 'Opportunities', count: contactDeals.value.length },
   { key: 'campaigns', label: 'Campaigns', count: contactCampaigns.value.length },
   { key: 'activity', label: 'Activity', count: timeline.value.length },
 ]);
@@ -416,6 +441,7 @@ async function openDetail(id) {
     const { data } = await api.show(id); selected.value = data.data; detailTab.value = 'overview'; await loadConsents(id);
     loadTimeline(id);
     loadCampaigns(id);
+    loadDeals(id);
   } catch { /* noop */ }
 }
 

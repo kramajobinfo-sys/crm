@@ -38,6 +38,7 @@ class Customer extends Model
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }
     public function branch(): BelongsTo   { return $this->belongsTo(Branch::class); }
     public function contacts(): HasMany   { return $this->hasMany(Contact::class); }
+    public function deals(): HasMany      { return $this->hasMany(Deal::class); }
     public function addresses(): MorphMany { return $this->morphMany(Address::class, 'addressable'); }
     public function timeline(): MorphMany  { return $this->morphMany(TimelineActivity::class, 'subject'); }
     /** Marketing-list memberships: many campaigns, each with a member status. */

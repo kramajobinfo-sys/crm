@@ -176,6 +176,17 @@
             </div>
           </div>
 
+          <!-- ===== OPPORTUNITIES (this account's deals) ===== -->
+          <div v-else-if="detailTab === 'opportunities'">
+            <div v-if="dealsLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!customerDeals.length" class="text-ink-subtle py-4 text-center">No opportunities yet.</div>
+            <div v-for="d in customerDeals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
+              <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
+            </div>
+          </div>
+
           <!-- ===== CAMPAIGNS ===== -->
           <div v-else-if="detailTab === 'campaigns'">
             <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
@@ -350,10 +361,21 @@ function newQuote() {
   if (!selected.value) return;
   router.push({ name: 'sales', query: { new: 'quotation', customer_id: selected.value.id } });
 }
+// Opportunities (deals) belonging to this account.
+const customerDeals = ref([]);
+const dealsLoading = ref(false);
+async function loadDeals(id) {
+  dealsLoading.value = true; customerDeals.value = [];
+  try { const { data } = await http.get(`/customers/${id}/deals`); customerDeals.value = data.data || []; }
+  catch { customerDeals.value = []; }
+  finally { dealsLoading.value = false; }
+}
+
 // Record modal tabs.
 const detailTab = ref('overview');
 const detailTabs = computed(() => [
   { key: 'overview', label: 'Overview' },
+  { key: 'opportunities', label: 'Opportunities', count: customerDeals.value.length },
   { key: 'contacts', label: 'Contacts', count: selected.value?.contacts?.length || 0 },
   { key: 'campaigns', label: 'Campaigns', count: customerCampaigns.value.length },
   { key: 'timeline', label: 'Timeline', count: selected.value?.timeline?.length || 0 },
@@ -437,6 +459,7 @@ async function openDetail(id) {
     selected.value = data.data;
     detailTab.value = 'overview';
     loadCampaigns(id);
+    loadDeals(id);
     try {
       const tl = await api.timeline(id);
       selected.value.timeline = tl.data?.data?.data ?? selected.value.timeline ?? [];

@@ -58,6 +58,17 @@ class ContactController extends Controller
         return $this->paginated($this->contacts->timeline($contact, $opts));
     }
 
+    /** Opportunities (deals) this contact is attached to. */
+    public function deals(int $id): JsonResponse
+    {
+        $contact = Contact::with(['deals' => fn ($q) => $q->with('stage:id,name')->orderByDesc('deals.id')])->findOrFail($id);
+        return $this->success($contact->deals->map(fn ($d) => [
+            'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+            'amount' => (float) $d->amount, 'currency' => $d->currency,
+            'status' => $d->status, 'stage' => $d->stage?->name,
+        ])->values());
+    }
+
     /** Campaign memberships (marketing lists) this contact belongs to. */
     public function campaignMemberships(int $id): JsonResponse
     {

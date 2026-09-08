@@ -190,6 +190,7 @@ Route::prefix('v1')->group(function () {
             Route::post  ('/',      [CustomerController::class, 'store'])->middleware('permission:customers.create');
             Route::get   ('{id}',   [CustomerController::class, 'show'])->middleware('permission:customers.view')->whereNumber('id');
             Route::get   ('{id}/timeline', [CustomerController::class, 'timeline'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::get   ('{id}/deals', [CustomerController::class, 'deals'])->middleware('permission:customers.view')->whereNumber('id');
             Route::get   ('{id}/campaigns', [CustomerController::class, 'campaignMemberships'])->middleware('permission:customers.view')->whereNumber('id');
             Route::post  ('{id}/campaigns', [CustomerController::class, 'attachCampaign'])->middleware('permission:customers.update')->whereNumber('id');
             Route::delete('{id}/campaigns/{campaignId}', [CustomerController::class, 'detachCampaign'])->middleware('permission:customers.update')->whereNumber('id')->whereNumber('campaignId');
@@ -211,6 +212,7 @@ Route::prefix('v1')->group(function () {
             Route::get   ('{id}/timeline', [ContactController::class, 'timeline'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::get   ('{id}/consents', [ContactController::class, 'consents'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::post  ('{id}/consents', [ContactController::class, 'storeConsent'])->middleware('permission:contacts.update')->whereNumber('id');
+            Route::get   ('{id}/deals', [ContactController::class, 'deals'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::get   ('{id}/campaigns', [ContactController::class, 'campaignMemberships'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::post  ('{id}/campaigns', [ContactController::class, 'attachCampaign'])->middleware('permission:contacts.update')->whereNumber('id');
             Route::delete('{id}/campaigns/{campaignId}', [ContactController::class, 'detachCampaign'])->middleware('permission:contacts.update')->whereNumber('id')->whereNumber('campaignId');

@@ -91,6 +91,19 @@ class CustomerController extends Controller
         return $this->success(null, 'Customer deleted');
     }
 
+    /** Opportunities (deals) belonging to this account. */
+    public function deals(int $id): JsonResponse
+    {
+        $customer = Customer::findOrFail($id);
+        $deals = $customer->deals()->with('stage:id,name')->orderByDesc('id')->get()
+            ->map(fn ($d) => [
+                'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+                'amount' => (float) $d->amount, 'currency' => $d->currency,
+                'status' => $d->status, 'stage' => $d->stage?->name,
+            ]);
+        return $this->success($deals);
+    }
+
     /** Campaign memberships (marketing lists) this account belongs to. */
     public function campaignMemberships(int $id): JsonResponse
     {
