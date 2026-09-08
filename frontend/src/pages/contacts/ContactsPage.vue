@@ -161,7 +161,7 @@
           <div v-else-if="detailTab === 'opportunities'">
             <div v-if="dealsLoading" class="text-xs text-ink-subtle py-4 text-center">Loading…</div>
             <div v-else-if="!contactDeals.length" class="text-xs text-ink-subtle py-4 text-center">Not linked to any opportunity yet.</div>
-            <div v-for="d in contactDeals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+            <div v-for="d in contactDeals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-1 px-1 rounded" @click="openDeal(d.id)">
               <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
               <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage }}</span>
               <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
@@ -304,6 +304,10 @@ function addFollowUp(contact) {
 function newActivity(type) {
   if (!selected.value) return;
   router.push({ name: 'activities', query: { new: type, related_type: 'contact', related_id: selected.value.id } });
+}
+// Jump to the pipeline and open a specific deal.
+function openDeal(id) {
+  router.push({ name: 'deals', query: { open: id } });
 }
 const money = (v, ccy) => v == null ? '—'
   : new Intl.NumberFormat(undefined, { style: 'currency', currency: ccy || 'USD', maximumFractionDigits: 0 }).format(v);

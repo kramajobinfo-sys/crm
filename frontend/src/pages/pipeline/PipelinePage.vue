@@ -769,5 +769,11 @@ const timelineClass = (ty) => ({
   system:        'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
 }[ty] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await loadAux(); await Promise.all([loadBoard(), loadCustomers()]); if (router.currentRoute.value.query.create) openCreate(); });
+onMounted(async () => {
+  await loadAux(); await Promise.all([loadBoard(), loadCustomers()]);
+  const q = router.currentRoute.value.query;
+  if (q.create) openCreate();
+  // Deep link from an Opportunities row on another record: open that deal.
+  if (q.open) { await openDetail(Number(q.open)); await router.replace({ name: 'deals' }); }
+});
 </script>
