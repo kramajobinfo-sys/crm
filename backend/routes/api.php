@@ -72,6 +72,11 @@ Route::prefix('v1')->group(function () {
         Route::post('auth/register',        [AuthController::class, 'register']);
         Route::post('auth/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('auth/reset-password',  [AuthController::class, 'resetPassword']);
+        // Token refresh must accept an EXPIRED-but-still-refreshable token (within refresh_ttl),
+        // so it cannot sit behind jwt.auth — that middleware 401s an expired token before the
+        // refresh can run, which would log every session out the moment its 15-min access token
+        // lapses. The refreshable token itself is the credential here.
+        Route::post('auth/refresh',         [AuthController::class, 'refresh']);
     });
 
     // Public branding lookup for the login/register screens — read-only, advisory (see
@@ -120,7 +125,8 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['jwt.auth', 'scope.company', 'audit', '2fa'])->group(function () {
         Route::prefix('auth')->group(function () {
             Route::post('logout',          [AuthController::class, 'logout'])->withoutMiddleware('2fa');
-            Route::post('refresh',         [AuthController::class, 'refresh'])->withoutMiddleware('2fa');
+            // NOTE: auth/refresh is intentionally registered above, OUTSIDE this jwt.auth group,
+            // so it can refresh an expired token. Do not re-add it here.
             Route::get ('me',              [AuthController::class, 'me'])->withoutMiddleware('2fa');
             Route::put ('profile',         [AuthController::class, 'updateProfile']);
             Route::post('avatar',          [AuthController::class, 'updateAvatar']);
