@@ -156,7 +156,7 @@
           {{ $t('leads.converted_to', { no: selected.customer?.customer_no || '—' }) }}
         </div>
         <div v-else-if="can('leads.convert')" class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0 flex gap-2">
-          <button class="btn-primary btn-xs" :disabled="converting" @click="openConvert">
+          <button class="btn-primary btn-xs" :disabled="converting" @click="openConvert()">
             <UserPlus :size="11" /> {{ converting ? $t('leads.converting') : $t('leads.convert') }}
           </button>
           <button v-if="can('leads.assign')" class="btn-secondary btn-xs" @click="doAutoAssign">
@@ -269,7 +269,10 @@
 
           <!-- ===== OPPORTUNITIES ===== -->
           <div v-else-if="detailTab === 'opportunities'">
-            <div v-if="!selected.deals?.length" class="text-ink-subtle py-4 text-center">No opportunities yet. Convert this lead or add a deal to see it here.</div>
+            <div v-if="can('leads.convert') && !selected.is_converted" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="openConvert(true)"><Plus :size="11" /> New opportunity</button>
+            </div>
+            <div v-if="!selected.deals?.length" class="text-ink-subtle py-4 text-center">No opportunities yet. Use “New opportunity” to convert this lead into a deal.</div>
             <div v-for="d in selected.deals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
               <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
               <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage.name }}</span>
@@ -318,6 +321,10 @@
 
           <!-- ===== ACTIVITIES (tasks / calls / emails) ===== -->
           <div v-else-if="detailTab === 'activities'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('task')"><Plus :size="11" /> New task</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('call')"><Plus :size="11" /> Log call</button>
+            </div>
             <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
             <div v-else-if="!activityItems.length" class="text-ink-subtle py-4 text-center">No activities logged.</div>
             <div v-for="a in activityItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
@@ -330,6 +337,9 @@
 
           <!-- ===== EVENTS (meetings) ===== -->
           <div v-else-if="detailTab === 'events'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('meeting')"><Plus :size="11" /> New meeting</button>
+            </div>
             <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
             <div v-else-if="!eventItems.length" class="text-ink-subtle py-4 text-center">No meetings or events scheduled.</div>
             <div v-for="a in eventItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
@@ -611,6 +621,11 @@ const can = (p) => auth.can(p);
 function addFollowUp(lead) {
   router.push({ name: 'activities', query: { new: 'task', related_type: 'lead', related_id: lead.id } });
 }
+// Open the Activities create form (task / call / meeting) pre-linked to the current lead.
+function newActivity(type) {
+  if (!selected.value) return;
+  router.push({ name: 'activities', query: { new: type, related_type: 'lead', related_id: selected.value.id } });
+}
 
 const statTiles = [
   { key: 'open',       label: 'leads.stat.open',       set: { converted: 'open', rating: '', owner_id: '' } },
@@ -887,7 +902,7 @@ async function submitNote() {
   finally { savingNote.value = false; }
 }
 
-async function openConvert() {
+async function openConvert(withDeal = false) {
   if (!selected.value) return;
   conversion.error = '';
   conversion.matches = [];
@@ -906,7 +921,7 @@ async function openConvert() {
       phone: selected.value.phone || '',
       mobile: selected.value.mobile || '',
     },
-    create_deal: false,
+    create_deal: withDeal,
     deal: {
       title: `${selected.value.company_name || selected.value.name} Opportunity`,
       stage_id: null,
