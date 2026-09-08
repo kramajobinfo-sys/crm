@@ -163,98 +163,136 @@
           </button>
         </div>
 
+        <!-- Relationship tabs -->
+        <div class="px-3 pt-1.5 flex gap-1 border-b border-slate-200 dark:border-slate-700 shrink-0 overflow-x-auto">
+          <button v-for="tb in detailTabs" :key="tb.key" @click="detailTab = tb.key"
+                  class="px-2 py-1.5 -mb-px border-b-2 whitespace-nowrap text-[11px]"
+                  :class="detailTab === tb.key ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-subtle hover:text-ink'">
+            {{ tb.label }}<span v-if="tb.count" class="ml-1 opacity-70">{{ tb.count }}</span>
+          </button>
+        </div>
+
         <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
-          <!-- Score, with its working shown -->
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.score_label') }}</span>
-              <span class="text-sm font-semibold text-ink dark:text-ink-dark tabular-nums">{{ selected.score }}</span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded" :class="ratingClass(selected.rating)">
-                {{ $t(`leads.rating.${selected.rating}`) }}
-              </span>
-            </div>
-            <div v-if="selected.score_breakdown" class="grid grid-cols-2 gap-x-3 gap-y-0.5">
-              <template v-for="(v, k) in selected.score_breakdown" :key="k">
-                <span class="text-ink-subtle">{{ $t(`leads.sb.${k}`) }}</span>
-                <span class="tabular-nums text-right"
-                      :class="v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-subtle'">
-                  {{ v > 0 ? '+' : '' }}{{ v }}
+          <!-- ===== OVERVIEW ===== -->
+          <div v-if="detailTab === 'overview'" class="space-y-3">
+            <!-- Score, with its working shown -->
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.score_label') }}</span>
+                <span class="text-sm font-semibold text-ink dark:text-ink-dark tabular-nums">{{ selected.score }}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded" :class="ratingClass(selected.rating)">
+                  {{ $t(`leads.rating.${selected.rating}`) }}
                 </span>
-              </template>
+              </div>
+              <div v-if="selected.score_breakdown" class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                <template v-for="(v, k) in selected.score_breakdown" :key="k">
+                  <span class="text-ink-subtle">{{ $t(`leads.sb.${k}`) }}</span>
+                  <span class="tabular-nums text-right"
+                        :class="v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-subtle'">
+                    {{ v > 0 ? '+' : '' }}{{ v }}
+                  </span>
+                </template>
+              </div>
             </div>
-          </div>
 
-          <dl class="grid grid-cols-3 gap-y-1.5">
-            <dt class="text-ink-subtle">{{ $t('leads.col.status') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.status?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.source') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.source?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.owner') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || $t('leads.unassigned') }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.value') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.estimated_value, selected.currency) }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.last_contact') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.last_contacted_human || $t('leads.never') }}</dd>
-          </dl>
-
-          <!-- Attachments -->
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.attachments') }}</span>
-              <button v-if="can('leads.update')" class="text-[10px] text-primary-600 hover:underline ml-auto"
-                      @click="fileInput?.click()">{{ $t('leads.attach') }}</button>
-              <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
-            </div>
-            <div v-if="!selected.attachments?.length" class="text-ink-subtle">{{ $t('leads.no_attachments') }}</div>
-            <a v-for="a in selected.attachments" :key="a.id" :href="a.url" target="_blank" rel="noopener"
-               class="flex items-center gap-1.5 py-0.5 text-ink-muted dark:text-ink-dark-muted hover:text-primary-600">
-              <Paperclip :size="11" class="shrink-0" />
-              <span class="truncate flex-1">{{ a.name }}</span>
-              <span class="text-[10px] opacity-70">{{ humanSize(a.size) }}</span>
-            </a>
-          </div>
-
-          <!-- Products of interest -->
-          <div v-if="selected.products?.length">
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Products of interest</div>
-            <div v-for="p in selected.products" :key="p.product_id" class="flex items-center gap-1.5 py-0.5">
-              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ p.name }}</span>
-              <span v-if="p.quantity" class="text-ink-subtle shrink-0">×{{ p.quantity }}</span>
-            </div>
-          </div>
-
-          <!-- Custom fields (admin-defined) -->
-          <div v-if="detailCustomFields.length">
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Custom fields</div>
-            <dl class="grid grid-cols-3 gap-x-2 gap-y-0.5">
-              <template v-for="cf in detailCustomFields" :key="cf.key">
-                <dt class="text-ink-subtle">{{ cf.label }}</dt>
-                <dd class="col-span-2 text-ink dark:text-ink-dark break-words">
-                  <span v-if="cf.type === 'checkbox'">{{ cf.value ? 'Yes' : 'No' }}</span>
-                  <a v-else-if="cf.type === 'url'" :href="cf.value" target="_blank" rel="noopener" class="text-primary-600 hover:underline">{{ cf.value }}</a>
-                  <span v-else>{{ cf.value }}</span>
-                </dd>
-              </template>
+            <dl class="grid grid-cols-3 gap-y-1.5">
+              <dt class="text-ink-subtle">{{ $t('leads.col.status') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.status?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.source') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.source?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">Campaign</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.campaign?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.owner') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || $t('leads.unassigned') }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.value') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.estimated_value, selected.currency) }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.last_contact') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.last_contacted_human || $t('leads.never') }}</dd>
             </dl>
+
+            <!-- Products of interest -->
+            <div v-if="selected.products?.length">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Products of interest</div>
+              <div v-for="p in selected.products" :key="p.product_id" class="flex items-center gap-1.5 py-0.5">
+                <span class="text-ink dark:text-ink-dark truncate flex-1">{{ p.name }}</span>
+                <span v-if="p.quantity" class="text-ink-subtle shrink-0">×{{ p.quantity }}</span>
+              </div>
+            </div>
+
+            <!-- Custom fields (admin-defined) -->
+            <div v-if="detailCustomFields.length">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Custom fields</div>
+              <dl class="grid grid-cols-3 gap-x-2 gap-y-0.5">
+                <template v-for="cf in detailCustomFields" :key="cf.key">
+                  <dt class="text-ink-subtle">{{ cf.label }}</dt>
+                  <dd class="col-span-2 text-ink dark:text-ink-dark break-words">
+                    <span v-if="cf.type === 'checkbox'">{{ cf.value ? 'Yes' : 'No' }}</span>
+                    <a v-else-if="cf.type === 'url'" :href="cf.value" target="_blank" rel="noopener" class="text-primary-600 hover:underline">{{ cf.value }}</a>
+                    <span v-else>{{ cf.value }}</span>
+                  </dd>
+                </template>
+              </dl>
+            </div>
+
+            <!-- Communication consent -->
+            <div v-if="leadConsents">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Communication consent</div>
+              <div v-for="c in leadConsents.current" :key="c.channel" class="flex items-center gap-2 py-0.5">
+                <span class="text-ink dark:text-ink-dark flex-1">{{ channelLabel(c.channel) }}</span>
+                <span class="badge" :class="c.can_receive ? 'badge-success' : (c.status === 'withdrawn' ? 'badge-danger' : 'badge-neutral')">
+                  {{ c.can_receive ? 'Reachable' : (c.status === 'withdrawn' ? 'Opted out' : 'Opt-in required') }}
+                </span>
+                <button v-if="can('leads.update')" class="btn-ghost btn-xs shrink-0" :disabled="consentBusy" @click="toggleConsent(c)">
+                  {{ c.can_receive ? 'Opt out' : 'Opt in' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Attachments -->
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.attachments') }}</span>
+                <button v-if="can('leads.update')" class="text-[10px] text-primary-600 hover:underline ml-auto"
+                        @click="fileInput?.click()">{{ $t('leads.attach') }}</button>
+                <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
+              </div>
+              <div v-if="!selected.attachments?.length" class="text-ink-subtle">{{ $t('leads.no_attachments') }}</div>
+              <a v-for="a in selected.attachments" :key="a.id" :href="a.url" target="_blank" rel="noopener"
+                 class="flex items-center gap-1.5 py-0.5 text-ink-muted dark:text-ink-dark-muted hover:text-primary-600">
+                <Paperclip :size="11" class="shrink-0" />
+                <span class="truncate flex-1">{{ a.name }}</span>
+                <span class="text-[10px] opacity-70">{{ humanSize(a.size) }}</span>
+              </a>
+            </div>
           </div>
 
-          <!-- Opportunities (deals originating from this lead) -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Opportunities</div>
-            <div v-if="!selected.deals?.length" class="text-ink-subtle">{{ $t('leads.no_deals') || 'No opportunities.' }}</div>
-            <div v-for="d in selected.deals" :key="d.id" class="flex items-center gap-1.5 py-0.5">
+          <!-- ===== OPPORTUNITIES ===== -->
+          <div v-else-if="detailTab === 'opportunities'">
+            <div v-if="!selected.deals?.length" class="text-ink-subtle py-4 text-center">No opportunities yet. Convert this lead or add a deal to see it here.</div>
+            <div v-for="d in selected.deals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
               <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
-              <span v-if="d.stage" class="text-ink-subtle shrink-0">{{ d.stage.name }}</span>
+              <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage.name }}</span>
               <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
             </div>
           </div>
 
-          <!-- Activities (tasks / calls / meetings on this lead) -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Activities</div>
-            <div v-if="activitiesLoading" class="text-ink-subtle">Loading…</div>
-            <div v-else-if="!leadActivities.length" class="text-ink-subtle">No activities.</div>
-            <div v-for="a in leadActivities" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
+          <!-- ===== QUOTES (via this lead's opportunities) ===== -->
+          <div v-else-if="detailTab === 'quotes'">
+            <div v-if="quotesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!leadQuotes.length" class="text-ink-subtle py-4 text-center">No quotes on this lead's opportunities.</div>
+            <div v-for="q in leadQuotes" :key="q.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <span class="font-mono text-[11px] text-ink dark:text-ink-dark shrink-0">{{ q.quote_no }}</span>
+              <span class="text-ink-muted truncate flex-1">{{ q.deal?.title || '—' }}</span>
+              <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ q.status }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(q.grand_total, q.currency) }}</span>
+            </div>
+          </div>
+
+          <!-- ===== ACTIVITIES (tasks / calls / emails) ===== -->
+          <div v-else-if="detailTab === 'activities'">
+            <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!activityItems.length" class="text-ink-subtle py-4 text-center">No activities logged.</div>
+            <div v-for="a in activityItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
               <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ a.kind }}</span>
               <span class="text-ink dark:text-ink-dark truncate flex-1">{{ a.title }}</span>
               <span class="text-ink-subtle shrink-0 capitalize">{{ a.status }}</span>
@@ -262,23 +300,20 @@
             </div>
           </div>
 
-          <!-- Communication consent -->
-          <div v-if="leadConsents">
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Communication consent</div>
-            <div v-for="c in leadConsents.current" :key="c.channel" class="flex items-center gap-2 py-0.5">
-              <span class="text-ink dark:text-ink-dark flex-1">{{ channelLabel(c.channel) }}</span>
-              <span class="badge" :class="c.can_receive ? 'badge-success' : (c.status === 'withdrawn' ? 'badge-danger' : 'badge-neutral')">
-                {{ c.can_receive ? 'Reachable' : (c.status === 'withdrawn' ? 'Opted out' : 'Opt-in required') }}
-              </span>
-              <button v-if="can('leads.update')" class="btn-ghost btn-xs shrink-0" :disabled="consentBusy" @click="toggleConsent(c)">
-                {{ c.can_receive ? 'Opt out' : 'Opt in' }}
-              </button>
+          <!-- ===== EVENTS (meetings) ===== -->
+          <div v-else-if="detailTab === 'events'">
+            <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!eventItems.length" class="text-ink-subtle py-4 text-center">No meetings or events scheduled.</div>
+            <div v-for="a in eventItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-[9px] px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shrink-0">event</span>
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ a.title }}</span>
+              <span v-if="a.location" class="text-ink-subtle shrink-0 truncate max-w-[6rem]">{{ a.location }}</span>
+              <span class="text-ink-subtle ml-1 shrink-0">{{ a.when_human }}</span>
             </div>
           </div>
 
-          <!-- Timeline -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('leads.timeline') }}</div>
+          <!-- ===== TIMELINE ===== -->
+          <div v-else-if="detailTab === 'timeline'">
             <div v-if="can('leads.update')" class="flex gap-1.5 mb-2">
               <select v-model="noteType" class="input text-xs w-auto">
                 <option value="note">{{ $t('leads.tl.note') }}</option>
@@ -628,6 +663,30 @@ async function loadLeadActivities(id) {
   catch { leadActivities.value = []; }
   finally { activitiesLoading.value = false; }
 }
+// Split the merged activity feed: meetings surface under Events, everything else under Activities.
+const activityItems = computed(() => leadActivities.value.filter((a) => a.kind !== 'meeting'));
+const eventItems = computed(() => leadActivities.value.filter((a) => a.kind === 'meeting'));
+
+// Quotes raised on this lead's opportunities (Lead → deals → quotations).
+const leadQuotes = ref([]);
+const quotesLoading = ref(false);
+async function loadLeadQuotes(id) {
+  quotesLoading.value = true; leadQuotes.value = [];
+  try { const { data } = await http.get(`/leads/${id}/quotes`); leadQuotes.value = data.data || []; }
+  catch { leadQuotes.value = []; }
+  finally { quotesLoading.value = false; }
+}
+
+// Relationship tabs on the lead detail drawer.
+const detailTab = ref('overview');
+const detailTabs = computed(() => [
+  { key: 'overview', label: 'Overview' },
+  { key: 'opportunities', label: 'Opportunities', count: selected.value?.deals?.length || 0 },
+  { key: 'quotes', label: 'Quotes', count: leadQuotes.value.length },
+  { key: 'activities', label: 'Activities', count: activityItems.value.length },
+  { key: 'events', label: 'Events', count: eventItems.value.length },
+  { key: 'timeline', label: 'Timeline' },
+]);
 
 const leadConsents = ref(null);
 const consentBusy = ref(false);
@@ -651,8 +710,10 @@ async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    detailTab.value = 'overview';
     loadLeadActivities(id);
     loadLeadConsents(id);
+    loadLeadQuotes(id);
   } catch { /* interceptor surfaces the error */ }
 }
 
