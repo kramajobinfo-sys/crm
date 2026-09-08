@@ -36,7 +36,16 @@ class AuthController extends Controller
             'user' => new UserResource($result['user']),
         ], 'Account created', 201);
     }
-    public function refresh(): JsonResponse { return $this->success($this->authService->refresh(), 'Token refreshed'); }
+    public function refresh(): JsonResponse
+    {
+        try {
+            return $this->success($this->authService->refresh(), 'Token refreshed');
+        } catch (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            // Beyond the refresh window, blacklisted, or no/garbled token — tell the client to
+            // send the user back to login rather than retry forever.
+            return $this->error('Your session has expired. Please sign in again.', 401);
+        }
+    }
     public function logout(): JsonResponse { $this->authService->logout(); return $this->success(null, 'Logged out'); }
     public function me(): JsonResponse { return $this->success(new UserResource($this->authService->me())); }
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
