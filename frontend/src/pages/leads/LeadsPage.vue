@@ -200,7 +200,7 @@
               <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.status?.name || '—' }}</dd>
               <dt class="text-ink-subtle">{{ $t('leads.col.source') }}</dt>
               <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.source?.name || '—' }}</dd>
-              <dt class="text-ink-subtle">Campaign</dt>
+              <dt class="text-ink-subtle">Source campaign</dt>
               <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.campaign?.name || '—' }}</dd>
               <dt class="text-ink-subtle">{{ $t('leads.col.owner') }}</dt>
               <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || $t('leads.unassigned') }}</dd>
@@ -285,6 +285,33 @@
               <span class="text-ink-muted truncate flex-1">{{ q.deal?.title || '—' }}</span>
               <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ q.status }}</span>
               <span class="tabular-nums text-ink-muted shrink-0">{{ money(q.grand_total, q.currency) }}</span>
+            </div>
+          </div>
+
+          <!-- ===== CAMPAIGNS (marketing-list memberships) ===== -->
+          <div v-else-if="detailTab === 'campaigns'">
+            <div v-if="can('leads.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input text-xs flex-1">
+                <option :value="null">Add to campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input text-xs w-auto capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary text-[11px] px-2" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership">
+                <Plus :size="11" />
+              </button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!leadCampaigns.length" class="text-ink-subtle py-4 text-center">Not a member of any campaign yet.</div>
+            <div v-for="m in leadCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('leads.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('leads.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
             </div>
           </div>
 
@@ -594,7 +621,7 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [], custom_fields: [] });
+const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [], custom_fields: [], campaign_member_statuses: [] });
 const productOptions = ref([]);
 const customerOptions = ref([]);
 function addLeadProduct() { (form.data.products ||= []).push({ product_id: null, quantity: null }); }
@@ -677,12 +704,56 @@ async function loadLeadQuotes(id) {
   finally { quotesLoading.value = false; }
 }
 
+// Campaign memberships (a lead can belong to many marketing campaigns).
+const leadCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+async function loadLeadCampaigns(id) {
+  campaignsLoading.value = true; leadCampaigns.value = [];
+  try { const { data } = await http.get(`/leads/${id}/campaigns`); leadCampaigns.value = data.data || []; }
+  catch { leadCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/leads/${selected.value.id}/campaigns`, { ...newMembership });
+    leadCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/leads/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    leadCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/leads/${selected.value.id}/campaigns/${m.campaign_id}`);
+    leadCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+// Campaigns not already joined, for the add picker.
+const availableCampaigns = computed(() => {
+  const joined = new Set(leadCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+
 // Relationship tabs on the lead detail drawer.
 const detailTab = ref('overview');
 const detailTabs = computed(() => [
   { key: 'overview', label: 'Overview' },
   { key: 'opportunities', label: 'Opportunities', count: selected.value?.deals?.length || 0 },
   { key: 'quotes', label: 'Quotes', count: leadQuotes.value.length },
+  { key: 'campaigns', label: 'Campaigns', count: leadCampaigns.value.length },
   { key: 'activities', label: 'Activities', count: activityItems.value.length },
   { key: 'events', label: 'Events', count: eventItems.value.length },
   { key: 'timeline', label: 'Timeline' },
@@ -714,6 +785,7 @@ async function openDetail(id) {
     loadLeadActivities(id);
     loadLeadConsents(id);
     loadLeadQuotes(id);
+    loadLeadCampaigns(id);
   } catch { /* interceptor surfaces the error */ }
 }
 

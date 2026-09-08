@@ -16,6 +16,7 @@ class Lead extends Model
 
     public const RATINGS = ['hot', 'warm', 'cold'];
     public const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+    public const CAMPAIGN_MEMBER_STATUSES = ['member', 'contacted', 'responded'];
 
     protected $fillable = [
         'company_id','lead_no','name','company_name','account_id','title','email','phone','mobile','website',
@@ -38,6 +39,13 @@ class Lead extends Model
 
     public function source(): BelongsTo   { return $this->belongsTo(LeadSource::class, 'source_id'); }
     public function campaign(): BelongsTo { return $this->belongsTo(Campaign::class); }
+    /** Marketing-list memberships: many campaigns, each with a member status. Distinct from the
+     *  single source campaign in campaign_id above. */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_lead')
+            ->withPivot(['status', 'added_at'])->withTimestamps();
+    }
     public function status(): BelongsTo   { return $this->belongsTo(LeadStatus::class, 'status_id'); }
     public function lostReason(): BelongsTo { return $this->belongsTo(LostReason::class, 'lost_reason_id'); }
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }

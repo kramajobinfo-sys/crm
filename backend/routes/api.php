@@ -163,6 +163,9 @@ Route::prefix('v1')->group(function () {
             Route::get   ('{id}',   [LeadController::class, 'show'])->middleware('permission:leads.view')->whereNumber('id');
             Route::get   ('{id}/activities', [LeadController::class, 'activities'])->middleware('permission:leads.view')->whereNumber('id');
             Route::get   ('{id}/quotes', [LeadController::class, 'quotes'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [LeadController::class, 'campaignMemberships'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [LeadController::class, 'attachCampaign'])->middleware('permission:leads.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [LeadController::class, 'detachCampaign'])->middleware('permission:leads.update')->whereNumber('id')->whereNumber('campaignId');
             Route::get   ('{id}/consents', [LeadController::class, 'consents'])->middleware('permission:leads.view')->whereNumber('id');
             Route::post  ('{id}/consents', [LeadController::class, 'storeConsent'])->middleware('permission:leads.update')->whereNumber('id');
             Route::put   ('{id}',   [LeadController::class, 'update'])->middleware('permission:leads.update')->whereNumber('id');
