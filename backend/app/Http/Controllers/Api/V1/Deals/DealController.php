@@ -108,6 +108,19 @@ class DealController extends Controller
         return $this->success(null, 'Deal deleted');
     }
 
+    /** Quotations raised on this deal. */
+    public function quotes(int $id): JsonResponse
+    {
+        $deal = Deal::findOrFail($id);
+        $quotes = \App\Models\Quotation::where('deal_id', $deal->id)->orderByDesc('id')->get()
+            ->map(fn ($q) => [
+                'id' => $q->id, 'quote_no' => $q->quote_no, 'status' => $q->status,
+                'grand_total' => (float) $q->grand_total, 'currency' => $q->currency,
+                'issue_date' => optional($q->issue_date)->toDateString(),
+            ]);
+        return $this->success($quotes);
+    }
+
     /** Campaigns influencing this deal (marketing-list memberships). */
     public function campaignMemberships(int $id): JsonResponse
     {
