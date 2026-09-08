@@ -22,6 +22,7 @@ class Deal extends Model
     public const BLUEPRINT_FIELDS = ['amount', 'customer_id', 'owner_id', 'expected_close_date', 'probability', 'lost_reason_id'];
 
     public const FORECAST_CATEGORIES = ['pipeline', 'best_case', 'commit', 'omitted'];
+    public const CAMPAIGN_MEMBER_STATUSES = ['member', 'contacted', 'responded'];
 
     protected $fillable = [
         'company_id','deal_no','title','pipeline_id','stage_id','customer_id','lead_id',
@@ -56,6 +57,13 @@ class Deal extends Model
             ->withTimestamps()
             ->orderByPivot('is_primary', 'desc')
             ->orderBy('contacts.name');
+    }
+
+    /** Marketing-list memberships (campaign influence): many campaigns, each with a status. */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_deal')
+            ->withPivot(['status', 'added_at'])->withTimestamps();
     }
 
     public function addresses(): MorphMany   { return $this->morphMany(Address::class, 'addressable'); }

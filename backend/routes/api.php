@@ -231,6 +231,9 @@ Route::prefix('v1')->group(function () {
             Route::post  ('{id}/move',      [DealController::class, 'move'])->middleware('permission:deals.change_stage')->whereNumber('id');
             Route::post  ('{id}/lost',      [DealController::class, 'markLost'])->middleware('permission:deals.change_stage')->whereNumber('id');
             Route::post  ('{id}/notes',     [DealController::class, 'addNote'])->middleware('permission:deals.update')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [DealController::class, 'campaignMemberships'])->middleware('permission:deals.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [DealController::class, 'attachCampaign'])->middleware('permission:deals.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [DealController::class, 'detachCampaign'])->middleware('permission:deals.update')->whereNumber('id')->whereNumber('campaignId');
             Route::post  ('{id}/attachments',       [DealController::class, 'storeAttachment'])->middleware('permission:deals.update')->whereNumber('id');
             Route::delete('{id}/attachments/{att}', [DealController::class, 'destroyAttachment'])->middleware('permission:deals.update')->whereNumber('id')->whereNumber('att');
         });

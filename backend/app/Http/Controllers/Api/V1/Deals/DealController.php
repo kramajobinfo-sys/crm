@@ -66,6 +66,8 @@ class DealController extends Controller
             'statuses'     => Deal::STATUSES,
             'forecast_categories' => Deal::FORECAST_CATEGORIES,
             'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('deal'),
+            'campaigns' => \App\Models\Campaign::orderByDesc('id')->limit(100)->get(['id', 'name']),
+            'campaign_member_statuses' => Deal::CAMPAIGN_MEMBER_STATUSES,
             'next_deal_no' => $this->deals->nextDealNo(),
         ]);
     }
@@ -104,6 +106,53 @@ class DealController extends Controller
     {
         Deal::findOrFail($id)->delete();
         return $this->success(null, 'Deal deleted');
+    }
+
+    /** Campaigns influencing this deal (marketing-list memberships). */
+    public function campaignMemberships(int $id): JsonResponse
+    {
+        $deal = Deal::with(['campaigns' => fn ($q) => $q->orderByDesc('campaign_deal.id')])->findOrFail($id);
+        return $this->success($deal->campaigns->map(fn ($c) => [
+            'campaign_id' => $c->id, 'name' => $c->name, 'type' => $c->type, 'campaign_status' => $c->status,
+            'status' => $c->pivot->status, 'added_at' => optional($c->pivot->added_at)->toIso8601String(),
+        ])->values());
+    }
+
+    /** Link this deal to a campaign, or update its status if already linked. */
+    public function attachCampaign(Request $request, int $id): JsonResponse
+    {
+        $deal = Deal::findOrFail($id);
+        $companyId = $request->user()->company_id;
+        $data = $request->validate([
+            'campaign_id' => ['required', 'integer',
+                Rule::exists('campaigns', 'id')->where('company_id', $companyId)->whereNull('deleted_at')],
+            'status' => ['nullable', Rule::in(Deal::CAMPAIGN_MEMBER_STATUSES)],
+        ]);
+        $status = $data['status'] ?? 'member';
+
+        if ($deal->campaigns()->where('campaigns.id', $data['campaign_id'])->exists()) {
+            $deal->campaigns()->updateExistingPivot($data['campaign_id'], ['status' => $status]);
+        } else {
+            // company_id is set explicitly: pivot rows aren't models, so BelongsToCompany can't fill it.
+            $deal->campaigns()->attach($data['campaign_id'], [
+                'company_id' => $deal->company_id, 'status' => $status, 'added_at' => now(),
+            ]);
+            $name = \App\Models\Campaign::whereKey($data['campaign_id'])->value('name');
+            \App\Models\TimelineActivity::record($deal, 'system', 'Linked to campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
+    }
+
+    /** Unlink this deal from a campaign. */
+    public function detachCampaign(int $id, int $campaignId): JsonResponse
+    {
+        $deal = Deal::findOrFail($id);
+        if ($deal->campaigns()->where('campaigns.id', $campaignId)->exists()) {
+            $name = \App\Models\Campaign::whereKey($campaignId)->value('name');
+            $deal->campaigns()->detach($campaignId);
+            \App\Models\TimelineActivity::record($deal, 'system', 'Unlinked from campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
     }
 
     /** Move a deal to another stage (kanban drag / stage dropdown). */

@@ -170,6 +170,32 @@
 
           <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
 
+          <!-- Campaigns influencing this deal -->
+          <div>
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Campaigns</div>
+            <div v-if="can('deals.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input input-sm flex-1 text-xs">
+                <option :value="null">Link a campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input input-sm w-auto text-xs capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary btn-sm" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership"><Plus :size="12" /></button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle">Loading…</div>
+            <div v-else-if="!dealCampaigns.length" class="text-ink-subtle">No campaigns linked.</div>
+            <div v-for="m in dealCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('deals.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('deals.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
+            </div>
+          </div>
+
           <!-- Timeline -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.timeline') }}</div>
@@ -355,6 +381,7 @@ import contactApi from '@/services/contacts';
 import { RefreshCw, Plus, X, Send, Building2, Settings2 } from 'lucide-vue-next';
 import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
 import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import http from '@/services/http';
 import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 
 const toast = useToast();
@@ -378,7 +405,7 @@ const statTiles = [
 
 const board      = reactive({ pipeline: null, columns: [] });
 const stats      = reactive({});
-const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [], custom_fields: [] });
+const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [], custom_fields: [], campaigns: [], campaign_member_statuses: [] });
 const customers  = ref([]);
 const contactOptions = ref([]);
 const selected   = ref(null);
@@ -458,7 +485,50 @@ async function openDetail(id) {
     const { data } = await api.show(id);
     selected.value = data.data;
     moveTarget.value = data.data.stage?.id ?? null;
+    loadCampaigns(id);
   } catch { /* interceptor surfaces the error */ }
+}
+
+// Campaigns influencing a deal (a deal can be linked to many campaigns).
+const dealCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+const availableCampaigns = computed(() => {
+  const joined = new Set(dealCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+async function loadCampaigns(id) {
+  campaignsLoading.value = true; dealCampaigns.value = [];
+  try { const { data } = await http.get(`/deals/${id}/campaigns`); dealCampaigns.value = data.data || []; }
+  catch { dealCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/deals/${selected.value.id}/campaigns`, { ...newMembership });
+    dealCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/deals/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    dealCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/deals/${selected.value.id}/campaigns/${m.campaign_id}`);
+    dealCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
 }
 
 function onDragStart(deal, fromStage) { dragging.value = { deal, fromStage }; }
