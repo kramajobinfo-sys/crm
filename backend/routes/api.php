@@ -208,6 +208,9 @@ Route::prefix('v1')->group(function () {
             Route::get   ('{id}/timeline', [ContactController::class, 'timeline'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::get   ('{id}/consents', [ContactController::class, 'consents'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::post  ('{id}/consents', [ContactController::class, 'storeConsent'])->middleware('permission:contacts.update')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [ContactController::class, 'campaignMemberships'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [ContactController::class, 'attachCampaign'])->middleware('permission:contacts.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [ContactController::class, 'detachCampaign'])->middleware('permission:contacts.update')->whereNumber('id')->whereNumber('campaignId');
             Route::put   ('{id}', [ContactController::class, 'update'])->middleware('permission:contacts.update')->whereNumber('id');
             Route::delete('{id}', [ContactController::class, 'destroy'])->middleware('permission:contacts.delete')->whereNumber('id');
         });
