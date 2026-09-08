@@ -190,6 +190,9 @@ Route::prefix('v1')->group(function () {
             Route::post  ('/',      [CustomerController::class, 'store'])->middleware('permission:customers.create');
             Route::get   ('{id}',   [CustomerController::class, 'show'])->middleware('permission:customers.view')->whereNumber('id');
             Route::get   ('{id}/timeline', [CustomerController::class, 'timeline'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [CustomerController::class, 'campaignMemberships'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [CustomerController::class, 'attachCampaign'])->middleware('permission:customers.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [CustomerController::class, 'detachCampaign'])->middleware('permission:customers.update')->whereNumber('id')->whereNumber('campaignId');
             Route::put   ('{id}',   [CustomerController::class, 'update'])->middleware('permission:customers.update')->whereNumber('id');
             Route::delete('{id}',   [CustomerController::class, 'destroy'])->middleware('permission:customers.delete')->whereNumber('id');
             Route::post  ('{id}/notes',              [CustomerController::class, 'addNote'])->middleware('permission:customers.update')->whereNumber('id');

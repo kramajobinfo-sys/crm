@@ -164,6 +164,32 @@
 
           <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
 
+          <!-- Campaign memberships (marketing lists) -->
+          <div>
+            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Campaigns</div>
+            <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input input-sm flex-1 text-xs">
+                <option :value="null">Add to campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input input-sm w-auto text-xs capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary btn-sm" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership"><Plus :size="12" /></button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle">Loading…</div>
+            <div v-else-if="!customerCampaigns.length" class="text-ink-subtle">Not a member of any campaign yet.</div>
+            <div v-for="m in customerCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('customers.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('customers.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
+            </div>
+          </div>
+
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.timeline') }}</div>
             <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
@@ -285,6 +311,7 @@ import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
 import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
 import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import http from '@/services/http';
 import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
@@ -372,11 +399,54 @@ async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    loadCampaigns(id);
     try {
       const tl = await api.timeline(id);
       selected.value.timeline = tl.data?.data?.data ?? selected.value.timeline ?? [];
     } catch { /* keep the embedded timeline as fallback */ }
   } catch { /* interceptor surfaces the error */ }
+}
+
+// Campaign memberships (an account can belong to many marketing campaigns).
+const customerCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+const availableCampaigns = computed(() => {
+  const joined = new Set(customerCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+async function loadCampaigns(id) {
+  campaignsLoading.value = true; customerCampaigns.value = [];
+  try { const { data } = await http.get(`/customers/${id}/campaigns`); customerCampaigns.value = data.data || []; }
+  catch { customerCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/customers/${selected.value.id}/campaigns`, { ...newMembership });
+    customerCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/customers/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    customerCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/customers/${selected.value.id}/campaigns/${m.campaign_id}`);
+    customerCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
 }
 
 function applyStatus(status) { filters.status = status; page.value = 1; load(); }
