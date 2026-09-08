@@ -52,6 +52,43 @@ class ActivityService
             ->paginate($perPage);
     }
 
+    /**
+     * All structured activities (tasks, calls, meetings) attached to one record, as a single
+     * chronological list. Powers the "Activities" related list on leads/deals/customers/contacts.
+     * @return array<int,array<string,mixed>>
+     */
+    public function forSubject(string $subjectType, int $subjectId): array
+    {
+        $scope = fn ($q) => $q->where('related_type', $subjectType)->where('related_id', $subjectId);
+
+        $tasks = Task::where($scope)->with('assignee:id,name')->get()->map(fn (Task $t) => [
+            'kind' => 'task', 'id' => $t->id, 'title' => $t->title, 'status' => $t->status,
+            'priority' => $t->priority, 'assignee' => $t->assignee?->name, 'when' => $t->due_at ?? $t->created_at,
+        ]);
+        $calls = Call::where($scope)->get()->map(fn (Call $c) => [
+            'kind' => 'call', 'id' => $c->id, 'title' => $c->subject, 'status' => $c->status,
+            'direction' => $c->direction, 'duration_seconds' => $c->duration_seconds,
+            'when' => $c->occurred_at ?? $c->scheduled_at ?? $c->created_at,
+        ]);
+        $meetings = Meeting::where($scope)->get()->map(fn (Meeting $m) => [
+            'kind' => 'meeting', 'id' => $m->id, 'title' => $m->title, 'status' => $m->status,
+            'location' => $m->location, 'when' => $m->start_at ?? $m->created_at,
+        ]);
+        $emails = \App\Models\Email::where($scope)->get()->map(fn ($e) => [
+            'kind' => 'email', 'id' => $e->id, 'title' => $e->subject, 'status' => $e->status,
+            'direction' => $e->direction, 'when' => $e->sent_at ?? $e->received_at ?? $e->created_at,
+        ]);
+
+        return $tasks->concat($calls)->concat($meetings)->concat($emails)
+            ->sortByDesc(fn ($a) => optional($a['when'])->timestamp ?? 0)
+            ->map(function ($a) {
+                $when = $a['when'];
+                $a['when'] = optional($when)->toIso8601String();
+                $a['when_human'] = optional($when)->diffForHumans();
+                return $a;
+            })->values()->all();
+    }
+
     public function createTask(array $data): Task
     {
         return DB::transaction(function () use ($data) {
@@ -67,19 +104,47 @@ class ActivityService
     public function updateTask(Task $task, array $data): Task
     {
         $this->normaliseRelated($data);
+        $wasDone = $task->status === 'done';
         // Completing/reopening keeps completed_at honest regardless of who toggles it.
         if (array_key_exists('status', $data)) {
             $data['completed_at'] = in_array($data['status'], ['done', 'cancelled'], true) ? ($task->completed_at ?? now()) : null;
         }
         $task->update($data);
+        if (!$wasDone && $task->status === 'done') $this->spawnNextOccurrence($task);
         return $task->load(['assignee:id,name', 'related']);
     }
 
     public function completeTask(Task $task): Task
     {
+        $wasDone = $task->status === 'done';
         $task->forceFill(['status' => 'done', 'completed_at' => now()])->save();
         $this->touchTimeline($task, 'note', 'Task completed: '.$task->title);
+        if (!$wasDone) $this->spawnNextOccurrence($task);
         return $task->load(['assignee:id,name', 'related']);
+    }
+
+    /** When a recurring task is completed, create the next occurrence (bounded by recurrence_until). */
+    private function spawnNextOccurrence(Task $task): void
+    {
+        if (!in_array($task->recurrence, Task::RECURRENCES, true)) return;
+        $base = $task->due_at ?? now();
+        $next = match ($task->recurrence) {
+            'daily' => $base->copy()->addDay(),
+            'weekly' => $base->copy()->addWeek(),
+            'monthly' => $base->copy()->addMonthNoOverflow(),
+            default => null,
+        };
+        if (!$next) return;
+        if ($task->recurrence_until && $next->copy()->startOfDay()->gt($task->recurrence_until->copy()->endOfDay())) return;
+
+        Task::create([
+            'company_id' => $task->company_id, 'title' => $task->title, 'description' => $task->description,
+            'priority' => $task->priority, 'assigned_to' => $task->assigned_to, 'created_by' => $task->created_by,
+            'related_type' => $task->related_type, 'related_id' => $task->related_id,
+            'due_at' => $next, 'status' => 'open',
+            'recurrence' => $task->recurrence, 'recurrence_until' => $task->recurrence_until,
+            'recurrence_parent_id' => $task->recurrence_parent_id ?? $task->id,
+        ]);
     }
 
     // ---- Meetings --------------------------------------------------------

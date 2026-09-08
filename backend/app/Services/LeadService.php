@@ -17,6 +17,7 @@ class LeadService
         private readonly CustomerService $customers,
         private readonly DealService $deals,
         private readonly WorkflowService $workflows,
+        private readonly DuplicateDetectionService $duplicates,
     ) {}
 
     public function paginate(array $filters = [], int $perPage = 25): LengthAwarePaginator
@@ -29,6 +30,11 @@ class LeadService
             ->when(!empty($filters['status_id']), fn ($q) => $q->where('status_id', $filters['status_id']))
             ->when(!empty($filters['source_id']), fn ($q) => $q->where('source_id', $filters['source_id']))
             ->when(!empty($filters['rating']), fn ($q) => $q->where('rating', $filters['rating']))
+            ->when(!empty($filters['priority']), fn ($q) => $q->where('priority', $filters['priority']))
+            ->when(($filters['follow_up'] ?? null) === 'overdue',
+                fn ($q) => $q->open()->whereNotNull('follow_up_at')->where('follow_up_at', '<', now()))
+            ->when(($filters['follow_up'] ?? null) === 'today',
+                fn ($q) => $q->open()->whereBetween('follow_up_at', [now()->startOfDay(), now()->endOfDay()]))
             ->when(!empty($filters['owner_id']), function ($q) use ($filters) {
                 if ($filters['owner_id'] === 'me') return $q->where('owner_id', auth()->id());
                 if ($filters['owner_id'] === 'unassigned') return $q->whereNull('owner_id');
@@ -41,7 +47,10 @@ class LeadService
     public function find(int $id): Lead
     {
         return Lead::with([
-            'source', 'status', 'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
+            'source', 'status', 'lostReason:id,name', 'campaign:id,name', 'account:id,name,customer_no',
+            'owner:id,name', 'branch:id,name', 'customer:id,name,customer_no',
+            'deals' => fn ($q) => $q->with('stage:id,name,is_won,is_lost')->orderByDesc('id'),
+            'products:id,name,sku',
             'addresses',
             'attachments' => fn ($q) => $q->with('uploader:id,name')->latest(),
             'timeline' => fn ($q) => $q->with('user:id,name')->orderByDesc('occurred_at')->limit(50),
@@ -53,8 +62,14 @@ class LeadService
         return DB::transaction(function () use ($data) {
             $data['lead_no'] ??= $this->nextLeadNo();
             $data['status_id'] ??= LeadStatus::where('is_default', true)->value('id');
+            $products = $data['products'] ?? null;
+            unset($data['products']);
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('lead', (array) $data['custom_fields']);
+            }
 
             $lead = Lead::create($data);
+            if ($products !== null) $this->syncProducts($lead, $products);
 
             // Explicit owner wins; otherwise let the rules decide.
             if (!$lead->owner_id) $this->autoAssign($lead);
@@ -73,7 +88,15 @@ class LeadService
             $beforeStatus = $lead->status_id;
             $beforeOwner  = $lead->owner_id;
 
+            $products = $data['products'] ?? null;
+            unset($data['products']);
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($lead->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('lead', (array) $data['custom_fields']));
+            }
             $lead->update($data);
+            if ($products !== null) $this->syncProducts($lead, $products);
 
             if (array_key_exists('status_id', $data) && $data['status_id'] !== $beforeStatus) {
                 $from = LeadStatus::find($beforeStatus)?->name ?? '—';
@@ -84,6 +107,7 @@ class LeadService
             }
             if (array_key_exists('owner_id', $data) && $data['owner_id'] !== $beforeOwner) {
                 TimelineActivity::record($lead, 'system', 'Owner reassigned');
+                app(CrmNotifier::class)->leadAssigned($lead);
             }
 
             $this->scoring->apply($lead);
@@ -117,8 +141,21 @@ class LeadService
 
         return DB::transaction(function () use ($lead, $options) {
             $accountMode = $options['account_mode'] ?? 'new';
+            $accountReused = false;
             if ($accountMode === 'existing') {
                 $customer = Customer::findOrFail((int) $options['account_id']);
+            } elseif (!array_key_exists('account_mode', $options)
+                && $lead->account_id && !($options['force_new_account'] ?? false)) {
+                // The lead is already linked to an existing Account — convert into it.
+                $customer = Customer::findOrFail($lead->account_id);
+                $accountReused = true;
+            } elseif (!($options['force_new_account'] ?? false)
+                && ($match = $this->matchingAccountId($lead)) !== null) {
+                // Dedup guard: a high-confidence existing Account (same email/tax_id, or ≥2 signals)
+                // is reused instead of silently creating a second customer for the same company.
+                // Pass force_new_account=true (or account_mode=existing) to override.
+                $customer = Customer::findOrFail($match);
+                $accountReused = true;
             } else {
                 $legacyOverrides = array_filter([
                     'name' => $options['name'] ?? null,
@@ -141,8 +178,9 @@ class LeadService
                 ], $legacyOverrides, $options['account'] ?? []));
             }
 
-            // Carry the lead's addresses over rather than losing them.
-            foreach ($accountMode === 'new' ? $lead->addresses : [] as $addr) {
+            // Carry the lead's addresses over rather than losing them — only for a freshly created
+            // account (reusing/existing accounts keep their own addresses).
+            foreach ((!$accountReused && $accountMode === 'new') ? $lead->addresses : [] as $addr) {
                 $customer->addresses()->create([
                     'company_id' => $customer->company_id,
                     'type' => $addr->type, 'label' => $addr->label,
@@ -154,21 +192,39 @@ class LeadService
             }
 
             $contact = null;
+            $contactReused = false;
             if ($options['create_contact'] ?? true) {
                 // The converted person is always represented as a Contact, including B2C/individual
                 // Accounts. That keeps activities and Deal roles attached to a real person.
+                // Dedup guard: if this account already has a contact matching the lead's email/phone,
+                // reuse it (and make it primary) rather than inserting the same person twice.
+                $existingContact = $this->matchingContact($customer, $lead);
                 $customer->contacts()->update(['is_primary' => false]);
-                $contact = $customer->contacts()->create(array_merge([
-                    'company_id' => $customer->company_id,
-                    'name' => $lead->name, 'title' => $lead->title,
-                    'email' => $lead->email, 'phone' => $lead->phone, 'mobile' => $lead->mobile,
-                    'is_primary' => true,
-                ], $options['contact'] ?? [], ['is_primary' => true]));
+                if ($existingContact && !($options['force_new_contact'] ?? false)) {
+                    $existingContact->forceFill(['is_primary' => true])->save();
+                    $contact = $existingContact;
+                    $contactReused = true;
+                } else {
+                    $contact = $customer->contacts()->create(array_merge([
+                        'company_id' => $customer->company_id,
+                        'name' => $lead->name, 'title' => $lead->title,
+                        'email' => $lead->email, 'phone' => $lead->phone, 'mobile' => $lead->mobile,
+                        'is_primary' => true,
+                    ], $options['contact'] ?? [], ['is_primary' => true]));
+                }
             }
 
             $deal = null;
             if ($options['create_deal'] ?? false) {
                 $dealInput = $options['deal'] ?? [];
+                // Pre-fill the opportunity with the lead's products of interest (unless the caller
+                // supplied their own lines) — carries the trading intent straight into the quote.
+                if (!isset($dealInput['products']) && $lead->products->isNotEmpty()) {
+                    $dealInput['products'] = $lead->products->map(fn ($p) => [
+                        'product_id' => $p->id, 'name' => $p->name,
+                        'quantity' => $p->pivot->quantity ?? 1, 'unit_price' => (float) ($p->sale_price ?? 0),
+                    ])->all();
+                }
                 $deal = $this->deals->create(array_merge([
                     'title' => ($lead->company_name ?: $lead->name).' Opportunity',
                     'customer_id' => $customer->id,
@@ -207,8 +263,60 @@ class LeadService
                 'customer' => $customer->refresh(),
                 'contact' => $contact?->refresh(),
                 'deal' => $deal,
+                'account_reused' => $accountReused,
+                'contact_reused' => $contactReused,
             ];
         });
+    }
+
+    /** Replace a lead's products-of-interest from a [{product_id, quantity?, note?}] list. */
+    private function syncProducts(Lead $lead, array $products): void
+    {
+        $sync = [];
+        foreach ($products as $p) {
+            if (empty($p['product_id'])) continue;
+            $sync[(int) $p['product_id']] = [
+                'company_id' => $lead->company_id,
+                'quantity' => $p['quantity'] ?? null,
+                'note' => $p['note'] ?? null,
+            ];
+        }
+        $lead->products()->sync($sync);
+    }
+
+    /** Highest-confidence existing Account for this lead, or null. Used to avoid duplicate customers
+     *  on conversion. Reuses DuplicateDetectionService so the match logic stays in one place. */
+    private function matchingAccountId(Lead $lead): ?int
+    {
+        $matches = $this->duplicates->check('account', [
+            'name' => $lead->company_name ?: $lead->name,
+            'company_name' => $lead->company_name,
+            'email' => $lead->email,
+            'phone' => $lead->phone,
+            'mobile' => $lead->mobile,
+            'tax_id' => $lead->tax_id ?? null,
+        ]);
+        // Only auto-reuse on a HIGH-confidence match (email/tax_id, or ≥2 signals) — a lone
+        // name/phone coincidence is too weak to merge two companies automatically.
+        foreach ($matches as $m) {
+            if (($m['confidence'] ?? null) === 'high') return (int) $m['id'];
+        }
+        return null;
+    }
+
+    /** An existing contact on this account matching the lead's email or phone, or null. */
+    private function matchingContact(Customer $customer, Lead $lead): ?\App\Models\Contact
+    {
+        $email = trim((string) $lead->email);
+        $phone = trim((string) ($lead->phone ?: $lead->mobile));
+        if ($email === '' && $phone === '') return null;
+
+        return $customer->contacts()
+            ->where(function ($q) use ($email, $phone) {
+                if ($email !== '') $q->orWhereRaw('LOWER(email) = ?', [mb_strtolower($email)]);
+                if ($phone !== '') $q->orWhere('phone', $phone)->orWhere('mobile', $phone);
+            })
+            ->first();
     }
 
     /** First matching active rule by priority wins. */
@@ -234,10 +342,38 @@ class LeadService
             if ($userId) {
                 $lead->forceFill(['owner_id' => $userId])->save();
                 TimelineActivity::record($lead, 'system', "Auto-assigned by rule “{$rule->name}”");
+                app(CrmNotifier::class)->leadAssigned($lead);
                 return $userId;
             }
         }
         return null;
+    }
+
+    /**
+     * Notify owners of open leads whose follow-up date has arrived. Idempotent: each scheduled
+     * follow-up fires once (guarded by follow_up_notified_at), and re-fires only if the owner
+     * later pushes follow_up_at to a new date. Runs from the scheduler in a console context, so
+     * it steps outside the company global scope and stamps quietly (no audit/observer noise).
+     */
+    public function sweepFollowUpsDue(): int
+    {
+        $due = Lead::withoutGlobalScopes()
+            ->whereNull('converted_to_customer_id')
+            ->whereNotNull('owner_id')
+            ->whereNotNull('follow_up_at')
+            ->where('follow_up_at', '<=', now())
+            ->where(function ($q) {
+                $q->whereNull('follow_up_notified_at')
+                  ->orWhereColumn('follow_up_notified_at', '<', 'follow_up_at');
+            })
+            ->get();
+
+        $notifier = app(CrmNotifier::class);
+        foreach ($due as $lead) {
+            $notifier->leadFollowUpDue($lead);
+            $lead->forceFill(['follow_up_notified_at' => now()])->saveQuietly();
+        }
+        return $due->count();
     }
 
     /** Sequential per-company lead number, e.g. LEAD-00042. */

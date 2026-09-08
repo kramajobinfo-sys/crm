@@ -55,7 +55,12 @@ class SalesOrderController extends Controller
     {
         $data = $request->validate(['status' => 'required|string|in:draft,confirmed,processing,fulfilled,cancelled']);
         $order = SalesOrder::findOrFail($id);
-        return $this->success(new SalesOrderResource($this->sales->setOrderStatus($order, $data['status'])), 'Status updated');
+        try {
+            $result = $this->sales->setOrderStatus($order, $data['status']);
+        } catch (\RuntimeException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+        return $this->success(new SalesOrderResource($result), 'Status updated');
     }
 
     public function convert(int $id): JsonResponse

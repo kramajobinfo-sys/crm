@@ -19,6 +19,8 @@ class CustomerResource extends JsonResource
             'mobile' => $this->mobile,
             'website' => $this->website,
             'tax_id' => $this->tax_id,
+            'territory' => $this->territory,
+            'tags' => $this->tags ?? [],
             'currency' => $this->currency,
             'price_book_id' => $this->price_book_id,
             'price_book' => $this->whenLoaded('priceBook', fn () => $this->priceBook
@@ -27,6 +29,7 @@ class CustomerResource extends JsonResource
             'payment_terms_days' => $this->payment_terms_days,
             'effective_payment_terms' => $this->effectivePaymentTerms(),
             'notes' => $this->notes,
+            'custom_fields' => $this->custom_fields ?? new \stdClass(),
             'created_at' => $this->created_at?->toIso8601String(),
             'created_human' => $this->created_at?->diffForHumans(),
             'contacts_count' => $this->whenCounted('contacts'),

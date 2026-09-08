@@ -9,6 +9,7 @@ Schedule::command('fx:refresh-rates')->dailyAt('00:30');
 Schedule::command('dashboard:warm-cache')->everyTenMinutes();
 Schedule::command('sla:check-breaches')->everyFiveMinutes();
 Schedule::command('leads:score')->hourly();
+Schedule::command('leads:notify-follow-ups')->hourly()->withoutOverlapping();
 Schedule::command('workflows:run-scheduled')->everyMinute();
 Schedule::command('activities:dispatch-reminders')->everyMinute()->withoutOverlapping();
 Schedule::command('projects:dispatch-task-notifications')->hourly()->withoutOverlapping();

@@ -12,9 +12,9 @@ class Company extends Model
     protected $fillable = [
         'name','code','subdomain','legal_name','tax_id','base_currency','logo_path','primary_color',
         'default_language','address_line1','address_line2','city','country','phone','email','website',
-        'is_active','plan_id',
+        'is_active','plan_id','appearance',
     ];
-    protected function casts(): array { return ['is_active' => 'boolean']; }
+    protected function casts(): array { return ['is_active' => 'boolean', 'appearance' => 'array']; }
     public function branches(): HasMany { return $this->hasMany(Branch::class); }
     public function users(): HasMany { return $this->hasMany(User::class); }
     public function departments(): HasMany { return $this->hasMany(Department::class); }

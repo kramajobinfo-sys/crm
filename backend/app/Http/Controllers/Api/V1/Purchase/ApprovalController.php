@@ -27,7 +27,7 @@ class ApprovalController extends Controller
             return [
                 'id' => $r->id,
                 'document_type' => class_basename($r->approvable_type),
-                'document_no' => $doc->pr_no ?? $doc->po_no ?? ('#'.$r->approvable_id),
+                'document_no' => $doc->pr_no ?? $doc->po_no ?? $doc->quote_no ?? ('#'.$r->approvable_id),
                 'amount' => (float) ($doc->grand_total ?? $doc->estimated_total ?? 0),
                 'step' => $r->current_step + 1,
                 'total_steps' => count($r->workflow->approver_ids ?? []),

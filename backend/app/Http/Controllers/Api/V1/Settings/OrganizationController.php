@@ -40,6 +40,31 @@ class OrganizationController extends Controller
         return $this->success($this->companyPayload($company->refresh()), 'Company updated');
     }
 
+    /** Company-wide appearance (theme/accent/sidebar+top-bar colors). When enforced, overrides each
+     *  user's personal choice; otherwise it's the default a non-personalized user inherits. */
+    public function updateAppearance(Request $request): JsonResponse
+    {
+        $company = $request->user()->company;
+        $data = $request->validate([
+            'theme' => 'nullable|in:light,dark',
+            'accent' => 'nullable|in:blue,indigo,emerald,violet,rose',
+            'chrome' => 'nullable|array',
+            'chrome.sidebar' => 'nullable|string|max:9',
+            'chrome.topbar' => 'nullable|string|max:9',
+            'enforced' => 'boolean',
+        ]);
+        $company->update(['appearance' => [
+            'theme' => $data['theme'] ?? null,
+            'accent' => $data['accent'] ?? null,
+            'chrome' => [
+                'sidebar' => $data['chrome']['sidebar'] ?? null,
+                'topbar' => $data['chrome']['topbar'] ?? null,
+            ],
+            'enforced' => (bool) ($data['enforced'] ?? false),
+        ]]);
+        return $this->success($company->refresh()->appearance, 'Company appearance saved');
+    }
+
     // ---- branches --------------------------------------------------------
 
     public function branches(Request $request): JsonResponse
@@ -144,7 +169,7 @@ class OrganizationController extends Controller
             'id' => $company->id, 'name' => $company->name, 'code' => $company->code,
             'legal_name' => $company->legal_name, 'tax_id' => $company->tax_id,
             'base_currency' => $company->base_currency, 'primary_color' => $company->primary_color,
-            'default_language' => $company->default_language,
+            'default_language' => $company->default_language, 'appearance' => $company->appearance,
             'logo_url' => $company->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($company->logo_path) : null,
             'address_line1' => $company->address_line1, 'city' => $company->city, 'country' => $company->country,
             'phone' => $company->phone, 'email' => $company->email, 'website' => $company->website,

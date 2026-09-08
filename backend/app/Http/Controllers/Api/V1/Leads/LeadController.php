@@ -9,8 +9,10 @@ use App\Http\Resources\ContactResource;
 use App\Http\Resources\DealResource;
 use App\Http\Resources\LeadResource;
 use App\Models\Lead;
+use App\Models\LeadConsent;
 use App\Models\LeadSource;
 use App\Models\LeadStatus;
+use App\Models\TimelineActivity;
 use App\Services\LeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,6 +34,8 @@ class LeadController extends Controller
             'status_id' => 'nullable|integer',
             'source_id' => 'nullable|integer',
             'rating'    => 'nullable|string|in:hot,warm,cold',
+            'priority'  => 'nullable|string|in:low,medium,high,urgent',
+            'follow_up' => 'nullable|string|in:overdue,today',
             'owner_id'  => 'nullable|string',
             'per_page'  => 'nullable|integer|min:1|max:100',
         ]);
@@ -46,12 +50,120 @@ class LeadController extends Controller
         return $this->success($this->leads->stats());
     }
 
+    /** Structured activities (tasks/calls/meetings) attached to this lead. */
+    public function activities(int $id): JsonResponse
+    {
+        Lead::findOrFail($id); // company-scoped existence + 404
+        return $this->success(app(\App\Services\ActivityService::class)->forSubject(Lead::class, $id));
+    }
+
+    /** Campaign memberships (marketing lists) this lead belongs to. */
+    public function campaignMemberships(int $id): JsonResponse
+    {
+        $lead = Lead::with(['campaigns' => fn ($q) => $q->orderByDesc('campaign_lead.id')])->findOrFail($id);
+        return $this->success($lead->campaigns->map(fn ($c) => [
+            'campaign_id' => $c->id, 'name' => $c->name, 'type' => $c->type, 'campaign_status' => $c->status,
+            'status' => $c->pivot->status, 'added_at' => optional($c->pivot->added_at)->toIso8601String(),
+        ])->values());
+    }
+
+    /** Add this lead to a campaign, or update its member status if already a member. */
+    public function attachCampaign(Request $request, int $id): JsonResponse
+    {
+        $lead = Lead::findOrFail($id);
+        $companyId = $request->user()->company_id;
+        $data = $request->validate([
+            'campaign_id' => ['required', 'integer',
+                Rule::exists('campaigns', 'id')->where('company_id', $companyId)->whereNull('deleted_at')],
+            'status' => ['nullable', Rule::in(Lead::CAMPAIGN_MEMBER_STATUSES)],
+        ]);
+        $status = $data['status'] ?? 'member';
+
+        if ($lead->campaigns()->where('campaigns.id', $data['campaign_id'])->exists()) {
+            $lead->campaigns()->updateExistingPivot($data['campaign_id'], ['status' => $status]);
+        } else {
+            // company_id is set explicitly: pivot rows aren't models, so BelongsToCompany can't fill it.
+            $lead->campaigns()->attach($data['campaign_id'], [
+                'company_id' => $lead->company_id, 'status' => $status, 'added_at' => now(),
+            ]);
+            $name = \App\Models\Campaign::whereKey($data['campaign_id'])->value('name');
+            TimelineActivity::record($lead, 'system', 'Added to campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
+    }
+
+    /** Remove this lead from a campaign. */
+    public function detachCampaign(int $id, int $campaignId): JsonResponse
+    {
+        $lead = Lead::findOrFail($id);
+        if ($lead->campaigns()->where('campaigns.id', $campaignId)->exists()) {
+            $name = \App\Models\Campaign::whereKey($campaignId)->value('name');
+            $lead->campaigns()->detach($campaignId);
+            TimelineActivity::record($lead, 'system', 'Removed from campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
+    }
+
+    /** Current per-channel consent state + full opt-in/opt-out history for a lead. */
+    public function consents(int $id): JsonResponse
+    {
+        return $this->success($this->consentPayload(Lead::findOrFail($id)));
+    }
+
+    /** Record a consent grant or withdrawal for one channel (append-only). */
+    public function storeConsent(Request $request, int $id): JsonResponse
+    {
+        $lead = Lead::findOrFail($id);
+        $data = $request->validate([
+            'channel' => ['required', Rule::in(LeadConsent::CHANNELS)],
+            'status'  => ['required', Rule::in(['granted', 'withdrawn'])],
+            'source'  => ['nullable', 'string', 'max:64'],
+            'note'    => ['nullable', 'string', 'max:255'],
+        ]);
+        $lead->consents()->create([
+            'lead_id' => $lead->id, 'channel' => $data['channel'], 'status' => $data['status'],
+            'source' => $data['source'] ?? 'agent', 'note' => $data['note'] ?? null,
+            'user_id' => $request->user()->id, 'occurred_at' => now(),
+        ]);
+        $lead->unsetRelation('consents');
+        $verb = $data['status'] === 'granted' ? 'opted in to' : 'opted out of';
+        TimelineActivity::record($lead, 'system', 'Lead '.$verb.' '.$data['channel'], $data['note'] ?? null,
+            ['channel' => $data['channel'], 'status' => $data['status']]);
+        return $this->success($this->consentPayload($lead), 'Consent updated');
+    }
+
+    private function consentPayload(Lead $lead): array
+    {
+        $history = $lead->consents()->with('user:id,name')->get()->map(fn (LeadConsent $c) => [
+            'id' => $c->id, 'channel' => $c->channel, 'status' => $c->status, 'source' => $c->source,
+            'note' => $c->note, 'user' => $c->user ? ['id' => $c->user->id, 'name' => $c->user->name] : null,
+            'occurred_at' => optional($c->occurred_at)->toIso8601String(),
+        ])->values();
+
+        $current = collect(LeadConsent::CHANNELS)->map(function (string $ch) use ($lead) {
+            $latest = $lead->consentFor($ch);
+            return [
+                'channel' => $ch, 'status' => $latest?->status ?? 'unset',
+                'can_receive' => $lead->canReceive($ch),
+                'opt_in_only' => in_array($ch, LeadConsent::OPT_IN_CHANNELS, true),
+                'occurred_at' => optional($latest?->occurred_at)->toIso8601String(), 'source' => $latest?->source,
+            ];
+        })->values();
+
+        return ['current' => $current, 'history' => $history];
+    }
+
     public function meta(): JsonResponse
     {
         return $this->success([
             'sources'  => LeadSource::where('is_active', true)->orderBy('name')->get(['id','name','code']),
+            'campaigns' => \App\Models\Campaign::orderByDesc('id')->limit(100)->get(['id','name']),
             'statuses' => LeadStatus::orderBy('sort_order')->get(['id','name','code','color','is_won','is_lost','is_default']),
             'ratings'  => Lead::RATINGS,
+            'priorities' => Lead::PRIORITIES,
+            'campaign_member_statuses' => Lead::CAMPAIGN_MEMBER_STATUSES,
+            'lost_reasons' => \App\Models\LostReason::where('is_active', true)->orderBy('sort_order')->get(['id','name','code']),
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('lead'),
             'next_lead_no' => $this->leads->nextLeadNo(),
         ]);
     }
@@ -122,7 +234,7 @@ class LeadController extends Controller
      */
     public function convert(Request $request, int $id): JsonResponse
     {
-        $lead = Lead::with('addresses')->findOrFail($id);
+        $lead = Lead::with(['addresses', 'products'])->findOrFail($id);
         $companyId = $request->user()->company_id;
         $options = $request->validate([
             'account_mode' => 'nullable|string|in:new,existing',

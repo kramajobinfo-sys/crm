@@ -20,14 +20,17 @@ class Contact extends Authenticatable implements JWTSubject
 {
     use HasFactory, SoftDeletes, BelongsToCompany;
 
+    public const CAMPAIGN_MEMBER_STATUSES = ['member', 'contacted', 'responded'];
+
     protected $fillable = [
-        'company_id','customer_id','name','title','email','phone','mobile','is_primary','notes',
+        'company_id','customer_id','name','title','department','email','phone','mobile','is_primary','notes','custom_fields',
     ];
     protected $hidden = ['password'];
 
     protected function casts(): array
     {
         return [
+            'custom_fields'  => 'array',
             'is_primary'     => 'boolean',
             'portal_enabled' => 'boolean',
             'password'       => 'hashed',
@@ -42,6 +45,13 @@ class Contact extends Authenticatable implements JWTSubject
             ->withPivot(['company_id', 'role', 'is_primary'])
             ->withTimestamps();
     }
+    /** Marketing-list memberships: many campaigns, each with a member status. */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_contact')
+            ->withPivot(['status', 'added_at'])->withTimestamps();
+    }
+
     public function addresses(): MorphMany { return $this->morphMany(Address::class, 'addressable'); }
 
     /** Full consent/opt-out history, newest first. */

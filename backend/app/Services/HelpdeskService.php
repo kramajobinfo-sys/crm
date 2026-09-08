@@ -6,6 +6,8 @@ use App\Models\SlaPolicy;
 use App\Models\Ticket;
 use App\Models\TicketReply;
 use App\Models\TicketRoutingRule;
+use App\Models\TimelineActivity;
+use App\Notifications\SlaBreachNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -116,6 +118,7 @@ class HelpdeskService
         $patch = ['assigned_to' => $userId];
         if ($userId && $ticket->status === 'new') $patch['status'] = 'open';
         $ticket->forceFill($patch)->save();
+        app(CrmNotifier::class)->ticketAssigned($ticket);
         return $this->find($ticket->id);
     }
 
@@ -133,6 +136,7 @@ class HelpdeskService
                 if ($ticket->status === 'new') $patch['status'] = 'open';
                 $ticket->forceFill($patch)->save();
                 \App\Models\TimelineActivity::record($ticket, 'system', "Auto-routed by rule \u{201C}{$rule->name}\u{201D}");
+                app(CrmNotifier::class)->ticketAssigned($ticket);
                 return $userId;
             }
         }
@@ -216,15 +220,65 @@ class HelpdeskService
         $policy = SlaPolicy::where('company_id', $ticket->company_id)
             ->where('is_active', true)->where('priority', $ticket->priority)->first();
         if (!$policy) {
-            $ticket->forceFill(['sla_policy_id' => null, 'first_response_due_at' => null, 'due_at' => null])->save();
+            $ticket->forceFill(['sla_policy_id' => null, 'first_response_due_at' => null, 'due_at' => null,
+                'response_breached_at' => null, 'sla_breached_at' => null])->save();
             return;
         }
         $base = $ticket->created_at ?? now();
+        // Recomputing deadlines clears the breach markers so a re-breach after a change is detectable.
         $ticket->forceFill([
             'sla_policy_id' => $policy->id,
             'first_response_due_at' => $base->copy()->addMinutes($policy->first_response_minutes),
             'due_at' => $base->copy()->addMinutes($policy->resolution_minutes),
+            'response_breached_at' => null, 'sla_breached_at' => null,
         ])->save();
+    }
+
+    /**
+     * Detect newly-breached SLAs (first-response and resolution) and act once per breach: stamp the
+     * marker, log a timeline entry, fire the `ticket.sla_breached` workflow event, and notify the
+     * assignee. Runs cross-tenant from the scheduler (no auth → global company scope is inert).
+     *
+     * @return array{response:int,resolution:int}
+     */
+    public function sweepSlaBreaches(): array
+    {
+        $counts = ['response' => 0, 'resolution' => 0];
+
+        // First-response breaches: past the response deadline, no agent reply yet, not already flagged.
+        Ticket::open()
+            ->whereNotNull('first_response_due_at')->where('first_response_due_at', '<', now())
+            ->whereNull('first_response_at')->whereNull('response_breached_at')
+            ->with('assignee:id')->chunkById(200, function ($tickets) use (&$counts) {
+                foreach ($tickets as $ticket) {
+                    $ticket->forceFill(['response_breached_at' => now()])->save();
+                    $this->flagBreach($ticket, 'response');
+                    $counts['response']++;
+                }
+            });
+
+        // Resolution breaches: past the resolution deadline, still open, not already flagged.
+        Ticket::open()
+            ->whereNotNull('due_at')->where('due_at', '<', now())->whereNull('sla_breached_at')
+            ->with('assignee:id')->chunkById(200, function ($tickets) use (&$counts) {
+                foreach ($tickets as $ticket) {
+                    $ticket->forceFill(['sla_breached_at' => now()])->save();
+                    $this->flagBreach($ticket, 'resolution');
+                    $counts['resolution']++;
+                }
+            });
+
+        return $counts;
+    }
+
+    private function flagBreach(Ticket $ticket, string $kind): void
+    {
+        $label = $kind === 'response' ? 'First-response SLA breached' : 'Resolution SLA breached';
+        TimelineActivity::record($ticket, 'system', $label, null, ['kind' => $kind]);
+        $this->workflows->fireEvent('tickets', 'ticket.sla_breached', $ticket);
+        if ($ticket->assignee) {
+            $ticket->assignee->notify(new SlaBreachNotification($ticket, $kind));
+        }
     }
 
     public function stats(): array

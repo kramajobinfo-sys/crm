@@ -36,6 +36,7 @@
     "customers": "Accounts",
     "accounts": "Accounts",
     "duplicates": "Duplicate Review",
+    "import": "Data Import",
     "contacts": "Contacts",
     "pipeline": "Deals",
     "deals": "Deals",
@@ -1498,7 +1499,8 @@
       "routing": "Ticket Routing",
       "sms": "SMS Providers",
       "appearance": "Appearance",
-      "billing": "Subscription"
+      "billing": "Subscription",
+      "custom_fields": "Custom Fields"
     },
     "c": {
       "name": "Company name",

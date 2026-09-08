@@ -39,12 +39,81 @@ class ContactController extends Controller
         return $this->success([
             'accounts' => Customer::where('status', '!=', 'archived')
                 ->orderBy('name')->limit(500)->get(['id', 'customer_no', 'name', 'type', 'status']),
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('contact'),
+            'campaigns' => \App\Models\Campaign::orderByDesc('id')->limit(100)->get(['id', 'name']),
+            'campaign_member_statuses' => Contact::CAMPAIGN_MEMBER_STATUSES,
         ]);
     }
 
     public function show(int $id): JsonResponse
     {
         return $this->success(new ContactResource($this->contacts->find($id)));
+    }
+
+    /** Chronological activity/opportunity feed for one contact. */
+    public function timeline(Request $request, int $id): JsonResponse
+    {
+        $contact = \App\Models\Contact::findOrFail($id);
+        $opts = $request->validate(['type' => 'nullable|string|max:32', 'per_page' => 'nullable|integer|min:1|max:100']);
+        return $this->paginated($this->contacts->timeline($contact, $opts));
+    }
+
+    /** Opportunities (deals) this contact is attached to. */
+    public function deals(int $id): JsonResponse
+    {
+        $contact = Contact::with(['deals' => fn ($q) => $q->with('stage:id,name')->orderByDesc('deals.id')])->findOrFail($id);
+        return $this->success($contact->deals->map(fn ($d) => [
+            'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+            'amount' => (float) $d->amount, 'currency' => $d->currency,
+            'status' => $d->status, 'stage' => $d->stage?->name,
+        ])->values());
+    }
+
+    /** Campaign memberships (marketing lists) this contact belongs to. */
+    public function campaignMemberships(int $id): JsonResponse
+    {
+        $contact = Contact::with(['campaigns' => fn ($q) => $q->orderByDesc('campaign_contact.id')])->findOrFail($id);
+        return $this->success($contact->campaigns->map(fn ($c) => [
+            'campaign_id' => $c->id, 'name' => $c->name, 'type' => $c->type, 'campaign_status' => $c->status,
+            'status' => $c->pivot->status, 'added_at' => optional($c->pivot->added_at)->toIso8601String(),
+        ])->values());
+    }
+
+    /** Add this contact to a campaign, or update its member status if already a member. */
+    public function attachCampaign(Request $request, int $id): JsonResponse
+    {
+        $contact = Contact::findOrFail($id);
+        $companyId = $request->user()->company_id;
+        $data = $request->validate([
+            'campaign_id' => ['required', 'integer',
+                Rule::exists('campaigns', 'id')->where('company_id', $companyId)->whereNull('deleted_at')],
+            'status' => ['nullable', Rule::in(Contact::CAMPAIGN_MEMBER_STATUSES)],
+        ]);
+        $status = $data['status'] ?? 'member';
+
+        if ($contact->campaigns()->where('campaigns.id', $data['campaign_id'])->exists()) {
+            $contact->campaigns()->updateExistingPivot($data['campaign_id'], ['status' => $status]);
+        } else {
+            // company_id is set explicitly: pivot rows aren't models, so BelongsToCompany can't fill it.
+            $contact->campaigns()->attach($data['campaign_id'], [
+                'company_id' => $contact->company_id, 'status' => $status, 'added_at' => now(),
+            ]);
+            $name = \App\Models\Campaign::whereKey($data['campaign_id'])->value('name');
+            TimelineActivity::record($contact, 'system', 'Added to campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
+    }
+
+    /** Remove this contact from a campaign. */
+    public function detachCampaign(int $id, int $campaignId): JsonResponse
+    {
+        $contact = Contact::findOrFail($id);
+        if ($contact->campaigns()->where('campaigns.id', $campaignId)->exists()) {
+            $name = \App\Models\Campaign::whereKey($campaignId)->value('name');
+            $contact->campaigns()->detach($campaignId);
+            TimelineActivity::record($contact, 'system', 'Removed from campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
     }
 
     /** Current per-channel consent state + full opt-in/opt-out history. */

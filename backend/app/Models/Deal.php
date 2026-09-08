@@ -21,14 +21,18 @@ class Deal extends Model
     /** Fields a pipeline stage's Blueprint may require before a deal can enter it. */
     public const BLUEPRINT_FIELDS = ['amount', 'customer_id', 'owner_id', 'expected_close_date', 'probability', 'lost_reason_id'];
 
+    public const FORECAST_CATEGORIES = ['pipeline', 'best_case', 'commit', 'omitted'];
+    public const CAMPAIGN_MEMBER_STATUSES = ['member', 'contacted', 'responded'];
+
     protected $fillable = [
         'company_id','deal_no','title','pipeline_id','stage_id','customer_id','lead_id',
-        'owner_id','branch_id','amount','currency','probability','status','expected_close_date',
-        'won_at','lost_at','lost_reason_id','source','notes',
+        'owner_id','branch_id','amount','currency','probability','forecast_category','status',
+        'expected_close_date','won_at','lost_at','lost_reason_id','source','competitor','notes','custom_fields',
     ];
     protected function casts(): array
     {
         return [
+            'custom_fields' => 'array',
             'amount' => 'decimal:2',
             'probability' => 'integer',
             'expected_close_date' => 'date',
@@ -53,6 +57,13 @@ class Deal extends Model
             ->withTimestamps()
             ->orderByPivot('is_primary', 'desc')
             ->orderBy('contacts.name');
+    }
+
+    /** Marketing-list memberships (campaign influence): many campaigns, each with a status. */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_deal')
+            ->withPivot(['status', 'added_at'])->withTimestamps();
     }
 
     public function addresses(): MorphMany   { return $this->morphMany(Address::class, 'addressable'); }

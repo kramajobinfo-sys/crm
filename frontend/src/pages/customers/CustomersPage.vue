@@ -106,40 +106,62 @@
         </div>
       </div>
 
-      <!-- Detail drawer -->
-      <div v-if="selected" class="card w-full sm:w-96 shrink-0 flex flex-col overflow-hidden max-h-[calc(100vh-16rem)]">
-        <div class="px-3 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-start gap-2 shrink-0">
+      <!-- Detail modal (record popup) -->
+      <div v-if="selected" class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="selected = null">
+      <div class="card w-full max-w-2xl my-6 flex flex-col overflow-hidden max-h-[calc(100vh-3rem)]">
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-start gap-2 shrink-0">
           <div class="min-w-0 flex-1">
             <div class="text-sm font-medium text-ink dark:text-ink-dark truncate">{{ selected.name }}</div>
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.customer_no }}</div>
           </div>
-          <button v-if="can('customers.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">
-            {{ $t('customers.edit') }}
-          </button>
+          <button v-if="can('quotations.create')" class="btn-secondary btn-xs" @click="newQuote">New quote</button>
+          <button v-if="can('customers.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">{{ $t('customers.edit') }}</button>
           <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button class="p-1 text-ink-subtle hover:text-ink" @click="selected = null"><X :size="14" /></button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
-          <dl class="grid grid-cols-3 gap-y-1.5">
-            <dt class="text-ink-subtle col-span-1">{{ $t('customers.col.group') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.group?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('customers.col.owner') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('customers.terms') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">
-              {{ selected.effective_payment_terms != null ? $t('customers.days', { n: selected.effective_payment_terms }) : '—' }}
-            </dd>
-            <dt class="text-ink-subtle">{{ $t('customers.col.credit') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.credit_limit, selected.currency) }}</dd>
-            <dt class="text-ink-subtle">{{ $t('customers.tax_id') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark font-mono">{{ selected.tax_id || '—' }}</dd>
-          </dl>
+        <!-- Tabs -->
+        <div class="px-4 pt-2 flex gap-1.5 border-b border-slate-200 dark:border-slate-700 shrink-0 overflow-x-auto">
+          <button v-for="tb in detailTabs" :key="tb.key" @click="detailTab = tb.key"
+                  class="px-3 py-2 -mb-px border-b-2 whitespace-nowrap text-xs flex items-center gap-1.5"
+                  :class="detailTab === tb.key ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-subtle hover:text-ink'">
+            {{ tb.label }}<span v-if="tb.count" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-ink-muted">{{ tb.count }}</span>
+          </button>
+        </div>
 
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.contacts') }}</div>
-            <div v-if="!selected.contacts?.length" class="text-ink-subtle">{{ $t('customers.no_contacts') }}</div>
-            <div v-for="c in selected.contacts" :key="c.id" class="flex items-center gap-2 py-1">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+          <!-- ===== OVERVIEW ===== -->
+          <div v-if="detailTab === 'overview'" class="space-y-3">
+            <dl class="grid grid-cols-3 gap-y-1.5">
+              <dt class="text-ink-subtle col-span-1">{{ $t('customers.col.group') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.group?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('customers.col.owner') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('customers.terms') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">
+                {{ selected.effective_payment_terms != null ? $t('customers.days', { n: selected.effective_payment_terms }) : '—' }}
+              </dd>
+              <dt class="text-ink-subtle">{{ $t('customers.col.credit') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.credit_limit, selected.currency) }}</dd>
+              <dt class="text-ink-subtle">{{ $t('customers.tax_id') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark font-mono">{{ selected.tax_id || '—' }}</dd>
+            </dl>
+
+            <div v-if="selected.addresses?.length">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.addresses') }}</div>
+              <div v-for="a in selected.addresses" :key="a.id" class="text-ink-muted dark:text-ink-dark-muted py-0.5">
+                <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 mr-1">{{ $t(`customers.addr.${a.type}`) }}</span>
+                {{ a.one_line }}
+              </div>
+            </div>
+
+            <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
+          </div>
+
+          <!-- ===== CONTACTS ===== -->
+          <div v-else-if="detailTab === 'contacts'">
+            <div v-if="!selected.contacts?.length" class="text-ink-subtle py-4 text-center">{{ $t('customers.no_contacts') }}</div>
+            <div v-for="c in selected.contacts" :key="c.id" class="flex items-center gap-2 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
               <span class="text-ink dark:text-ink-dark truncate">{{ c.name }}</span>
               <span v-if="c.is_primary" class="text-[9px] px-1 py-0.5 rounded bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300">
                 {{ $t('customers.primary') }}
@@ -154,16 +176,49 @@
             </div>
           </div>
 
-          <div v-if="selected.addresses?.length">
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.addresses') }}</div>
-            <div v-for="a in selected.addresses" :key="a.id" class="text-ink-muted dark:text-ink-dark-muted py-0.5">
-              <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 mr-1">{{ $t(`customers.addr.${a.type}`) }}</span>
-              {{ a.one_line }}
+          <!-- ===== OPPORTUNITIES (this account's deals) ===== -->
+          <div v-else-if="detailTab === 'opportunities'">
+            <div v-if="dealsLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!customerDeals.length" class="text-ink-subtle py-4 text-center">No opportunities yet.</div>
+            <div v-for="d in customerDeals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-1 px-1 rounded" @click="openDeal(d.id)">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
+              <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
             </div>
           </div>
 
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('customers.timeline') }}</div>
+          <!-- ===== CAMPAIGNS ===== -->
+          <div v-else-if="detailTab === 'campaigns'">
+            <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input input-sm flex-1 text-xs">
+                <option :value="null">Add to campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input input-sm w-auto text-xs capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary btn-sm" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership"><Plus :size="12" /></button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!customerCampaigns.length" class="text-ink-subtle py-4 text-center">Not a member of any campaign yet.</div>
+            <div v-for="m in customerCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('customers.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('customers.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
+            </div>
+          </div>
+
+          <!-- ===== TIMELINE ===== -->
+          <div v-else-if="detailTab === 'timeline'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('task')"><Plus :size="11" /> New task</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('call')"><Plus :size="11" /> Log call</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('meeting')"><Plus :size="11" /> New meeting</button>
+            </div>
             <div v-if="can('customers.update')" class="flex gap-1.5 mb-2">
               <input v-model="noteDraft" class="input text-xs" :placeholder="$t('customers.add_note')" @keyup.enter="submitNote" />
               <button class="btn-primary text-[11px] px-2" :disabled="!noteDraft.trim() || savingNote" @click="submitNote">
@@ -181,6 +236,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -235,11 +291,20 @@
               <option v-for="s in meta.statuses" :key="s" :value="s">{{ $t(`customers.status.${s}`) }}</option>
             </select>
           </div>
+          <div>
+            <label class="label">Territory</label>
+            <input v-model="form.data.territory" class="input text-sm" placeholder="e.g. North, GCC" />
+          </div>
+          <div>
+            <label class="label">Tags</label>
+            <input v-model="tagsInput" class="input text-sm" placeholder="comma-separated" />
+          </div>
           <div class="col-span-2">
             <label class="label">{{ $t('customers.notes') }}</label>
             <textarea v-model="form.data.notes" rows="2" class="input text-sm resize-none" />
           </div>
         </div>
+        <CustomFieldsInput v-model="form.data.custom_fields" :fields="meta.custom_fields" />
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('customers.cancel') }}</button>
           <button class="btn-primary btn-sm" :disabled="form.saving" @click="submitForm">
@@ -263,7 +328,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
@@ -272,6 +337,10 @@ import api from '@/services/customers';
 import DuplicateWarningModal from '@/components/crm/DuplicateWarningModal.vue';
 import RecordMergeModal from '@/components/crm/RecordMergeModal.vue';
 import PortalAccessModal from '@/components/crm/PortalAccessModal.vue';
+import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
+import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import http from '@/services/http';
+import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 import { useDuplicateGuard } from '@/composables/useDuplicateGuard';
 import { useRecordMerge } from '@/composables/useRecordMerge';
 import { RefreshCw, Plus, X, Send } from 'lucide-vue-next';
@@ -281,6 +350,41 @@ const { t } = useI18n();
 const auth = useAuthStore();
 const router = useRouter();
 const can = (p) => auth.can(p);
+
+// Open the Activities create form (task / call / meeting) pre-linked to the current account.
+function newActivity(type) {
+  if (!selected.value) return;
+  router.push({ name: 'activities', query: { new: type, related_type: 'customer', related_id: selected.value.id } });
+}
+// Open Sales with a new quotation pre-filled for this account.
+function newQuote() {
+  if (!selected.value) return;
+  router.push({ name: 'sales', query: { new: 'quotation', customer_id: selected.value.id } });
+}
+// Jump to the pipeline and open a specific deal.
+function openDeal(id) {
+  router.push({ name: 'deals', query: { open: id } });
+}
+
+// Opportunities (deals) belonging to this account.
+const customerDeals = ref([]);
+const dealsLoading = ref(false);
+async function loadDeals(id) {
+  dealsLoading.value = true; customerDeals.value = [];
+  try { const { data } = await http.get(`/customers/${id}/deals`); customerDeals.value = data.data || []; }
+  catch { customerDeals.value = []; }
+  finally { dealsLoading.value = false; }
+}
+
+// Record modal tabs.
+const detailTab = ref('overview');
+const detailTabs = computed(() => [
+  { key: 'overview', label: 'Overview' },
+  { key: 'opportunities', label: 'Opportunities', count: customerDeals.value.length },
+  { key: 'contacts', label: 'Contacts', count: selected.value?.contacts?.length || 0 },
+  { key: 'campaigns', label: 'Campaigns', count: customerCampaigns.value.length },
+  { key: 'timeline', label: 'Timeline', count: selected.value?.timeline?.length || 0 },
+]);
 
 function addFollowUp(account) {
   router.push({ name: 'activities', query: { new: 'task', related_type: 'customer', related_id: account.id } });
@@ -296,7 +400,7 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ groups: [], types: [], statuses: [], price_books: [] });
+const meta       = reactive({ groups: [], types: [], statuses: [], price_books: [], custom_fields: [] });
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
 const loading    = ref(false);
@@ -358,11 +462,56 @@ async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    detailTab.value = 'overview';
+    loadCampaigns(id);
+    loadDeals(id);
     try {
       const tl = await api.timeline(id);
       selected.value.timeline = tl.data?.data?.data ?? selected.value.timeline ?? [];
     } catch { /* keep the embedded timeline as fallback */ }
   } catch { /* interceptor surfaces the error */ }
+}
+
+// Campaign memberships (an account can belong to many marketing campaigns).
+const customerCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+const availableCampaigns = computed(() => {
+  const joined = new Set(customerCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+async function loadCampaigns(id) {
+  campaignsLoading.value = true; customerCampaigns.value = [];
+  try { const { data } = await http.get(`/customers/${id}/campaigns`); customerCampaigns.value = data.data || []; }
+  catch { customerCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/customers/${selected.value.id}/campaigns`, { ...newMembership });
+    customerCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/customers/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    customerCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/customers/${selected.value.id}/campaigns/${m.campaign_id}`);
+    customerCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
 }
 
 function applyStatus(status) { filters.status = status; page.value = 1; load(); }
@@ -375,7 +524,8 @@ function openCreate() {
   form.id = null; form.errors = {};
   form.data = {
     name: '', type: 'company', group_id: null, price_book_id: null, email: '', phone: '',
-    credit_limit: 0, status: 'active', notes: '',
+    credit_limit: 0, status: 'active', territory: '', tags: [], notes: '',
+    custom_fields: seedCustomFields(meta.custom_fields),
   };
   form.open = true;
 }
@@ -383,10 +533,18 @@ function openEdit(c) {
   form.id = c.id; form.errors = {};
   form.data = {
     name: c.name, type: c.type, group_id: c.group?.id ?? null, price_book_id: c.price_book_id ?? null, email: c.email ?? '',
-    phone: c.phone ?? '', credit_limit: c.credit_limit ?? 0, status: c.status, notes: c.notes ?? '',
+    phone: c.phone ?? '', credit_limit: c.credit_limit ?? 0, status: c.status,
+    territory: c.territory ?? '', tags: Array.isArray(c.tags) ? [...c.tags] : [], notes: c.notes ?? '',
+    custom_fields: seedCustomFields(meta.custom_fields, c.custom_fields),
   };
   form.open = true;
 }
+
+// Tags edited as a comma-separated string, stored as an array.
+const tagsInput = computed({
+  get: () => (form.data.tags || []).join(', '),
+  set: (v) => { form.data.tags = String(v).split(',').map((t) => t.trim()).filter(Boolean); },
+});
 
 async function submitForm(force = false) {
   form.saving = true; form.errors = {};
@@ -394,6 +552,7 @@ async function submitForm(force = false) {
     const payload = { ...form.data };
     if (!payload.email) delete payload.email;      // '' would fail the email rule
     if (!payload.phone) delete payload.phone;
+    if (payload.custom_fields) payload.custom_fields = stripBlankCustomFields(payload.custom_fields);
     if (!force) {
       const clear = await duplicateGuard.check('account', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }

@@ -51,6 +51,15 @@
           <option value="">{{ $t('leads.all_ratings') }}</option>
           <option v-for="r in meta.ratings" :key="r" :value="r">{{ $t(`leads.rating.${r}`) }}</option>
         </select>
+        <select v-model="filters.priority" class="input input-sm w-auto" @change="load">
+          <option value="">All priorities</option>
+          <option v-for="p in (meta.priorities || [])" :key="p" :value="p" class="capitalize">{{ p }}</option>
+        </select>
+        <select v-model="filters.follow_up" class="input input-sm w-auto" @change="load">
+          <option value="">All follow-ups</option>
+          <option value="overdue">Follow-up overdue</option>
+          <option value="today">Follow-up today</option>
+        </select>
         <label class="chip cursor-pointer" :class="filters.owner_id === 'me' && '!bg-primary-50 !text-primary-700 dark:!bg-primary-900/25 dark:!text-primary-300'">
           <input type="checkbox" class="rounded border-line-strong w-3.5 h-3.5" :checked="filters.owner_id === 'me'"
                  @change="filters.owner_id = $event.target.checked ? 'me' : ''; load()" />
@@ -126,9 +135,10 @@
         </div>
       </div>
 
-      <!-- Detail drawer -->
-      <div v-if="selected" class="card w-full sm:w-96 shrink-0 flex flex-col overflow-hidden max-h-[calc(100vh-18rem)]">
-        <div class="px-3 py-2.5 border-b border-slate-200 dark:border-slate-700 flex items-start gap-2 shrink-0">
+      <!-- Detail modal (record popup) -->
+      <div v-if="selected" class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="selected = null">
+      <div class="card w-full max-w-3xl my-6 flex flex-col overflow-hidden max-h-[calc(100vh-3rem)]">
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-start gap-2 shrink-0">
           <div class="min-w-0 flex-1">
             <div class="text-sm font-medium text-ink dark:text-ink-dark truncate">{{ selected.name }}</div>
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.lead_no }}</div>
@@ -146,7 +156,7 @@
           {{ $t('leads.converted_to', { no: selected.customer?.customer_no || '—' }) }}
         </div>
         <div v-else-if="can('leads.convert')" class="px-3 py-2 border-b border-slate-100 dark:border-slate-700/60 shrink-0 flex gap-2">
-          <button class="btn-primary btn-xs" :disabled="converting" @click="openConvert">
+          <button class="btn-primary btn-xs" :disabled="converting" @click="openConvert()">
             <UserPlus :size="11" /> {{ converting ? $t('leads.converting') : $t('leads.convert') }}
           </button>
           <button v-if="can('leads.assign')" class="btn-secondary btn-xs" @click="doAutoAssign">
@@ -154,60 +164,183 @@
           </button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
-          <!-- Score, with its working shown -->
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.score_label') }}</span>
-              <span class="text-sm font-semibold text-ink dark:text-ink-dark tabular-nums">{{ selected.score }}</span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded" :class="ratingClass(selected.rating)">
-                {{ $t(`leads.rating.${selected.rating}`) }}
-              </span>
-            </div>
-            <div v-if="selected.score_breakdown" class="grid grid-cols-2 gap-x-3 gap-y-0.5">
-              <template v-for="(v, k) in selected.score_breakdown" :key="k">
-                <span class="text-ink-subtle">{{ $t(`leads.sb.${k}`) }}</span>
-                <span class="tabular-nums text-right"
-                      :class="v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-subtle'">
-                  {{ v > 0 ? '+' : '' }}{{ v }}
+        <!-- Relationship tabs -->
+        <div class="px-4 pt-2 flex gap-1.5 border-b border-slate-200 dark:border-slate-700 shrink-0 overflow-x-auto">
+          <button v-for="tb in detailTabs" :key="tb.key" @click="detailTab = tb.key"
+                  class="px-3 py-2 -mb-px border-b-2 whitespace-nowrap text-xs flex items-center gap-1.5"
+                  :class="detailTab === tb.key ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-subtle hover:text-ink'">
+            {{ tb.label }}<span v-if="tb.count" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-ink-muted">{{ tb.count }}</span>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+          <!-- ===== OVERVIEW ===== -->
+          <div v-if="detailTab === 'overview'" class="space-y-3">
+            <!-- Score, with its working shown -->
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.score_label') }}</span>
+                <span class="text-sm font-semibold text-ink dark:text-ink-dark tabular-nums">{{ selected.score }}</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded" :class="ratingClass(selected.rating)">
+                  {{ $t(`leads.rating.${selected.rating}`) }}
                 </span>
-              </template>
+              </div>
+              <div v-if="selected.score_breakdown" class="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                <template v-for="(v, k) in selected.score_breakdown" :key="k">
+                  <span class="text-ink-subtle">{{ $t(`leads.sb.${k}`) }}</span>
+                  <span class="tabular-nums text-right"
+                        :class="v > 0 ? 'text-emerald-600 dark:text-emerald-400' : v < 0 ? 'text-red-600 dark:text-red-400' : 'text-ink-subtle'">
+                    {{ v > 0 ? '+' : '' }}{{ v }}
+                  </span>
+                </template>
+              </div>
+            </div>
+
+            <dl class="grid grid-cols-3 gap-y-1.5">
+              <dt class="text-ink-subtle">{{ $t('leads.col.status') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.status?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.source') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.source?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">Source campaign</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.campaign?.name || '—' }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.owner') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || $t('leads.unassigned') }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.col.value') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.estimated_value, selected.currency) }}</dd>
+              <dt class="text-ink-subtle">{{ $t('leads.last_contact') }}</dt>
+              <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.last_contacted_human || $t('leads.never') }}</dd>
+            </dl>
+
+            <!-- Products of interest -->
+            <div v-if="selected.products?.length">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Products of interest</div>
+              <div v-for="p in selected.products" :key="p.product_id" class="flex items-center gap-1.5 py-0.5">
+                <span class="text-ink dark:text-ink-dark truncate flex-1">{{ p.name }}</span>
+                <span v-if="p.quantity" class="text-ink-subtle shrink-0">×{{ p.quantity }}</span>
+              </div>
+            </div>
+
+            <!-- Custom fields (admin-defined) -->
+            <div v-if="detailCustomFields.length">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Custom fields</div>
+              <dl class="grid grid-cols-3 gap-x-2 gap-y-0.5">
+                <template v-for="cf in detailCustomFields" :key="cf.key">
+                  <dt class="text-ink-subtle">{{ cf.label }}</dt>
+                  <dd class="col-span-2 text-ink dark:text-ink-dark break-words">
+                    <span v-if="cf.type === 'checkbox'">{{ cf.value ? 'Yes' : 'No' }}</span>
+                    <a v-else-if="cf.type === 'url'" :href="cf.value" target="_blank" rel="noopener" class="text-primary-600 hover:underline">{{ cf.value }}</a>
+                    <span v-else>{{ cf.value }}</span>
+                  </dd>
+                </template>
+              </dl>
+            </div>
+
+            <!-- Communication consent -->
+            <div v-if="leadConsents">
+              <div class="text-[10px] tracking-wider text-ink-subtle mb-1">Communication consent</div>
+              <div v-for="c in leadConsents.current" :key="c.channel" class="flex items-center gap-2 py-0.5">
+                <span class="text-ink dark:text-ink-dark flex-1">{{ channelLabel(c.channel) }}</span>
+                <span class="badge" :class="c.can_receive ? 'badge-success' : (c.status === 'withdrawn' ? 'badge-danger' : 'badge-neutral')">
+                  {{ c.can_receive ? 'Reachable' : (c.status === 'withdrawn' ? 'Opted out' : 'Opt-in required') }}
+                </span>
+                <button v-if="can('leads.update')" class="btn-ghost btn-xs shrink-0" :disabled="consentBusy" @click="toggleConsent(c)">
+                  {{ c.can_receive ? 'Opt out' : 'Opt in' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Attachments -->
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.attachments') }}</span>
+                <button v-if="can('leads.update')" class="text-[10px] text-primary-600 hover:underline ml-auto"
+                        @click="fileInput?.click()">{{ $t('leads.attach') }}</button>
+                <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
+              </div>
+              <div v-if="!selected.attachments?.length" class="text-ink-subtle">{{ $t('leads.no_attachments') }}</div>
+              <a v-for="a in selected.attachments" :key="a.id" :href="a.url" target="_blank" rel="noopener"
+                 class="flex items-center gap-1.5 py-0.5 text-ink-muted dark:text-ink-dark-muted hover:text-primary-600">
+                <Paperclip :size="11" class="shrink-0" />
+                <span class="truncate flex-1">{{ a.name }}</span>
+                <span class="text-[10px] opacity-70">{{ humanSize(a.size) }}</span>
+              </a>
             </div>
           </div>
 
-          <dl class="grid grid-cols-3 gap-y-1.5">
-            <dt class="text-ink-subtle">{{ $t('leads.col.status') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.status?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.source') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.source?.name || '—' }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.owner') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.owner?.name || $t('leads.unassigned') }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.col.value') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.estimated_value, selected.currency) }}</dd>
-            <dt class="text-ink-subtle">{{ $t('leads.last_contact') }}</dt>
-            <dd class="col-span-2 text-ink dark:text-ink-dark">{{ selected.last_contacted_human || $t('leads.never') }}</dd>
-          </dl>
-
-          <!-- Attachments -->
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-[10px] tracking-wider text-ink-subtle">{{ $t('leads.attachments') }}</span>
-              <button v-if="can('leads.update')" class="text-[10px] text-primary-600 hover:underline ml-auto"
-                      @click="fileInput?.click()">{{ $t('leads.attach') }}</button>
-              <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
+          <!-- ===== OPPORTUNITIES ===== -->
+          <div v-else-if="detailTab === 'opportunities'">
+            <div v-if="can('leads.convert') && !selected.is_converted" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="openConvert(true)"><Plus :size="11" /> New opportunity</button>
             </div>
-            <div v-if="!selected.attachments?.length" class="text-ink-subtle">{{ $t('leads.no_attachments') }}</div>
-            <a v-for="a in selected.attachments" :key="a.id" :href="a.url" target="_blank" rel="noopener"
-               class="flex items-center gap-1.5 py-0.5 text-ink-muted dark:text-ink-dark-muted hover:text-primary-600">
-              <Paperclip :size="11" class="shrink-0" />
-              <span class="truncate flex-1">{{ a.name }}</span>
-              <span class="text-[10px] opacity-70">{{ humanSize(a.size) }}</span>
-            </a>
+            <div v-if="!selected.deals?.length" class="text-ink-subtle py-4 text-center">No opportunities yet. Use “New opportunity” to convert this lead into a deal.</div>
+            <div v-for="d in selected.deals" :key="d.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-1 px-1 rounded" @click="openDeal(d.id)">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ d.title }}</span>
+              <span v-if="d.stage" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted shrink-0">{{ d.stage.name }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(d.amount, d.currency) }}</span>
+            </div>
           </div>
 
-          <!-- Timeline -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('leads.timeline') }}</div>
+
+          <!-- ===== CAMPAIGNS (marketing-list memberships) ===== -->
+          <div v-else-if="detailTab === 'campaigns'">
+            <div v-if="can('leads.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input text-xs flex-1">
+                <option :value="null">Add to campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input text-xs w-auto capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary text-[11px] px-2" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership">
+                <Plus :size="11" />
+              </button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!leadCampaigns.length" class="text-ink-subtle py-4 text-center">Not a member of any campaign yet.</div>
+            <div v-for="m in leadCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('leads.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('leads.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
+            </div>
+          </div>
+
+          <!-- ===== ACTIVITIES (tasks / calls / emails) ===== -->
+          <div v-else-if="detailTab === 'activities'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('task')"><Plus :size="11" /> New task</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('call')"><Plus :size="11" /> Log call</button>
+            </div>
+            <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!activityItems.length" class="text-ink-subtle py-4 text-center">No activities logged.</div>
+            <div v-for="a in activityItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ a.kind }}</span>
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ a.title }}</span>
+              <span class="text-ink-subtle shrink-0 capitalize">{{ a.status }}</span>
+              <span class="text-ink-subtle ml-1 shrink-0">{{ a.when_human }}</span>
+            </div>
+          </div>
+
+          <!-- ===== EVENTS (meetings) ===== -->
+          <div v-else-if="detailTab === 'events'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('meeting')"><Plus :size="11" /> New meeting</button>
+            </div>
+            <div v-if="activitiesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!eventItems.length" class="text-ink-subtle py-4 text-center">No meetings or events scheduled.</div>
+            <div v-for="a in eventItems" :key="a.kind + a.id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-[9px] px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 shrink-0">event</span>
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ a.title }}</span>
+              <span v-if="a.location" class="text-ink-subtle shrink-0 truncate max-w-[6rem]">{{ a.location }}</span>
+              <span class="text-ink-subtle ml-1 shrink-0">{{ a.when_human }}</span>
+            </div>
+          </div>
+
+          <!-- ===== TIMELINE ===== -->
+          <div v-else-if="detailTab === 'timeline'">
             <div v-if="can('leads.update')" class="flex gap-1.5 mb-2">
               <select v-model="noteType" class="input text-xs w-auto">
                 <option value="note">{{ $t('leads.tl.note') }}</option>
@@ -230,6 +363,7 @@
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -351,6 +485,24 @@
             </select>
           </div>
           <div>
+            <label class="label">Campaign</label>
+            <select v-model="form.data.campaign_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="c in (meta.campaigns || [])" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Account (existing)</label>
+            <select v-model="form.data.account_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="a in customerOptions" :key="a.id" :value="a.id">{{ a.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Territory</label>
+            <input v-model="form.data.territory" class="input text-sm" placeholder="e.g. North" />
+          </div>
+          <div>
             <label class="label">{{ $t('leads.col.status') }}</label>
             <select v-model="form.data.status_id" class="input text-sm">
               <option :value="null">—</option>
@@ -361,7 +513,65 @@
             <label class="label">{{ $t('leads.col.value') }}</label>
             <input v-model="form.data.estimated_value" type="number" min="0" class="input text-sm" />
           </div>
+          <div>
+            <label class="label">Priority</label>
+            <select v-model="form.data.priority" class="input text-sm">
+              <option v-for="p in (meta.priorities || [])" :key="p" :value="p" class="capitalize">{{ p }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Follow-up date</label>
+            <input v-model="form.data.follow_up_at" type="date" class="input text-sm" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="label">Next action</label>
+            <input v-model="form.data.next_action" class="input text-sm" placeholder="e.g. Call back, send proposal" />
+          </div>
+          <div v-if="isLostStatus" class="sm:col-span-2">
+            <label class="label">Loss reason</label>
+            <select v-model="form.data.lost_reason_id" class="input text-sm">
+              <option :value="null">—</option>
+              <option v-for="lr in (meta.lost_reasons || [])" :key="lr.id" :value="lr.id">{{ lr.name }}</option>
+            </select>
+          </div>
         </div>
+
+        <!-- Products of interest -->
+        <div class="mt-3">
+          <div class="flex items-center mb-1">
+            <span class="text-[10px] tracking-wider text-ink-subtle">Products of interest</span>
+            <button type="button" class="text-[11px] text-primary-600 hover:underline ml-auto" @click="addLeadProduct">+ Add product</button>
+          </div>
+          <div v-for="(row, i) in (form.data.products || [])" :key="i" class="flex items-center gap-1.5 mb-1">
+            <select v-model.number="row.product_id" class="input input-sm flex-1">
+              <option :value="null">Select product…</option>
+              <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <input v-model.number="row.quantity" type="number" min="0" placeholder="Qty" class="input input-sm w-20" />
+            <button type="button" class="btn-ghost btn-xs" @click="form.data.products.splice(i, 1)"><X :size="12" /></button>
+          </div>
+          <p v-if="!(form.data.products || []).length" class="text-[11px] text-ink-subtle">None yet — what does this lead want to buy?</p>
+        </div>
+
+        <!-- Custom fields (admin-defined) -->
+        <div v-if="(meta.custom_fields || []).length" class="mt-3 pt-3 border-t border-line dark:border-line-dark grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div v-for="cf in meta.custom_fields" :key="cf.key" :class="cf.type === 'textarea' ? 'sm:col-span-2' : ''">
+            <label class="label">{{ cf.label }}<span v-if="cf.required" class="text-rose-500"> *</span></label>
+            <textarea v-if="cf.type === 'textarea'" v-model="form.data.custom_fields[cf.key]" rows="2" class="input text-sm"></textarea>
+            <select v-else-if="cf.type === 'select'" v-model="form.data.custom_fields[cf.key]" class="input text-sm">
+              <option value="">—</option>
+              <option v-for="o in (cf.options || [])" :key="o" :value="o">{{ o }}</option>
+            </select>
+            <label v-else-if="cf.type === 'checkbox'" class="flex items-center gap-2 text-sm h-8">
+              <input type="checkbox" v-model="form.data.custom_fields[cf.key]" /> {{ cf.help || 'Yes' }}
+            </label>
+            <input v-else v-model="form.data.custom_fields[cf.key]"
+                   :type="cf.type === 'number' ? 'number' : cf.type === 'date' ? 'date' : cf.type === 'email' ? 'email' : cf.type === 'url' ? 'url' : 'text'"
+                   class="input text-sm" />
+            <p v-if="cf.help && cf.type !== 'checkbox'" class="text-[11px] text-ink-subtle mt-0.5">{{ cf.help }}</p>
+          </div>
+        </div>
+
         <p class="text-[11px] text-ink-subtle mt-2">{{ $t('leads.assign_hint') }}</p>
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('leads.cancel') }}</button>
@@ -381,6 +591,7 @@ import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/services/leads';
+import http from '@/services/http';
 import customerApi from '@/services/customers';
 import dealApi from '@/services/deals';
 import duplicateApi from '@/services/duplicates';
@@ -399,6 +610,15 @@ const can = (p) => auth.can(p);
 function addFollowUp(lead) {
   router.push({ name: 'activities', query: { new: 'task', related_type: 'lead', related_id: lead.id } });
 }
+// Open the Activities create form (task / call / meeting) pre-linked to the current lead.
+function newActivity(type) {
+  if (!selected.value) return;
+  router.push({ name: 'activities', query: { new: type, related_type: 'lead', related_id: selected.value.id } });
+}
+// Jump to the pipeline and open a specific deal.
+function openDeal(id) {
+  router.push({ name: 'deals', query: { open: id } });
+}
 
 const statTiles = [
   { key: 'open',       label: 'leads.stat.open',       set: { converted: 'open', rating: '', owner_id: '' } },
@@ -411,7 +631,10 @@ const statTiles = [
 
 const rows       = ref([]);
 const stats      = reactive({});
-const meta       = reactive({ sources: [], statuses: [], ratings: [] });
+const meta       = reactive({ sources: [], statuses: [], ratings: [], priorities: [], lost_reasons: [], campaigns: [], custom_fields: [], campaign_member_statuses: [] });
+const productOptions = ref([]);
+const customerOptions = ref([]);
+function addLeadProduct() { (form.data.products ||= []).push({ product_id: null, quantity: null }); }
 const pagination = reactive({ last_page: 1, from: 0, to: 0, total: 0 });
 const selected   = ref(null);
 const loading    = ref(false);
@@ -421,7 +644,7 @@ const noteDraft  = ref('');
 const noteType   = ref('note');
 const savingNote = ref(false);
 const fileInput  = ref(null);
-const filters    = reactive({ q: '', converted: 'open', status_id: '', source_id: '', rating: '', owner_id: '' });
+const filters    = reactive({ q: '', converted: 'open', status_id: '', source_id: '', rating: '', priority: '', follow_up: '', owner_id: '' });
 const form = reactive({ open: false, id: null, saving: false, data: {}, errors: {} });
 const duplicateGuard = useDuplicateGuard();
 const mergeGuard = useRecordMerge(async () => {
@@ -461,12 +684,107 @@ async function loadAux() {
     Object.assign(stats, s.data.data || {});
     Object.assign(meta, m.data.data || {});
   } catch { /* non-critical */ }
+  // Products for the "products of interest" picker — optional (needs products.view).
+  try { const { data } = await http.get('/products', { params: { per_page: 200 } }); productOptions.value = data.data || []; }
+  catch { productOptions.value = []; }
+  // Customers for the "existing account" picker — optional (needs customers.view).
+  try { const { data } = await http.get('/customers', { params: { per_page: 200 } }); customerOptions.value = data.data || []; }
+  catch { customerOptions.value = []; }
 }
+
+const leadActivities = ref([]);
+const activitiesLoading = ref(false);
+async function loadLeadActivities(id) {
+  activitiesLoading.value = true; leadActivities.value = [];
+  try { const { data } = await http.get(`/leads/${id}/activities`); leadActivities.value = data.data || []; }
+  catch { leadActivities.value = []; }
+  finally { activitiesLoading.value = false; }
+}
+// Split the merged activity feed: meetings surface under Events, everything else under Activities.
+const activityItems = computed(() => leadActivities.value.filter((a) => a.kind !== 'meeting'));
+const eventItems = computed(() => leadActivities.value.filter((a) => a.kind === 'meeting'));
+
+
+// Campaign memberships (a lead can belong to many marketing campaigns).
+const leadCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+async function loadLeadCampaigns(id) {
+  campaignsLoading.value = true; leadCampaigns.value = [];
+  try { const { data } = await http.get(`/leads/${id}/campaigns`); leadCampaigns.value = data.data || []; }
+  catch { leadCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/leads/${selected.value.id}/campaigns`, { ...newMembership });
+    leadCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/leads/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    leadCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/leads/${selected.value.id}/campaigns/${m.campaign_id}`);
+    leadCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+// Campaigns not already joined, for the add picker.
+const availableCampaigns = computed(() => {
+  const joined = new Set(leadCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+
+// Relationship tabs on the lead detail drawer.
+const detailTab = ref('overview');
+const detailTabs = computed(() => [
+  { key: 'overview', label: 'Overview' },
+  { key: 'opportunities', label: 'Opportunities', count: selected.value?.deals?.length || 0 },
+  { key: 'campaigns', label: 'Campaigns', count: leadCampaigns.value.length },
+  { key: 'activities', label: 'Activities', count: activityItems.value.length },
+  { key: 'events', label: 'Events', count: eventItems.value.length },
+  { key: 'timeline', label: 'Timeline' },
+]);
+
+const leadConsents = ref(null);
+const consentBusy = ref(false);
+async function loadLeadConsents(id) {
+  try { const { data } = await http.get(`/leads/${id}/consents`); leadConsents.value = data.data; }
+  catch { leadConsents.value = null; }
+}
+async function toggleConsent(c) {
+  if (!can('leads.update')) return;
+  consentBusy.value = true;
+  try {
+    const status = c.can_receive ? 'withdrawn' : 'granted';
+    const { data } = await http.post(`/leads/${selected.value.id}/consents`, { channel: c.channel, status });
+    leadConsents.value = data.data;
+  } catch { /* interceptor surfaces the error */ }
+  finally { consentBusy.value = false; }
+}
+const channelLabel = (ch) => ({ email: 'Email', sms: 'SMS', phone: 'Phone', whatsapp: 'WhatsApp', marketing: 'Marketing' }[ch] || ch);
 
 async function openDetail(id) {
   try {
     const { data } = await api.show(id);
     selected.value = data.data;
+    detailTab.value = 'overview';
+    loadLeadActivities(id);
+    loadLeadConsents(id);
+    loadLeadCampaigns(id);
   } catch { /* interceptor surfaces the error */ }
 }
 
@@ -477,14 +795,26 @@ function applyTile(s) {
   load();
 }
 function resetFilters() {
-  Object.assign(filters, { q: '', converted: 'open', status_id: '', source_id: '', rating: '', owner_id: '' });
+  Object.assign(filters, { q: '', converted: 'open', status_id: '', source_id: '', rating: '', priority: '', follow_up: '', owner_id: '' });
   page.value = 1; load();
+}
+
+// Seed a custom_fields object from the definitions, overlaying any existing stored values.
+function seedCustomFields(existing = {}) {
+  const out = {};
+  for (const cf of (meta.custom_fields || [])) {
+    const v = existing?.[cf.key];
+    out[cf.key] = v !== undefined && v !== null ? v : (cf.type === 'checkbox' ? false : '');
+  }
+  return out;
 }
 
 function openCreate() {
   form.id = null; form.errors = {};
   form.data = { name: '', company_name: '', title: '', email: '', phone: '',
-                source_id: null, status_id: null, estimated_value: 0 };
+                source_id: null, campaign_id: null, account_id: null, territory: '', status_id: null, estimated_value: 0,
+                priority: 'medium', follow_up_at: '', next_action: '', lost_reason_id: null, products: [],
+                custom_fields: seedCustomFields() };
   form.open = true;
 }
 function openEdit(l) {
@@ -492,17 +822,42 @@ function openEdit(l) {
   form.data = {
     name: l.name, company_name: l.company_name ?? '', title: l.title ?? '',
     email: l.email ?? '', phone: l.phone ?? '',
-    source_id: l.source?.id ?? null, status_id: l.status?.id ?? null,
+    source_id: l.source?.id ?? null, campaign_id: l.campaign_id ?? null, account_id: l.account_id ?? null,
+    territory: l.territory ?? '', status_id: l.status?.id ?? null,
     estimated_value: l.estimated_value ?? 0,
+    priority: l.priority ?? 'medium', follow_up_at: l.follow_up_at ? l.follow_up_at.slice(0, 10) : '',
+    next_action: l.next_action ?? '', lost_reason_id: l.lost_reason_id ?? null,
+    products: (l.products || []).map((p) => ({ product_id: p.product_id, quantity: p.quantity })),
+    custom_fields: seedCustomFields(l.custom_fields),
   };
   form.open = true;
 }
+
+// Populated custom fields for the detail drawer: definition label/type + the stored value.
+const detailCustomFields = computed(() => {
+  const stored = selected.value?.custom_fields || {};
+  return (meta.custom_fields || [])
+    .map((cf) => ({ ...cf, value: stored[cf.key] }))
+    .filter((cf) => cf.value !== undefined && cf.value !== null && cf.value !== '');
+});
+
+// The loss-reason picker only makes sense when the chosen status is a "lost" one.
+const isLostStatus = computed(() => {
+  const s = meta.statuses.find((x) => x.id === form.data.status_id);
+  return !!s?.is_lost;
+});
 
 async function submitForm(force = false) {
   form.saving = true; form.errors = {};
   try {
     const payload = { ...form.data };
-    ['company_name','title','email','phone'].forEach((k) => { if (!payload[k]) delete payload[k]; });
+    ['company_name','title','email','phone','follow_up_at','next_action'].forEach((k) => { if (!payload[k]) delete payload[k]; });
+    if (!isLostStatus.value) payload.lost_reason_id = null; // clear a stale reason when not lost
+    payload.products = (payload.products || []).filter((p) => p.product_id); // drop empty rows
+    if (payload.custom_fields) { // drop blank optionals so the server doesn't coerce '' → 0 etc.
+      payload.custom_fields = Object.fromEntries(
+        Object.entries(payload.custom_fields).filter(([, v]) => v !== '' && v !== null && v !== undefined));
+    }
     if (!force) {
       const clear = await duplicateGuard.check('lead', payload, form.id, () => submitForm(true));
       if (!clear) { form.saving = false; return; }
@@ -529,7 +884,7 @@ async function submitNote() {
   finally { savingNote.value = false; }
 }
 
-async function openConvert() {
+async function openConvert(withDeal = false) {
   if (!selected.value) return;
   conversion.error = '';
   conversion.matches = [];
@@ -548,7 +903,7 @@ async function openConvert() {
       phone: selected.value.phone || '',
       mobile: selected.value.mobile || '',
     },
-    create_deal: false,
+    create_deal: withDeal,
     deal: {
       title: `${selected.value.company_name || selected.value.name} Opportunity`,
       stage_id: null,

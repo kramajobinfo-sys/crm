@@ -39,9 +39,16 @@
     <!-- ===== SUBSCRIPTION / BILLING ===== -->
     <BillingPanel v-else-if="tab === 'billing'" />
 
+    <!-- ===== CUSTOM FIELDS ===== -->
+    <CustomFieldsPanel v-else-if="tab === 'custom_fields'" />
+
     <!-- ===== USERS ===== -->
     <!-- ===== APPEARANCE ===== -->
     <div v-else-if="tab === 'appearance'" class="card p-4 max-w-2xl space-y-5">
+      <div v-if="ui.managed" class="rounded-lg border border-amber-300 bg-amber-50/70 dark:bg-amber-900/15 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+        Appearance is set by your organization. Your personal changes below won't apply while it's enforced.
+      </div>
+      <div class="text-sm font-semibold text-ink dark:text-ink-dark -mb-1">Your appearance</div>
       <div>
         <div class="text-sm font-medium text-ink dark:text-ink-dark mb-0.5">{{ $t('theme.mode') }}</div>
         <p class="text-[11px] text-ink-subtle mb-2">{{ $t('settings.appearance.mode_hint') }}</p>
@@ -126,6 +133,53 @@
       </div>
 
       <p class="text-[11px] text-ink-subtle">{{ $t('settings.appearance.note') }}</p>
+
+      <!-- ===== Company-wide appearance (admins) ===== -->
+      <template v-if="can('settings.update')">
+        <div class="divider" />
+        <div>
+          <div class="text-sm font-semibold text-ink dark:text-ink-dark mb-0.5">Company appearance (all users)</div>
+          <p class="text-[11px] text-ink-subtle mb-3">Set a default look for everyone in your company. Enforce it to override each user's personal choice.</p>
+
+          <div class="label">Mode</div>
+          <div class="flex gap-2 mb-3">
+            <button class="btn-secondary btn-sm" :class="companyForm.theme === 'light' && '!border-primary-500 !text-primary-600'" @click="companyForm.theme = 'light'"><Sun :size="14" /> {{ $t('theme.light') }}</button>
+            <button class="btn-secondary btn-sm" :class="companyForm.theme === 'dark' && '!border-primary-500 !text-primary-600'" @click="companyForm.theme = 'dark'"><Moon :size="14" /> {{ $t('theme.dark') }}</button>
+          </div>
+
+          <div class="label">Accent</div>
+          <div class="flex items-center gap-2.5 mb-3">
+            <button v-for="a in APPEARANCE_ACCENTS" :key="`c-${a.key}`" type="button"
+                    class="w-8 h-8 rounded-full ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted flex items-center justify-center transition"
+                    :class="companyForm.accent === a.key ? 'ring-current' : 'ring-transparent hover:ring-slate-300'"
+                    :style="{ backgroundColor: a.color, color: a.color }" :title="a.label" @click="companyForm.accent = a.key">
+              <Check v-if="companyForm.accent === a.key" :size="14" class="text-white" />
+            </button>
+          </div>
+
+          <div class="label">Sidebar background</div>
+          <div class="flex items-center flex-wrap gap-2.5 mb-3">
+            <button type="button" title="Default" class="w-8 h-8 rounded-lg border border-line-strong dark:border-line-dark-strong bg-white dark:bg-surface-dark-muted flex items-center justify-center ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted" :class="!companyForm.chrome.sidebar ? 'ring-primary-500' : 'ring-transparent hover:ring-slate-300'" @click="companyForm.chrome.sidebar = null"><Check v-if="!companyForm.chrome.sidebar" :size="14" class="text-primary-600" /></button>
+            <button v-for="p in CHROME_PRESETS" :key="`csb-${p.key}`" type="button" :title="p.label" class="w-8 h-8 rounded-lg ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted flex items-center justify-center" :class="sameColor(companyForm.chrome.sidebar, p.color) ? 'ring-current' : 'ring-transparent hover:ring-slate-300'" :style="{ backgroundColor: p.color, color: p.color }" @click="companyForm.chrome.sidebar = p.color"><Check v-if="sameColor(companyForm.chrome.sidebar, p.color)" :size="14" class="text-white" /></button>
+            <label class="w-8 h-8 rounded-lg border border-dashed border-line-strong dark:border-line-dark-strong flex items-center justify-center cursor-pointer relative" title="Custom"><Pipette :size="13" class="text-ink-subtle" /><input type="color" class="absolute inset-0 opacity-0 cursor-pointer" :value="companyForm.chrome.sidebar || '#0F172A'" @input="companyForm.chrome.sidebar = $event.target.value" /></label>
+          </div>
+
+          <div class="label">Top bar background</div>
+          <div class="flex items-center flex-wrap gap-2.5 mb-3">
+            <button type="button" title="Default" class="w-8 h-8 rounded-lg border border-line-strong dark:border-line-dark-strong bg-white dark:bg-surface-dark-muted flex items-center justify-center ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted" :class="!companyForm.chrome.topbar ? 'ring-primary-500' : 'ring-transparent hover:ring-slate-300'" @click="companyForm.chrome.topbar = null"><Check v-if="!companyForm.chrome.topbar" :size="14" class="text-primary-600" /></button>
+            <button v-for="p in CHROME_PRESETS" :key="`ctb-${p.key}`" type="button" :title="p.label" class="w-8 h-8 rounded-lg ring-2 ring-offset-2 ring-offset-white dark:ring-offset-surface-dark-muted flex items-center justify-center" :class="sameColor(companyForm.chrome.topbar, p.color) ? 'ring-current' : 'ring-transparent hover:ring-slate-300'" :style="{ backgroundColor: p.color, color: p.color }" @click="companyForm.chrome.topbar = p.color"><Check v-if="sameColor(companyForm.chrome.topbar, p.color)" :size="14" class="text-white" /></button>
+            <label class="w-8 h-8 rounded-lg border border-dashed border-line-strong dark:border-line-dark-strong flex items-center justify-center cursor-pointer relative" title="Custom"><Pipette :size="13" class="text-ink-subtle" /><input type="color" class="absolute inset-0 opacity-0 cursor-pointer" :value="companyForm.chrome.topbar || '#0F172A'" @input="companyForm.chrome.topbar = $event.target.value" /></label>
+          </div>
+
+          <label class="flex items-center gap-2 text-sm mb-3">
+            <input type="checkbox" v-model="companyForm.enforced" />
+            Enforce for all users (disable personal overrides)
+          </label>
+          <button class="btn-primary btn-sm" :disabled="savingCompanyAppearance" @click="saveCompanyAppearance">
+            <Loader2 v-if="savingCompanyAppearance" :size="14" class="animate-spin" /> Save company appearance
+          </button>
+        </div>
+      </template>
     </div>
 
     <div v-else-if="tab === 'users'" class="card overflow-hidden">
@@ -682,8 +736,10 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import { useUiStore } from '@/stores/ui';
 import api from '@/services/settings';
+import http from '@/services/http';
 import BillingPanel from './BillingPanel.vue';
-import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check, Pipette } from 'lucide-vue-next';
+import CustomFieldsPanel from './CustomFieldsPanel.vue';
+import { Plus, X, ShieldCheck, ChevronUp, ChevronDown, Sun, Moon, Check, Pipette, Loader2 } from 'lucide-vue-next';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -711,8 +767,37 @@ const setChrome = (surface, hex) => ui.setChrome(surface, hex);
 const resetChrome = (surface) => ui.resetChrome(surface);
 const sameColor = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
-const tabPerm = { company: 'settings.view', billing: 'settings.view', appearance: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
-const allTabs = ['company', 'billing', 'appearance', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
+// ---- Company-wide appearance (admins) --------------------------------------
+const companyForm = reactive({ theme: null, accent: null, chrome: { sidebar: null, topbar: null }, enforced: false });
+const savingCompanyAppearance = ref(false);
+function loadCompanyAppearance() {
+  const a = auth.company?.appearance || {};
+  companyForm.theme = a.theme || null;
+  companyForm.accent = a.accent || null;
+  companyForm.chrome = { sidebar: a.chrome?.sidebar || null, topbar: a.chrome?.topbar || null };
+  companyForm.enforced = !!a.enforced;
+}
+loadCompanyAppearance();
+async function saveCompanyAppearance() {
+  savingCompanyAppearance.value = true;
+  try {
+    const { data } = await http.put('/settings/company/appearance', {
+      theme: companyForm.theme, accent: companyForm.accent,
+      chrome: { sidebar: companyForm.chrome.sidebar, topbar: companyForm.chrome.topbar },
+      enforced: companyForm.enforced,
+    });
+    if (auth.user?.company) auth.user.company.appearance = data.data; // apply immediately for me
+    ui.setCompanyAppearance(data.data);
+    toast.success('Company appearance saved');
+  } catch (e) {
+    toast.error(e.response?.data?.message || 'Save failed');
+  } finally {
+    savingCompanyAppearance.value = false;
+  }
+}
+
+const tabPerm = { company: 'settings.view', billing: 'settings.view', appearance: 'settings.view', custom_fields: 'settings.view', branches: 'settings.view', departments: 'settings.view', users: 'users.view', roles: 'roles.view', api_keys: 'api_keys.view', webhooks: 'api_keys.view', routing: 'tickets.update', sms: 'campaigns.view' };
+const allTabs = ['company', 'billing', 'appearance', 'custom_fields', 'users', 'roles', 'api_keys', 'webhooks', 'routing', 'sms', 'branches', 'departments'];
 const visibleTabs = computed(() => allTabs.filter((tb) => can(tabPerm[tb])));
 const canEdit = computed(() => can('settings.update'));
 

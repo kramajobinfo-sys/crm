@@ -93,15 +93,16 @@
       </div>
     </div>
 
-    <!-- Detail drawer -->
-    <div v-if="selected" class="fixed inset-0 z-40 flex justify-end bg-black/30" @click.self="selected = null">
-      <div class="bg-white dark:bg-surface-dark-muted w-full sm:w-[26rem] h-full shadow-xl flex flex-col overflow-hidden">
+    <!-- Detail modal (record popup) -->
+    <div v-if="selected" class="fixed inset-0 z-40 flex items-start justify-center bg-black/40 p-4 overflow-y-auto" @click.self="selected = null">
+      <div class="card w-full max-w-2xl my-6 flex flex-col overflow-hidden max-h-[calc(100vh-3rem)]">
         <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-start gap-2 shrink-0">
           <div class="min-w-0 flex-1">
             <div class="text-sm font-medium text-ink dark:text-ink-dark">{{ selected.title }}</div>
             <div class="text-[11px] text-ink-subtle font-mono">{{ selected.deal_no }}</div>
           </div>
           <span class="text-[10px] px-1.5 py-0.5 rounded" :class="statusClass(selected.status)">{{ $t(`pipeline.status.${selected.status}`) }}</span>
+          <button v-if="can('quotations.create') && selected.customer" class="btn-secondary btn-xs" @click="newQuote">New quote</button>
           <button v-if="can('deals.update')" class="btn-secondary btn-xs" @click="openEdit(selected)">{{ $t('pipeline.edit') }}</button>
           <button v-if="can('activities.create')" class="btn-secondary btn-xs" @click="addFollowUp(selected)">{{ $t('activities.quick_follow_up') }}</button>
           <button v-if="selected.status === 'won' && can('projects.create') && !selected.project" class="btn-primary btn-xs" :disabled="creatingProject" @click="createProjectFromDeal(selected)">{{ creatingProject ? $t('pipeline.creating_project') : $t('pipeline.create_project') }}</button>
@@ -116,7 +117,18 @@
           <button class="btn-secondary btn-xs text-red-600" @click="openLost">{{ $t('pipeline.mark_lost') }}</button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        <!-- Tabs -->
+        <div class="px-4 pt-2 flex gap-1.5 border-b border-slate-200 dark:border-slate-700 shrink-0 overflow-x-auto">
+          <button v-for="tb in detailTabs" :key="tb.key" @click="detailTab = tb.key"
+                  class="px-3 py-2 -mb-px border-b-2 whitespace-nowrap text-xs flex items-center gap-1.5"
+                  :class="detailTab === tb.key ? 'border-primary-500 text-primary-600 font-medium' : 'border-transparent text-ink-subtle hover:text-ink'">
+            {{ tb.label }}<span v-if="tb.count" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-ink-muted">{{ tb.count }}</span>
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 text-xs">
+          <!-- ===== OVERVIEW ===== -->
+          <div v-if="detailTab === 'overview'" class="space-y-3">
           <dl class="grid grid-cols-3 gap-y-1.5">
             <dt class="text-ink-subtle">{{ $t('pipeline.col.amount') }}</dt>
             <dd class="col-span-2 text-ink dark:text-ink-dark tabular-nums">{{ money(selected.amount, selected.currency) }}</dd>
@@ -136,20 +148,6 @@
             </template>
           </dl>
 
-          <!-- Deal contacts -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.deal_contacts') }}</div>
-            <div v-if="!selected.contacts?.length" class="text-ink-subtle">{{ $t('pipeline.no_deal_contacts') }}</div>
-            <div v-for="contact in selected.contacts" :key="contact.id" class="py-1.5 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
-              <div class="flex items-center gap-1.5">
-                <span class="font-medium text-ink dark:text-ink-dark">{{ contact.name }}</span>
-                <span v-if="contact.is_primary" class="text-[9px] px-1 py-0.5 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ $t('pipeline.primary_contact') }}</span>
-                <span class="text-[9px] text-ink-subtle ml-auto">{{ $t(`pipeline.contact_role.${contact.role}`) }}</span>
-              </div>
-              <div class="text-[10px] text-ink-subtle">{{ contact.title || contact.email || contact.phone || '—' }}</div>
-            </div>
-          </div>
-
           <!-- Line items -->
           <div>
             <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.line_items') }}</div>
@@ -168,9 +166,68 @@
             </table>
           </div>
 
-          <!-- Timeline -->
-          <div>
-            <div class="text-[10px] tracking-wider text-ink-subtle mb-1">{{ $t('pipeline.timeline') }}</div>
+          <CustomFieldsDisplay :fields="meta.custom_fields" :values="selected.custom_fields" />
+          </div>
+
+          <!-- ===== CONTACTS ===== -->
+          <div v-else-if="detailTab === 'contacts'">
+            <div v-if="!selected.contacts?.length" class="text-ink-subtle py-4 text-center">{{ $t('pipeline.no_deal_contacts') }}</div>
+            <div v-for="contact in selected.contacts" :key="contact.id" class="py-1.5 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-medium text-ink dark:text-ink-dark">{{ contact.name }}</span>
+                <span v-if="contact.is_primary" class="text-[9px] px-1 py-0.5 rounded bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">{{ $t('pipeline.primary_contact') }}</span>
+                <span class="text-[9px] text-ink-subtle ml-auto">{{ $t(`pipeline.contact_role.${contact.role}`) }}</span>
+              </div>
+              <div class="text-[10px] text-ink-subtle">{{ contact.title || contact.email || contact.phone || '—' }}</div>
+            </div>
+          </div>
+
+          <!-- ===== QUOTES ===== -->
+          <div v-else-if="detailTab === 'quotes'">
+            <div v-if="can('quotations.create') && selected.customer" class="mb-2">
+              <button class="btn-secondary btn-xs" @click="newQuote"><Plus :size="11" /> New quote</button>
+            </div>
+            <div v-if="quotesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
+            <div v-else-if="!dealQuotes.length" class="text-ink-subtle py-4 text-center">No quotes on this deal yet.</div>
+            <div v-for="q in dealQuotes" :key="q.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-1 px-1 rounded" @click="openQuote(q.id)">
+              <span class="font-mono text-[11px] text-ink dark:text-ink-dark shrink-0">{{ q.quote_no }}</span>
+              <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0 ml-auto">{{ q.status }}</span>
+              <span class="tabular-nums text-ink-muted shrink-0">{{ money(q.grand_total, q.currency) }}</span>
+            </div>
+          </div>
+
+          <!-- ===== CAMPAIGNS ===== -->
+          <div v-else-if="detailTab === 'campaigns'">
+            <div v-if="can('deals.update')" class="flex gap-1.5 mb-2">
+              <select v-model.number="newMembership.campaign_id" class="input input-sm flex-1 text-xs">
+                <option :value="null">Link a campaign…</option>
+                <option v-for="c in availableCampaigns" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+              <select v-model="newMembership.status" class="input input-sm w-auto text-xs capitalize">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <button class="btn-primary btn-sm" :disabled="!newMembership.campaign_id || campaignBusy" @click="addMembership"><Plus :size="12" /></button>
+            </div>
+            <div v-if="campaignsLoading" class="text-ink-subtle">Loading…</div>
+            <div v-else-if="!dealCampaigns.length" class="text-ink-subtle">No campaigns linked.</div>
+            <div v-for="m in dealCampaigns" :key="m.campaign_id" class="flex items-center gap-1.5 py-0.5">
+              <span class="text-ink dark:text-ink-dark truncate flex-1">{{ m.name }}</span>
+              <span v-if="m.type" class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted uppercase shrink-0">{{ m.type }}</span>
+              <select v-if="can('deals.update')" v-model="m.status" class="input input-xs w-auto capitalize shrink-0" :disabled="campaignBusy" @change="updateMembershipStatus(m)">
+                <option v-for="s in (meta.campaign_member_statuses || ['member','contacted','responded'])" :key="s" :value="s">{{ s }}</option>
+              </select>
+              <span v-else class="text-ink-subtle capitalize shrink-0">{{ m.status }}</span>
+              <button v-if="can('deals.update')" class="p-1 text-ink-subtle hover:text-red-500 shrink-0" :disabled="campaignBusy" @click="removeMembership(m)"><X :size="12" /></button>
+            </div>
+          </div>
+
+          <!-- ===== TIMELINE ===== -->
+          <div v-else-if="detailTab === 'timeline'">
+            <div v-if="can('activities.create')" class="flex gap-1.5 mb-2">
+              <button class="btn-secondary btn-xs" @click="newActivity('task')"><Plus :size="11" /> New task</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('call')"><Plus :size="11" /> Log call</button>
+              <button class="btn-secondary btn-xs" @click="newActivity('meeting')"><Plus :size="11" /> New meeting</button>
+            </div>
             <div v-if="can('deals.update')" class="flex gap-1.5 mb-2">
               <select v-model="noteType" class="input text-xs w-auto">
                 <option value="note">{{ $t('pipeline.tl.note') }}</option>
@@ -244,6 +301,16 @@
             <label class="label">{{ $t('pipeline.close_date') }}</label>
             <input v-model="form.data.expected_close_date" type="date" class="input text-sm" />
           </div>
+          <div>
+            <label class="label">Forecast category</label>
+            <select v-model="form.data.forecast_category" class="input text-sm capitalize">
+              <option v-for="c in (meta.forecast_categories || [])" :key="c" :value="c">{{ c.replace('_', ' ') }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Competitor</label>
+            <input v-model="form.data.competitor" class="input text-sm" placeholder="Who we're up against" />
+          </div>
         </div>
 
         <!-- Deal contacts editor -->
@@ -289,6 +356,8 @@
           </div>
           <p v-else class="text-[11px] text-ink-subtle">{{ $t('pipeline.no_items_hint') }}</p>
         </div>
+
+        <CustomFieldsInput v-model="form.data.custom_fields" :fields="meta.custom_fields" />
 
         <div class="flex justify-end gap-2 mt-4">
           <button class="btn-secondary btn-sm" @click="form.open = false">{{ $t('pipeline.cancel') }}</button>
@@ -339,6 +408,10 @@ import projectApi from '@/services/projects';
 import customerApi from '@/services/customers';
 import contactApi from '@/services/contacts';
 import { RefreshCw, Plus, X, Send, Building2, Settings2 } from 'lucide-vue-next';
+import CustomFieldsInput from '@/components/crm/CustomFieldsInput.vue';
+import CustomFieldsDisplay from '@/components/crm/CustomFieldsDisplay.vue';
+import http from '@/services/http';
+import { seedCustomFields, stripBlankCustomFields } from '@/composables/useCustomFields';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -361,7 +434,7 @@ const statTiles = [
 
 const board      = reactive({ pipeline: null, columns: [] });
 const stats      = reactive({});
-const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [] });
+const meta       = reactive({ pipelines: [], lost_reasons: [], statuses: [], forecast_categories: [], custom_fields: [], campaigns: [], campaign_member_statuses: [] });
 const customers  = ref([]);
 const contactOptions = ref([]);
 const selected   = ref(null);
@@ -441,8 +514,86 @@ async function openDetail(id) {
     const { data } = await api.show(id);
     selected.value = data.data;
     moveTarget.value = data.data.stage?.id ?? null;
+    detailTab.value = 'overview';
+    loadCampaigns(id);
+    loadDealQuotes(id);
   } catch { /* interceptor surfaces the error */ }
 }
+
+// Campaigns influencing a deal (a deal can be linked to many campaigns).
+const dealCampaigns = ref([]);
+const campaignsLoading = ref(false);
+const campaignBusy = ref(false);
+const newMembership = reactive({ campaign_id: null, status: 'member' });
+const availableCampaigns = computed(() => {
+  const joined = new Set(dealCampaigns.value.map((m) => m.campaign_id));
+  return (meta.campaigns || []).filter((c) => !joined.has(c.id));
+});
+async function loadCampaigns(id) {
+  campaignsLoading.value = true; dealCampaigns.value = [];
+  try { const { data } = await http.get(`/deals/${id}/campaigns`); dealCampaigns.value = data.data || []; }
+  catch { dealCampaigns.value = []; }
+  finally { campaignsLoading.value = false; }
+}
+async function addMembership() {
+  if (!newMembership.campaign_id || !selected.value) return;
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/deals/${selected.value.id}/campaigns`, { ...newMembership });
+    dealCampaigns.value = data.data || [];
+    newMembership.campaign_id = null; newMembership.status = 'member';
+  } catch { /* interceptor surfaces the error */ }
+  finally { campaignBusy.value = false; }
+}
+async function updateMembershipStatus(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.post(`/deals/${selected.value.id}/campaigns`, { campaign_id: m.campaign_id, status: m.status });
+    dealCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+async function removeMembership(m) {
+  campaignBusy.value = true;
+  try {
+    const { data } = await http.delete(`/deals/${selected.value.id}/campaigns/${m.campaign_id}`);
+    dealCampaigns.value = data.data || [];
+  } catch { /* noop */ }
+  finally { campaignBusy.value = false; }
+}
+
+// Quotes raised on this deal.
+const dealQuotes = ref([]);
+const quotesLoading = ref(false);
+async function loadDealQuotes(id) {
+  quotesLoading.value = true; dealQuotes.value = [];
+  try { const { data } = await http.get(`/deals/${id}/quotes`); dealQuotes.value = data.data || []; }
+  catch { dealQuotes.value = []; }
+  finally { quotesLoading.value = false; }
+}
+// Open the Activities create form (task / call / meeting) pre-linked to the current deal.
+function newActivity(type) {
+  if (!selected.value) return;
+  router.push({ name: 'activities', query: { new: type, related_type: 'deal', related_id: selected.value.id } });
+}
+// Open Sales with a new quotation pre-filled for this deal's customer.
+function newQuote() {
+  if (!selected.value?.customer) return;
+  router.push({ name: 'sales', query: { new: 'quotation', customer_id: selected.value.customer.id } });
+}
+// Jump to Sales and open a specific quotation.
+function openQuote(id) {
+  router.push({ name: 'sales', query: { open: id } });
+}
+// Record modal tabs.
+const detailTab = ref('overview');
+const detailTabs = computed(() => [
+  { key: 'overview', label: 'Overview' },
+  { key: 'contacts', label: 'Contacts', count: selected.value?.contacts?.length || 0 },
+  { key: 'quotes', label: 'Quotes', count: dealQuotes.value.length },
+  { key: 'campaigns', label: 'Campaigns', count: dealCampaigns.value.length },
+  { key: 'timeline', label: 'Timeline', count: selected.value?.timeline?.length || 0 },
+]);
 
 function onDragStart(deal, fromStage) { dragging.value = { deal, fromStage }; }
 
@@ -518,13 +669,14 @@ async function refreshStats() {
 function openCreate() {
   form.id = null; form.errors = {};
   contactOptions.value = [];
-  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', contacts: [], products: [] };
+  form.data = { title: '', stage_id: null, customer_id: null, probability: null, expected_close_date: '', currency: 'AED', forecast_category: 'pipeline', competitor: '', contacts: [], products: [], custom_fields: seedCustomFields(meta.custom_fields) };
   form.open = true;
 }
 async function openEdit(d) {
   form.id = d.id; form.errors = {};
   form.data = {
     title: d.title, customer_id: d.customer?.id ?? null, probability: d.probability,
+    forecast_category: d.forecast_category ?? 'pipeline', competitor: d.competitor ?? '',
     expected_close_date: d.expected_close_date ?? '', currency: d.currency ?? 'AED',
     contacts: (d.contacts || []).map((contact) => ({
       contact_id: contact.id, role: contact.role || 'other', is_primary: !!contact.is_primary,
@@ -532,6 +684,7 @@ async function openEdit(d) {
     products: (d.products || []).map((p) => ({
       name: p.name, quantity: p.quantity, unit_price: p.unit_price, discount_pct: p.discount_pct,
     })),
+    custom_fields: seedCustomFields(meta.custom_fields, d.custom_fields),
   };
   await loadContactOptions(form.data.customer_id);
   form.open = true;
@@ -577,6 +730,7 @@ async function submitForm() {
     if (payload.stage_id == null) delete payload.stage_id;
     payload.contacts = (payload.contacts || []).filter((row) => row.contact_id);
     if (!payload.products.length) delete payload.products;
+    if (payload.custom_fields) payload.custom_fields = stripBlankCustomFields(payload.custom_fields);
     const { data } = form.id ? await api.update(form.id, payload) : await api.create(payload);
     toast.success(form.id ? t('pipeline.updated') : t('pipeline.created'));
     form.open = false;
@@ -619,5 +773,11 @@ const timelineClass = (ty) => ({
   system:        'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400',
 }[ty] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await loadAux(); await Promise.all([loadBoard(), loadCustomers()]); if (router.currentRoute.value.query.create) openCreate(); });
+onMounted(async () => {
+  await loadAux(); await Promise.all([loadBoard(), loadCustomers()]);
+  const q = router.currentRoute.value.query;
+  if (q.create) openCreate();
+  // Deep link from an Opportunities row on another record: open that deal.
+  if (q.open) { await openDetail(Number(q.open)); await router.replace({ name: 'deals' }); }
+});
 </script>

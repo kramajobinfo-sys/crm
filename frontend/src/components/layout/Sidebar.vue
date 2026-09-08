@@ -97,7 +97,7 @@ import {
   BarChart3, Bot, BriefcaseBusiness, Building2, Cable, Check, CheckSquare, ChevronDown, ChevronsLeft,
   ChevronsRight, Contact, Factory, FileText, FolderOpen, Headphones, LayoutDashboard,
   Mail, Megaphone, MessagesSquare, Package, PieChart, Plug, ReceiptText, Settings,
-  ShieldCheck, ShoppingCart, Tag, TrendingUp, UserCheck, UserCog, Users, Workflow, X,
+  ShieldCheck, ShoppingCart, Tag, TrendingUp, Upload, UserCheck, UserCog, Users, Workflow, X,
 } from 'lucide-vue-next';
 
 const props = defineProps({ mobile: { type: Boolean, default: false } });
@@ -127,6 +127,7 @@ const workspaces = [
       { name: 'accounts', label: 'nav.accounts', icon: UserCheck, permission: 'customers.view', module: 'customers' },
       { name: 'contacts', label: 'nav.contacts', icon: Contact, permission: 'contacts.view', module: 'contacts' },
       { name: 'duplicates', label: 'nav.duplicates', icon: Users, permission: 'customers.view', module: 'customers' },
+      { name: 'import', label: 'nav.import', icon: Upload, permission: 'leads.create', module: 'leads' },
       { name: 'deals', label: 'nav.deals', icon: PieChart, permission: 'deals.view', module: 'deals' },
       { name: 'email', label: 'nav.email', icon: Mail, permission: 'email.view', module: 'email' },
       { name: 'marketing', label: 'nav.marketing', icon: Megaphone, permission: 'campaigns.view', module: 'campaigns' },

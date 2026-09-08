@@ -21,5 +21,17 @@ class AppServiceProvider extends ServiceProvider
         // ours from bootstrap/app.php, silently skipping API-key auth and our formatted error
         // responses for every expired/invalid/missing token. Re-assert ours last.
         Route::aliasMiddleware('jwt.auth', JwtAuthenticate::class);
+
+        // Entity-level change auditing (who changed what, old→new). AuditObserver captures
+        // created/updated/deleted/restored with a field-level diff and secret scrubbing; register it
+        // on the business-critical models the audit trail must cover.
+        foreach ([
+            \App\Models\Lead::class, \App\Models\Customer::class, \App\Models\Contact::class,
+            \App\Models\Deal::class, \App\Models\Quotation::class, \App\Models\SalesOrder::class,
+            \App\Models\Invoice::class, \App\Models\Payment::class, \App\Models\Ticket::class,
+            \App\Models\User::class, \App\Models\PurchaseOrder::class,
+        ] as $model) {
+            if (class_exists($model)) $model::observe(\App\Observers\AuditObserver::class);
+        }
     }
 }

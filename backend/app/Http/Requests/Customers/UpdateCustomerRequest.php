@@ -22,6 +22,9 @@ class UpdateCustomerRequest extends FormRequest
             'group_id'   => ['nullable','integer', Rule::exists('customer_groups','id')->where('company_id',$companyId)],
             'owner_id'   => ['nullable','integer', Rule::exists('users','id')->where('company_id',$companyId)],
             'branch_id'  => ['nullable','integer', Rule::exists('branches','id')->where('company_id',$companyId)],
+            'territory' => ['nullable','string','max:96'],
+            'tags'   => ['nullable','array'],
+            'tags.*' => ['string','max:40'],
             'email'   => ['nullable','email','max:191'],
             'phone'   => ['nullable','string','max:32'],
             'mobile'  => ['nullable','string','max:32'],
@@ -32,6 +35,7 @@ class UpdateCustomerRequest extends FormRequest
             'credit_limit'       => ['nullable','numeric','min:0','max:9999999999999'],
             'payment_terms_days' => ['nullable','integer','min:0','max:365'],
             'notes' => ['nullable','string','max:5000'],
+            'custom_fields' => ['nullable', 'array'],
 
             // Present => replace the whole set. Absent => leave addresses untouched.
             'addresses'               => ['nullable','array','max:10'],

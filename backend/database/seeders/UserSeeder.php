@@ -31,8 +31,10 @@ class UserSeeder extends Seeder
                 ['email'=>$email,'company_id'=>$company->id],
                 ['name'=>$name,'password'=>Hash::make('password123'),'company_id'=>$company->id,
                  'department_id'=>$depts[$dept] ?? null,'language'=>'en','timezone'=>'Asia/Dubai',
-                 'is_active'=>true,'is_platform_admin'=>($email==='admin@krama.local'),'email_verified_at'=>now()],
+                 'is_active'=>true,'email_verified_at'=>now()],
             );
+            // Privilege flag is not mass-assignable — set it explicitly.
+            $user->forceFill(['is_platform_admin'=>($email==='admin@krama.local')])->save();
             $user->syncRoles([$role]);
         }
         $this->command->info('');

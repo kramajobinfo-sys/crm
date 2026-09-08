@@ -159,14 +159,24 @@ class WorkflowService
     }
 
     /**
-     * Fire an event trigger for one entity's subject record. Runs every active, matching
-     * event-workflow in the subject's own company. Called synchronously from the owning
-     * service right after the real transition, so a workflow failure must never surface as
-     * the triggering request's failure — each run is isolated and logged, not rethrown.
+     * Fire an event trigger for one entity's subject record. Queues the actual execution to run
+     * AFTER the triggering transaction commits, in a worker — so a workflow's blocking webhook/SMTP
+     * calls never stretch the caller's DB transaction or fail the request. A workflow's own actions
+     * must not trigger further workflows (self::$running), so nested fires are suppressed.
      */
     public function fireEvent(string $entity, string $event, Model $subject): void
     {
-        // A workflow's own actions must not trigger further workflows — see self::$running.
+        if (self::$running) return;
+        \App\Jobs\RunWorkflowEvent::dispatch($entity, $event, $subject::class, $subject->getKey())->afterCommit();
+    }
+
+    /**
+     * Synchronous body of an event trigger — runs every active matching event-workflow in the
+     * subject's own company. Invoked by RunWorkflowEvent in the worker. Each run is isolated and
+     * logged, never rethrown, so one failing workflow can't fail the batch.
+     */
+    public function runEventNow(string $entity, string $event, Model $subject): void
+    {
         if (self::$running) return;
 
         $workflows = Workflow::where('company_id', $subject->company_id)

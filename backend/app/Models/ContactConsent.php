@@ -59,16 +59,22 @@ class ContactConsent extends Model
     public static function suppression(int $companyId, array $channels): array
     {
         $emails = []; $phones = [];
-        $ids = static::withdrawnContactIds($companyId, $channels);
-        if ($ids) {
-            foreach (Contact::withoutGlobalScopes()->whereIn('id', $ids)->get(['email', 'phone', 'mobile']) as $c) {
-                if ($c->email) $emails[strtolower(trim($c->email))] = true;
-                foreach ([$c->phone, $c->mobile] as $p) {
+        $collect = function ($rows) use (&$emails, &$phones) {
+            foreach ($rows as $r) {
+                if ($r->email) $emails[strtolower(trim($r->email))] = true;
+                foreach ([$r->phone, $r->mobile] as $p) {
                     $digits = $p ? preg_replace('/[^0-9]+/', '', $p) : '';
                     if ($digits) $phones[$digits] = true;
                 }
             }
-        }
+        };
+        $ids = static::withdrawnContactIds($companyId, $channels);
+        if ($ids) $collect(Contact::withoutGlobalScopes()->whereIn('id', $ids)->get(['email', 'phone', 'mobile']));
+
+        // Leads carry the same opt-out semantics — union their withdrawn emails/phones too.
+        $leadIds = LeadConsent::withdrawnLeadIds($companyId, $channels);
+        if ($leadIds) $collect(Lead::withoutGlobalScopes()->whereIn('id', $leadIds)->get(['email', 'phone', 'mobile']));
+
         // Marketing opt-outs captured by email address (public unsubscribe link).
         if (in_array('marketing', $channels, true)) {
             foreach (EmailSuppression::where('company_id', $companyId)->pluck('email') as $e) {

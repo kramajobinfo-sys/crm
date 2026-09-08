@@ -34,6 +34,15 @@ class QuotationController extends Controller
         return $this->success(new QuotationResource($this->sales->findQuotation($id)));
     }
 
+    /** Render the quotation as a downloadable PDF. */
+    public function pdf(int $id): \Symfony\Component\HttpFoundation\Response
+    {
+        $quote = Quotation::with(['items', 'customer', 'owner'])->findOrFail($id);
+        $company = \App\Models\Company::find($quote->company_id);
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.quotation', ['q' => $quote, 'company' => $company]);
+        return $pdf->download("quote-{$quote->quote_no}.pdf");
+    }
+
     public function store(StoreQuotationRequest $request): JsonResponse
     {
         return $this->success(new QuotationResource($this->sales->createQuotation($request->validated())), 'Quotation created', 201);
@@ -55,12 +64,35 @@ class QuotationController extends Controller
     {
         $data = $request->validate(['status' => 'required|string|in:draft,sent,accepted,rejected,expired']);
         $quote = Quotation::findOrFail($id);
-        return $this->success(new QuotationResource($this->sales->setQuotationStatus($quote, $data['status'])), 'Status updated');
+        try {
+            $result = $this->sales->setQuotationStatus($quote, $data['status']);
+        } catch (RuntimeException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+        return $this->success(new QuotationResource($result), 'Status updated');
+    }
+
+    /** Submit a draft quotation into the approval workflow (if one applies to its amount). */
+    public function submitForApproval(int $id): JsonResponse
+    {
+        $quote = Quotation::findOrFail($id);
+        if ($quote->status !== 'draft') {
+            return $this->error('Only a draft quotation can be submitted for approval.', 422);
+        }
+        $request = app(\App\Services\ApprovalService::class)->initiate($quote, 'quotation', (float) $quote->grand_total);
+        if (!$request) {
+            return $this->error('No approval workflow applies to this quotation — you can send it directly.', 422);
+        }
+        $quote->forceFill(['status' => 'pending_approval'])->save();
+        return $this->success(new QuotationResource($quote->fresh()), 'Submitted for approval');
     }
 
     public function send(int $id): JsonResponse
     {
         $quote = Quotation::findOrFail($id);
+        if ($quote->status === 'pending_approval') {
+            return $this->error('This quotation is awaiting approval and cannot be sent yet.', 422);
+        }
         try {
             $result = $this->sales->sendQuotation($quote);
         } catch (QueryException $e) {

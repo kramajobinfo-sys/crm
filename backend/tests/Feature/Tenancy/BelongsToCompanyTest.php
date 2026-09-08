@@ -77,8 +77,12 @@ class BelongsToCompanyTest extends TestCase
             'email' => strtolower($code).'@example.test',
             'password' => 'password',
             'is_active' => true,
-            'is_platform_admin' => $platformAdmin,
         ]);
+        // is_platform_admin is intentionally NOT mass-assignable (privilege-escalation guard),
+        // so set it the same way production code does — via forceFill.
+        if ($platformAdmin) {
+            $user->forceFill(['is_platform_admin' => true])->save();
+        }
 
         return [$company, $user];
     }

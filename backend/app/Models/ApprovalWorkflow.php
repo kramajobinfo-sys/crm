@@ -8,7 +8,7 @@ class ApprovalWorkflow extends Model
 {
     use HasFactory, BelongsToCompany;
 
-    public const DOCUMENT_TYPES = ['purchase_request', 'purchase_order'];
+    public const DOCUMENT_TYPES = ['purchase_request', 'purchase_order', 'quotation'];
 
     protected $fillable = [
         'company_id','name','document_type','min_amount','approver_ids','is_active',

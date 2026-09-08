@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -15,15 +16,18 @@ class Customer extends Model
 
     public const TYPES    = ['company', 'individual'];
     public const STATUSES = ['active', 'on_hold', 'blocked', 'archived'];
+    public const CAMPAIGN_MEMBER_STATUSES = ['member', 'contacted', 'responded'];
 
     protected $fillable = [
-        'company_id','customer_no','type','group_id','owner_id','branch_id','name','legal_name',
+        'company_id','customer_no','type','group_id','owner_id','branch_id','territory','tags','name','legal_name',
         'email','phone','mobile','website','tax_id','currency','price_book_id','credit_limit',
-        'payment_terms_days','status','notes','converted_from_lead_id',
+        'payment_terms_days','status','notes','converted_from_lead_id','custom_fields',
     ];
     protected function casts(): array
     {
         return [
+            'tags' => 'array',
+            'custom_fields' => 'array',
             'credit_limit' => 'decimal:2',
             'payment_terms_days' => 'integer',
         ];
@@ -34,8 +38,15 @@ class Customer extends Model
     public function owner(): BelongsTo    { return $this->belongsTo(User::class, 'owner_id'); }
     public function branch(): BelongsTo   { return $this->belongsTo(Branch::class); }
     public function contacts(): HasMany   { return $this->hasMany(Contact::class); }
+    public function deals(): HasMany      { return $this->hasMany(Deal::class); }
     public function addresses(): MorphMany { return $this->morphMany(Address::class, 'addressable'); }
     public function timeline(): MorphMany  { return $this->morphMany(TimelineActivity::class, 'subject'); }
+    /** Marketing-list memberships: many campaigns, each with a member status. */
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(Campaign::class, 'campaign_customer')
+            ->withPivot(['status', 'added_at'])->withTimestamps();
+    }
 
     public function primaryContact(): HasMany
     {

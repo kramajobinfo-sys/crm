@@ -47,6 +47,9 @@ class CustomerController extends Controller
             'price_books' => \App\Models\PriceBook::active()->orderBy('name')->get(['id','name','currency']),
             'types' => Customer::TYPES,
             'statuses' => Customer::STATUSES,
+            'custom_fields' => app(\App\Services\CustomFieldService::class)->definitions('customer'),
+            'campaigns' => \App\Models\Campaign::orderByDesc('id')->limit(100)->get(['id', 'name']),
+            'campaign_member_statuses' => Customer::CAMPAIGN_MEMBER_STATUSES,
             'next_customer_no' => $this->customers->nextCustomerNo(),
         ]);
     }
@@ -86,6 +89,66 @@ class CustomerController extends Controller
     {
         Customer::findOrFail($id)->delete();   // soft delete
         return $this->success(null, 'Customer deleted');
+    }
+
+    /** Opportunities (deals) belonging to this account. */
+    public function deals(int $id): JsonResponse
+    {
+        $customer = Customer::findOrFail($id);
+        $deals = $customer->deals()->with('stage:id,name')->orderByDesc('id')->get()
+            ->map(fn ($d) => [
+                'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+                'amount' => (float) $d->amount, 'currency' => $d->currency,
+                'status' => $d->status, 'stage' => $d->stage?->name,
+            ]);
+        return $this->success($deals);
+    }
+
+    /** Campaign memberships (marketing lists) this account belongs to. */
+    public function campaignMemberships(int $id): JsonResponse
+    {
+        $customer = Customer::with(['campaigns' => fn ($q) => $q->orderByDesc('campaign_customer.id')])->findOrFail($id);
+        return $this->success($customer->campaigns->map(fn ($c) => [
+            'campaign_id' => $c->id, 'name' => $c->name, 'type' => $c->type, 'campaign_status' => $c->status,
+            'status' => $c->pivot->status, 'added_at' => optional($c->pivot->added_at)->toIso8601String(),
+        ])->values());
+    }
+
+    /** Add this account to a campaign, or update its member status if already a member. */
+    public function attachCampaign(Request $request, int $id): JsonResponse
+    {
+        $customer = Customer::findOrFail($id);
+        $companyId = $request->user()->company_id;
+        $data = $request->validate([
+            'campaign_id' => ['required', 'integer',
+                Rule::exists('campaigns', 'id')->where('company_id', $companyId)->whereNull('deleted_at')],
+            'status' => ['nullable', Rule::in(Customer::CAMPAIGN_MEMBER_STATUSES)],
+        ]);
+        $status = $data['status'] ?? 'member';
+
+        if ($customer->campaigns()->where('campaigns.id', $data['campaign_id'])->exists()) {
+            $customer->campaigns()->updateExistingPivot($data['campaign_id'], ['status' => $status]);
+        } else {
+            // company_id is set explicitly: pivot rows aren't models, so BelongsToCompany can't fill it.
+            $customer->campaigns()->attach($data['campaign_id'], [
+                'company_id' => $customer->company_id, 'status' => $status, 'added_at' => now(),
+            ]);
+            $name = \App\Models\Campaign::whereKey($data['campaign_id'])->value('name');
+            \App\Models\TimelineActivity::record($customer, 'system', 'Added to campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
+    }
+
+    /** Remove this account from a campaign. */
+    public function detachCampaign(int $id, int $campaignId): JsonResponse
+    {
+        $customer = Customer::findOrFail($id);
+        if ($customer->campaigns()->where('campaigns.id', $campaignId)->exists()) {
+            $name = \App\Models\Campaign::whereKey($campaignId)->value('name');
+            $customer->campaigns()->detach($campaignId);
+            \App\Models\TimelineActivity::record($customer, 'system', 'Removed from campaign '.$name);
+        }
+        return $this->campaignMemberships($id);
     }
 
     public function addNote(Request $request, int $id): JsonResponse

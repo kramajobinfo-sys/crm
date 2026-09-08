@@ -69,8 +69,35 @@ class SalesService
         });
     }
 
+    // Allowed manual status transitions. Same-status is always a no-op; internal transitions
+    // (pending_approval, converted) are set by their own flows, not this setter.
+    private const QUOTE_TRANSITIONS = [
+        'draft' => ['sent'],
+        'pending_approval' => ['draft'],
+        'sent' => ['accepted', 'rejected', 'expired', 'draft'],
+        'accepted' => ['draft'],
+        'rejected' => ['draft'],
+        'expired' => ['draft'],
+    ];
+    private const ORDER_TRANSITIONS = [
+        'draft' => ['confirmed', 'cancelled'],
+        'confirmed' => ['processing', 'cancelled'],
+        'processing' => ['fulfilled', 'cancelled'],
+        'fulfilled' => [],
+        'cancelled' => [],
+    ];
+
+    private function assertTransition(string $from, string $to, array $map, string $doc): void
+    {
+        if ($from === $to) return;
+        if (!in_array($to, $map[$from] ?? [], true)) {
+            throw new RuntimeException("Cannot change {$doc} from \"{$from}\" to \"{$to}\".");
+        }
+    }
+
     public function setQuotationStatus(Quotation $quote, string $status): Quotation
     {
+        $this->assertTransition($quote->status, $status, self::QUOTE_TRANSITIONS, 'quotation');
         $quote->forceFill(['status' => $status])->save();
         return $this->findQuotation($quote->id);
     }
@@ -191,6 +218,7 @@ class SalesService
 
     public function setOrderStatus(SalesOrder $order, string $status): SalesOrder
     {
+        $this->assertTransition($order->status, $status, self::ORDER_TRANSITIONS, 'order');
         $order->forceFill(['status' => $status])->save();
         return $this->findOrder($order->id);
     }
@@ -415,6 +443,25 @@ class SalesService
      * the line's own tax_rate_id, else the product's default; the rate/inclusive flag come
      * from the tax_rates table so the client cannot spoof them.
      */
+    /**
+     * Contract prices for a document's lines: product_id => book price, from the customer's effective
+     * price book, but only when the book currency matches the document currency (otherwise we don't
+     * enforce, to avoid mispricing). Products not in the book are absent (line keeps its own price).
+     * @return array<int,float>
+     */
+    private function bookPricesFor(SalesDocument $doc, array $lines): array
+    {
+        $productIds = collect($lines)->pluck('product_id')->filter()->unique()->values()->all();
+        if (!$productIds) return [];
+        $customer = $doc->customer()->first();
+        $bookId = $customer?->effectivePriceBookId();
+        if (!$bookId) return [];
+        $book = \App\Models\PriceBook::find($bookId);
+        if (!$book || ($doc->currency && $book->currency && $book->currency !== $doc->currency)) return [];
+        return $book->entries()->whereIn('product_id', $productIds)
+            ->pluck('unit_price', 'product_id')->map(fn ($p) => (float) $p)->all();
+    }
+
     private function syncItems(SalesDocument $doc, array $lines): void
     {
         $doc->items()->delete();
@@ -433,12 +480,19 @@ class SalesService
         $productTax = Product::whereIn('id', collect($lines)->pluck('product_id')->filter()->all())
             ->pluck('tax_rate_id', 'id');
 
+        // Contract pricing: where the customer's effective price book has an entry for a line's
+        // product, that price is authoritative — the client cannot undercut/override it on save.
+        $bookPrices = $this->bookPricesFor($doc, $lines);
+
         foreach (array_values($lines) as $i => $line) {
             $taxRateId = $line['tax_rate_id'] ?? ($productTax[$line['product_id'] ?? null] ?? null);
             [$rate, $inclusive, $trId] = $resolveTax($taxRateId);
 
             $qty = (float) ($line['quantity'] ?? 1);
-            $price = (float) ($line['unit_price'] ?? 0);
+            $pid = $line['product_id'] ?? null;
+            $price = ($pid !== null && array_key_exists($pid, $bookPrices))
+                ? $bookPrices[$pid]
+                : (float) ($line['unit_price'] ?? 0);
             $disc = (float) ($line['discount_pct'] ?? 0);
             [$lineTotal, $taxAmount] = \App\Models\SalesDocumentItem::computeLine($qty, $price, $disc, $rate, $inclusive);
 

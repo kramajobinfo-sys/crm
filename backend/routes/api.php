@@ -58,6 +58,7 @@ use App\Http\Controllers\Api\V1\System\AuditLogController;
 use App\Http\Controllers\Api\V1\Platform\PlatformController;
 use App\Http\Controllers\Api\V1\Platform\BillingSettingController;
 use App\Http\Controllers\Api\V1\Billing\BillingController;
+use App\Http\Controllers\Api\V1\Imports\ImportController;
 use App\Http\Controllers\Api\V1\System\TenantInfoController;
 use App\Http\Controllers\Api\V1\Visits\VisitController;
 use App\Http\Controllers\Api\V1\Visits\VisitIngestController;
@@ -160,6 +161,12 @@ Route::prefix('v1')->group(function () {
             Route::get   ('meta',   [LeadController::class, 'meta'])->middleware('permission:leads.view');
             Route::post  ('/',      [LeadController::class, 'store'])->middleware('permission:leads.create');
             Route::get   ('{id}',   [LeadController::class, 'show'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::get   ('{id}/activities', [LeadController::class, 'activities'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [LeadController::class, 'campaignMemberships'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [LeadController::class, 'attachCampaign'])->middleware('permission:leads.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [LeadController::class, 'detachCampaign'])->middleware('permission:leads.update')->whereNumber('id')->whereNumber('campaignId');
+            Route::get   ('{id}/consents', [LeadController::class, 'consents'])->middleware('permission:leads.view')->whereNumber('id');
+            Route::post  ('{id}/consents', [LeadController::class, 'storeConsent'])->middleware('permission:leads.update')->whereNumber('id');
             Route::put   ('{id}',   [LeadController::class, 'update'])->middleware('permission:leads.update')->whereNumber('id');
             Route::delete('{id}',   [LeadController::class, 'destroy'])->middleware('permission:leads.delete')->whereNumber('id');
             Route::get   ('{id}/score',   [LeadController::class, 'score'])->middleware('permission:leads.score')->whereNumber('id');
@@ -182,6 +189,10 @@ Route::prefix('v1')->group(function () {
             Route::post  ('/',      [CustomerController::class, 'store'])->middleware('permission:customers.create');
             Route::get   ('{id}',   [CustomerController::class, 'show'])->middleware('permission:customers.view')->whereNumber('id');
             Route::get   ('{id}/timeline', [CustomerController::class, 'timeline'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::get   ('{id}/deals', [CustomerController::class, 'deals'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [CustomerController::class, 'campaignMemberships'])->middleware('permission:customers.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [CustomerController::class, 'attachCampaign'])->middleware('permission:customers.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [CustomerController::class, 'detachCampaign'])->middleware('permission:customers.update')->whereNumber('id')->whereNumber('campaignId');
             Route::put   ('{id}',   [CustomerController::class, 'update'])->middleware('permission:customers.update')->whereNumber('id');
             Route::delete('{id}',   [CustomerController::class, 'destroy'])->middleware('permission:customers.delete')->whereNumber('id');
             Route::post  ('{id}/notes',              [CustomerController::class, 'addNote'])->middleware('permission:customers.update')->whereNumber('id');
@@ -197,8 +208,13 @@ Route::prefix('v1')->group(function () {
             Route::get   ('meta', [ContactController::class, 'meta'])->middleware('permission:contacts.view');
             Route::post  ('/',    [ContactController::class, 'store'])->middleware('permission:contacts.create');
             Route::get   ('{id}', [ContactController::class, 'show'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::get   ('{id}/timeline', [ContactController::class, 'timeline'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::get   ('{id}/consents', [ContactController::class, 'consents'])->middleware('permission:contacts.view')->whereNumber('id');
             Route::post  ('{id}/consents', [ContactController::class, 'storeConsent'])->middleware('permission:contacts.update')->whereNumber('id');
+            Route::get   ('{id}/deals', [ContactController::class, 'deals'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [ContactController::class, 'campaignMemberships'])->middleware('permission:contacts.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [ContactController::class, 'attachCampaign'])->middleware('permission:contacts.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [ContactController::class, 'detachCampaign'])->middleware('permission:contacts.update')->whereNumber('id')->whereNumber('campaignId');
             Route::put   ('{id}', [ContactController::class, 'update'])->middleware('permission:contacts.update')->whereNumber('id');
             Route::delete('{id}', [ContactController::class, 'destroy'])->middleware('permission:contacts.delete')->whereNumber('id');
         });
@@ -216,6 +232,10 @@ Route::prefix('v1')->group(function () {
             Route::post  ('{id}/move',      [DealController::class, 'move'])->middleware('permission:deals.change_stage')->whereNumber('id');
             Route::post  ('{id}/lost',      [DealController::class, 'markLost'])->middleware('permission:deals.change_stage')->whereNumber('id');
             Route::post  ('{id}/notes',     [DealController::class, 'addNote'])->middleware('permission:deals.update')->whereNumber('id');
+            Route::get   ('{id}/quotes', [DealController::class, 'quotes'])->middleware('permission:deals.view')->whereNumber('id');
+            Route::get   ('{id}/campaigns', [DealController::class, 'campaignMemberships'])->middleware('permission:deals.view')->whereNumber('id');
+            Route::post  ('{id}/campaigns', [DealController::class, 'attachCampaign'])->middleware('permission:deals.update')->whereNumber('id');
+            Route::delete('{id}/campaigns/{campaignId}', [DealController::class, 'detachCampaign'])->middleware('permission:deals.update')->whereNumber('id')->whereNumber('campaignId');
             Route::post  ('{id}/attachments',       [DealController::class, 'storeAttachment'])->middleware('permission:deals.update')->whereNumber('id');
             Route::delete('{id}/attachments/{att}', [DealController::class, 'destroyAttachment'])->middleware('permission:deals.update')->whereNumber('id')->whereNumber('att');
         });
@@ -328,10 +348,12 @@ Route::prefix('v1')->group(function () {
             Route::get   ('/',    [QuotationController::class, 'index'])->middleware('permission:quotations.view');
             Route::post  ('/',    [QuotationController::class, 'store'])->middleware('permission:quotations.create');
             Route::get   ('{id}', [QuotationController::class, 'show'])->middleware('permission:quotations.view')->whereNumber('id');
+            Route::get   ('{id}/pdf', [QuotationController::class, 'pdf'])->middleware('permission:quotations.view')->whereNumber('id');
             Route::put   ('{id}', [QuotationController::class, 'update'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::delete('{id}', [QuotationController::class, 'destroy'])->middleware('permission:quotations.delete')->whereNumber('id');
             Route::post  ('{id}/status',  [QuotationController::class, 'setStatus'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::post  ('{id}/send',    [QuotationController::class, 'send'])->middleware('permission:quotations.send')->whereNumber('id');
+            Route::post  ('{id}/submit-approval', [QuotationController::class, 'submitForApproval'])->middleware('permission:quotations.update')->whereNumber('id');
             Route::post  ('{id}/convert', [QuotationController::class, 'convert'])->middleware('permission:orders.create')->whereNumber('id');
         });
 
@@ -451,10 +473,15 @@ Route::prefix('v1')->group(function () {
             Route::post  ('{id}/cancel',  [PurchaseOrderController::class, 'cancel'])->middleware('permission:purchase_orders.update')->whereNumber('id');
         });
 
-        // Module 8 — Purchase: approvals
-        Route::prefix('approvals')->middleware('feature:purchase_orders')->group(function () {
+        // Personal approval inbox — generic across document types (purchase orders, quotations, …),
+        // so an approver reaches it without needing the purchase feature.
+        Route::prefix('approvals')->group(function () {
             Route::get ('mine',       [ApprovalController::class, 'mine']);
             Route::post('{id}/act',   [ApprovalController::class, 'act'])->whereNumber('id');
+        });
+
+        // Module 8 — Purchase: approval-workflow configuration
+        Route::prefix('approvals')->middleware('feature:purchase_orders')->group(function () {
             Route::get   ('workflows',      [ApprovalController::class, 'workflows'])->middleware('permission:purchase_orders.approve');
             Route::post  ('workflows',      [ApprovalController::class, 'storeWorkflow'])->middleware('permission:purchase_orders.approve');
             Route::put   ('workflows/{id}', [ApprovalController::class, 'updateWorkflow'])->middleware('permission:purchase_orders.approve')->whereNumber('id');
@@ -559,6 +586,12 @@ Route::prefix('v1')->group(function () {
         Route::prefix('settings')->middleware('feature:settings')->group(function () {
             Route::get('company',        [OrganizationController::class, 'company'])->middleware('permission:settings.view');
             Route::put('company',        [OrganizationController::class, 'updateCompany'])->middleware('permission:settings.update');
+            Route::put('company/appearance', [OrganizationController::class, 'updateAppearance'])->middleware('permission:settings.update');
+            // Custom-field definitions (admin). Field values are handled by each entity.
+            Route::get   ('custom-fields',      [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'index'])->middleware('permission:settings.view');
+            Route::post  ('custom-fields',      [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'store'])->middleware('permission:settings.update');
+            Route::put   ('custom-fields/{id}', [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'update'])->middleware('permission:settings.update')->whereNumber('id');
+            Route::delete('custom-fields/{id}', [\App\Http\Controllers\Api\V1\Settings\CustomFieldController::class, 'destroy'])->middleware('permission:settings.update')->whereNumber('id');
             Route::get('branches',       [OrganizationController::class, 'branches'])->middleware('permission:settings.view');
             Route::post('branches',      [OrganizationController::class, 'storeBranch'])->middleware('permission:settings.update');
             Route::put('branches/{id}',  [OrganizationController::class, 'updateBranch'])->middleware('permission:settings.update')->whereNumber('id');
@@ -752,6 +785,18 @@ Route::prefix('v1')->group(function () {
             Route::put ('billing/plans/{code}/prices',   [BillingSettingController::class, 'updatePrices']);
             Route::get ('billing/payments',              [BillingSettingController::class, 'payments']);
             Route::post('billing/payments/{id}/confirm', [BillingSettingController::class, 'confirmPayment'])->whereNumber('id');
+        });
+
+        // Bulk CSV import (leads / contacts / customers). Authorization is per-entity inside the
+        // controller (target *.create permission); commit runs in the queue.
+        Route::prefix('imports')->group(function () {
+            Route::get ('meta',            [ImportController::class, 'meta']);
+            Route::get ('/',               [ImportController::class, 'index']);
+            Route::post('/',               [ImportController::class, 'store']);
+            Route::get ('{id}',            [ImportController::class, 'show'])->whereNumber('id');
+            Route::get ('{id}/errors.csv', [ImportController::class, 'errorsCsv'])->whereNumber('id');
+            Route::post('{id}/preview',    [ImportController::class, 'preview'])->whereNumber('id');
+            Route::post('{id}/commit',     [ImportController::class, 'commit'])->whereNumber('id');
         });
 
         // Member-facing subscription billing — always available (no plan feature gate), so a company

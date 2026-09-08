@@ -20,11 +20,19 @@ class LeadResource extends JsonResource
             'website' => $this->website,
             'score' => (int) $this->score,
             'rating' => $this->rating,
+            'priority' => $this->priority,
             'estimated_value' => (float) $this->estimated_value,
             'currency' => $this->currency,
             'expected_close_date' => $this->expected_close_date?->toDateString(),
             'last_contacted_at' => $this->last_contacted_at?->toIso8601String(),
             'last_contacted_human' => $this->last_contacted_at?->diffForHumans(),
+            'follow_up_at' => $this->follow_up_at?->toIso8601String(),
+            'follow_up_human' => $this->follow_up_at?->diffForHumans(),
+            'is_follow_up_overdue' => $this->follow_up_at ? $this->follow_up_at->isPast() && !$this->isConverted() : false,
+            'next_action' => $this->next_action,
+            'lost_reason' => $this->whenLoaded('lostReason', fn () => $this->lostReason
+                ? ['id' => $this->lostReason->id, 'name' => $this->lostReason->name] : null),
+            'lost_reason_id' => $this->lost_reason_id,
             'is_converted' => $this->isConverted(),
             'converted_at' => $this->converted_at?->toIso8601String(),
             'notes' => $this->notes,
@@ -32,6 +40,19 @@ class LeadResource extends JsonResource
             'created_human' => $this->created_at?->diffForHumans(),
             'source' => $this->whenLoaded('source', fn () => $this->source
                 ? ['id' => $this->source->id, 'name' => $this->source->name, 'code' => $this->source->code] : null),
+            'campaign' => $this->whenLoaded('campaign', fn () => $this->campaign
+                ? ['id' => $this->campaign->id, 'name' => $this->campaign->name] : null),
+            'campaign_id' => $this->campaign_id,
+            'account' => $this->whenLoaded('account', fn () => $this->account
+                ? ['id' => $this->account->id, 'name' => $this->account->name, 'customer_no' => $this->account->customer_no] : null),
+            'account_id' => $this->account_id,
+            'territory' => $this->territory,
+            'custom_fields' => $this->custom_fields ?? new \stdClass(),
+            'products' => $this->whenLoaded('products', fn () => $this->products->map(fn ($p) => [
+                'product_id' => $p->id, 'name' => $p->name, 'sku' => $p->sku,
+                'quantity' => $p->pivot->quantity !== null ? (float) $p->pivot->quantity : null,
+                'note' => $p->pivot->note,
+            ])),
             'status' => $this->whenLoaded('status', fn () => $this->status ? [
                 'id' => $this->status->id, 'name' => $this->status->name, 'code' => $this->status->code,
                 'color' => $this->status->color, 'is_won' => (bool) $this->status->is_won,
@@ -50,6 +71,11 @@ class LeadResource extends JsonResource
                 $this->relationLoaded('status'),
                 fn () => app(LeadScoringService::class)->evaluate($this->resource)['breakdown']
             ),
+            'deals' => $this->whenLoaded('deals', fn () => $this->deals->map(fn ($d) => [
+                'id' => $d->id, 'deal_no' => $d->deal_no, 'title' => $d->title,
+                'amount' => (float) $d->amount, 'currency' => $d->currency, 'status' => $d->status,
+                'stage' => $d->stage ? ['id' => $d->stage->id, 'name' => $d->stage->name] : null,
+            ])),
             'addresses' => $this->whenLoaded('addresses', fn () => $this->addresses->map(fn ($a) => [
                 'id' => $a->id, 'type' => $a->type, 'one_line' => $a->oneLine(),
             ])),

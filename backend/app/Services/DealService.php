@@ -120,6 +120,10 @@ class DealService
             $data['probability'] ??= $stage->probability;
             $this->stampTerminal($data, $stage);
 
+            if (array_key_exists('custom_fields', $data)) {
+                $data['custom_fields'] = app(CustomFieldService::class)->sanitize('deal', (array) $data['custom_fields']);
+            }
+
             $deal = Deal::create($data);
 
             if (is_array($products)) $this->syncProducts($deal, $products);
@@ -154,6 +158,12 @@ class DealService
                 $this->stampTerminal($data, $stage);
             }
 
+            if (array_key_exists('custom_fields', $data)) {
+                // Merge onto existing values so a partial update doesn't wipe untouched fields.
+                $data['custom_fields'] = array_merge($deal->custom_fields ?? [],
+                    app(CustomFieldService::class)->sanitize('deal', (array) $data['custom_fields']));
+            }
+
             $deal->update($data);
 
             if (!empty($data['stage_id']) && (int) $data['stage_id'] !== $beforeStage) {
@@ -162,8 +172,8 @@ class DealService
                 TimelineActivity::record($deal, 'status_change', "Stage moved from {$from} to {$to}",
                     null, ['from' => $beforeStage, 'to' => (int) $data['stage_id']]);
                 $this->workflows->fireEvent('deals', 'deal.stage_changed', $deal);
-                if ($stage->is_won) $this->workflows->fireEvent('deals', 'deal.won', $deal);
-                if ($stage->is_lost) $this->workflows->fireEvent('deals', 'deal.lost', $deal);
+                if ($stage->is_won) { $this->workflows->fireEvent('deals', 'deal.won', $deal); app(CrmNotifier::class)->dealClosed($deal, 'won'); }
+                if ($stage->is_lost) { $this->workflows->fireEvent('deals', 'deal.lost', $deal); app(CrmNotifier::class)->dealClosed($deal, 'lost'); }
             }
 
             if (is_array($products)) $this->syncProducts($deal, $products);
