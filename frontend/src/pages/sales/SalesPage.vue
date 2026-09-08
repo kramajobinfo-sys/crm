@@ -615,6 +615,12 @@ onMounted(async () => {
     openCreate();
     if (route.query.customer_id) docForm.data.customer_id = Number(route.query.customer_id);
     await router.replace({ name: 'sales' });
+  } else if (route.query.open) {
+    // Deep link from a Quotes row on a lead/deal: open that quotation.
+    tab.value = 'quotations';
+    await load();
+    await openDetail(Number(route.query.open));
+    await router.replace({ name: 'sales' });
   }
 });
 </script>

@@ -284,7 +284,7 @@
           <div v-else-if="detailTab === 'quotes'">
             <div v-if="quotesLoading" class="text-ink-subtle py-4 text-center">Loading…</div>
             <div v-else-if="!leadQuotes.length" class="text-ink-subtle py-4 text-center">No quotes on this lead's opportunities.</div>
-            <div v-for="q in leadQuotes" :key="q.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0">
+            <div v-for="q in leadQuotes" :key="q.id" class="flex items-center gap-1.5 py-1 border-b border-slate-100 dark:border-slate-700/60 last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-1 px-1 rounded" @click="openQuote(q.id)">
               <span class="font-mono text-[11px] text-ink dark:text-ink-dark shrink-0">{{ q.quote_no }}</span>
               <span class="text-ink-muted truncate flex-1">{{ q.deal?.title || '—' }}</span>
               <span class="text-[9px] px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-ink-muted capitalize shrink-0">{{ q.status }}</span>
@@ -629,6 +629,10 @@ function newActivity(type) {
 // Jump to the pipeline and open a specific deal.
 function openDeal(id) {
   router.push({ name: 'deals', query: { open: id } });
+}
+// Jump to Sales and open a specific quotation.
+function openQuote(id) {
+  router.push({ name: 'sales', query: { open: id } });
 }
 
 const statTiles = [
