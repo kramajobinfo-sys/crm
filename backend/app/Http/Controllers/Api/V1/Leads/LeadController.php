@@ -57,25 +57,6 @@ class LeadController extends Controller
         return $this->success(app(\App\Services\ActivityService::class)->forSubject(Lead::class, $id));
     }
 
-    /** Quotes raised on this lead's opportunities (Lead → deals → quotations). */
-    public function quotes(int $id): JsonResponse
-    {
-        $lead = Lead::findOrFail($id);
-        $dealIds = $lead->deals()->pluck('id');
-        if ($dealIds->isEmpty()) return $this->success([]);
-
-        $quotes = \App\Models\Quotation::whereIn('deal_id', $dealIds)
-            ->with('deal:id,deal_no,title')
-            ->orderByDesc('id')->get()
-            ->map(fn ($q) => [
-                'id' => $q->id, 'quote_no' => $q->quote_no, 'status' => $q->status,
-                'grand_total' => (float) $q->grand_total, 'currency' => $q->currency,
-                'issue_date' => optional($q->issue_date)->toDateString(),
-                'deal' => $q->deal ? ['id' => $q->deal->id, 'deal_no' => $q->deal->deal_no, 'title' => $q->deal->title] : null,
-            ]);
-        return $this->success($quotes);
-    }
-
     /** Campaign memberships (marketing lists) this lead belongs to. */
     public function campaignMemberships(int $id): JsonResponse
     {

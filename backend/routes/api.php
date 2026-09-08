@@ -162,7 +162,6 @@ Route::prefix('v1')->group(function () {
             Route::post  ('/',      [LeadController::class, 'store'])->middleware('permission:leads.create');
             Route::get   ('{id}',   [LeadController::class, 'show'])->middleware('permission:leads.view')->whereNumber('id');
             Route::get   ('{id}/activities', [LeadController::class, 'activities'])->middleware('permission:leads.view')->whereNumber('id');
-            Route::get   ('{id}/quotes', [LeadController::class, 'quotes'])->middleware('permission:leads.view')->whereNumber('id');
             Route::get   ('{id}/campaigns', [LeadController::class, 'campaignMemberships'])->middleware('permission:leads.view')->whereNumber('id');
             Route::post  ('{id}/campaigns', [LeadController::class, 'attachCampaign'])->middleware('permission:leads.update')->whereNumber('id');
             Route::delete('{id}/campaigns/{campaignId}', [LeadController::class, 'detachCampaign'])->middleware('permission:leads.update')->whereNumber('id')->whereNumber('campaignId');
