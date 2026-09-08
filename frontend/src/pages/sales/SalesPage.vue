@@ -324,6 +324,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, h } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
@@ -336,6 +337,8 @@ import { RefreshCw, Plus, X, Download } from 'lucide-vue-next';
 const toast = useToast();
 const { t } = useI18n();
 const auth = useAuthStore();
+const route = useRoute();
+const router = useRouter();
 const can = (p) => auth.can(p);
 
 // Tiny inline loading/empty states component to avoid repeating markup.
@@ -603,5 +606,15 @@ const statusClass = (s) => ({
   void: 'bg-slate-100 text-slate-500',
 }[s] || 'bg-slate-100 text-slate-700');
 
-onMounted(async () => { await Promise.all([load(), loadAux(), loadRefs()]); });
+onMounted(async () => {
+  await Promise.all([load(), loadAux(), loadRefs()]);
+  // Deep link from an Account/Deal "New quote" button: open a pre-filled quotation.
+  if (route.query.new === 'quotation' && can('quotations.create')) {
+    tab.value = 'quotations';
+    await load();
+    openCreate();
+    if (route.query.customer_id) docForm.data.customer_id = Number(route.query.customer_id);
+    await router.replace({ name: 'sales' });
+  }
+});
 </script>
